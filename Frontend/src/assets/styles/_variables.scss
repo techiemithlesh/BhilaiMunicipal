@@ -1,0 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+// Primary Colors
+$primary-color: #0053b3; // Government Blue - Primary branding
+$secondary-color: #2e8b57; // Jharkhand Green - Secondary tone
+$accent-color: #ffd700; // Mithila Yellow - Cultural vibrance
+
+// Background Colors
+$background-color-1: #1b1b1f; // Main dark background
+$background-color-2: #2c2c32; // Secondary background
+$background-color-3: #38383d; // Tertiary background sections
+$background-color-info: #0066ff; // Info sections or badges
+
+$page-background: #f8f9fa;
+$card-background-color: #ffffff;
+$text-main: #222222;
+
+/* Header Sections */
+$header-top-background: #1b1b1f;
+$header-sub-background: #ffffff;
+$header-top-text: #e4e4e7;
+$header-sub-text: #222222;
+
+// Card and Panel Colors
+$card-background-color: #25252a;
+$card-text-color: #f5f5f5;
+
+// Text Colors
+$text-main: #e4e4e7; // Primary readable text color
+$text-secondary: #b0b0ff; // Links, meta, less emphasis
+$text-accent: #ffd700; // Highlighted text or callouts
+
+// Border Colors
+$border-color-light: #5c5cff; // Subtle section dividers
+$border-color-dark: #333333;
+
+// Status Colors
+$success-color: #28a745; // Green for success
+$warning-color: #ffc107; // Yellow for warnings
+$danger-color: #ff5733; // Bright Orange/Red for danger
+$info-color: #17a2b8; // Cyan for information
+
+// Shadows
+$shadow-light: rgba(0, 0, 0, 0.1);
+$shadow-medium: rgba(0, 0, 0, 0.3);
+
+// Fonts (Optional, in case you define custom fonts)
+$font-primary: "Roboto", sans-serif;
