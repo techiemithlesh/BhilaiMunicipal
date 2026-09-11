@@ -50,7 +50,7 @@ const Home = () => {
   ];
 
   return (
-    <Layout title="Nagar Prishad Arwal - Home" description="Pay Property Tax, Water Tax, Trade Municipal services">
+    <Layout title="MUNICIPAL CORPORATION BHILAI - Home" description="Pay Property Tax, Water Tax, Solid Waste Charges, and more online. Access municipal services conveniently from your home.">
       <HomeSlider />
       {/* CARD CONTAINER */}
       <div className="py-10 px-4 md:px-8 bg-[#f8f9fa]">
