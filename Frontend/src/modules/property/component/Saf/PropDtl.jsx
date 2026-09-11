@@ -46,7 +46,7 @@ const PropDtl = ({
 
           <div className="">
             <label htmlFor="plotNo" className="block font-medium text-sm">
-              Plot No.
+              Plot No/Khasra No.
             </label>
             <input
               type="text"
@@ -127,74 +127,38 @@ const PropDtl = ({
             )}
           </div>
 
-          {formData.propTypeMstrId != 4 && (
-            <div>
-              <label className="block font-medium text-sm">
-                Built Up Area (In Sqft) <span className="text-red-500">*</span>
-              </label>
-
+          <div className="mt-4">
+            <div className="flex items-center space-x-2 py-2">
               <input
-                type="text"
-                inputMode="decimal"
-                name="builtupArea"
-                value={formData.builtupArea || ""}
-                placeholder="Enter built-up area"
+                type="checkbox"
+                id="isMainRoad"
+                name="isMainRoad"
+                checked={formData.isMainRoad || false}
+                disabled={isDisabled || disabledFields?.isMainRoad}
                 onChange={(e) => {
-                  const val = e.target.value
-                    .replace(/[^0-9.]/g, "")
-                    .replace(/(\..*)\./g, "$1")
-                    .replace(/^(\d*\.\d{0,2}).*$/, "$1");
-
                   handleInputChange({
-                    target: { name: "builtupArea", value: val },
+                    target: {
+                      name: "isMainRoad",
+                      value: e.target.checked,
+                    },
                   });
                 }}
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 rounded-md w-full sm:text-xs"
-                disabled={isDisabled && disabledFields?.builtupArea}
-                required={!isDisabled || !disabledFields?.builtupArea}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-
-              {error?.builtupArea && (
-                <span className="text-red-400">{error.builtupArea}</span>
-              )}
+              <label
+                htmlFor="isMainRoad"
+                className="text-sm font-normal text-gray-700"
+              >
+                Principle Main Road, If Yes Then Check
+              </label>
             </div>
-          )}
 
-          <div className="">
-            <label
-              htmlFor="roadTypeMstrId"
-              className="block font-medium text-sm"
-            >
-              Road Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="roadTypeMstrId"
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              name="roadTypeMstrId"
-              value={formData.roadTypeMstrId}
-              required={!isDisabled || !disabledFields?.roadTypeMstrId}
-              onChange={handleInputChange}
-            >
-              <option value="">Select Road Type</option>
-              {mstrData?.roadType.map((item, index) => (
-                <option key={index} value={item.id}>
-                  {item.roadType}
-                </option>
-              ))}
-            </select>
-
-            {error?.roadWidth && (
-              <span className="text-red-400">{error?.roadWidth}</span>
+            {error?.isMainRoad && (
+              <span className="text-red-400 text-xs mt-1 block">
+                {error?.isMainRoad}
+              </span>
             )}
           </div>
-
-          {/* <div className="mb-4" style={{ paddingTop: "25px" }}>
-            <span className="text-medium text-orange-400 tooltiptext">
-              In Case of No Road Enter "0"
-              <br />
-              (For Vacant Land Only)
-            </span>
-          </div> */}
         </div>
       </div>
     </div>

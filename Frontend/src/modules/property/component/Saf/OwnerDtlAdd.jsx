@@ -113,7 +113,6 @@ const OwnerDtlAdd = ({
               id={`gender-${index}`}
               className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
               name="gender"
-              required
               value={owner.gender || ""}
               onChange={(e) =>
                 handleOwnerDtlChange(index, "gender", e.target.value)
@@ -129,32 +128,6 @@ const OwnerDtlAdd = ({
             {error?.ownerErrors && error.ownerErrors[index]?.gender && (
               <span className="text-red-500">
                 {error.ownerErrors[index].gender}
-              </span>
-            )}
-          </div>
-
-          <div className="">
-            <label
-              htmlFor={`dob-${index}`}
-              className="block font-medium text-sm"
-            >
-              DOB 
-            </label>
-            <input
-              type="date"
-              id={`dob-${index}`}
-              name="dob"
-              // required
-              value={owner.dob || ""}
-              onChange={(e) =>
-                handleOwnerDtlChange(index, "dob", e.target.value)
-              }
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              disabled={isDisabled && disabledFields[index]?.dob}
-            />
-            {error?.ownerErrors && error.ownerErrors[index]?.dob && (
-              <span className="text-red-500">
-                {error.ownerErrors[index].dob}
               </span>
             )}
           </div>
@@ -224,7 +197,7 @@ const OwnerDtlAdd = ({
               htmlFor={`mobileNo-${index}`}
               className="block font-medium text-sm"
             >
-              Mobile No <span className="text-red-500">*</span>
+              Mobile No / Whatsapp No <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
@@ -235,7 +208,6 @@ const OwnerDtlAdd = ({
               required
               value={owner.mobileNo || ""}
               onChange={(e) => {
-                // Only allow digits
                 const val = e.target.value.replace(/\D/g, "");
                 handleOwnerDtlChange(index, "mobileNo", val);
               }}
@@ -251,140 +223,31 @@ const OwnerDtlAdd = ({
 
           <div className="">
             <label
-              htmlFor={`email-${index}`}
+              htmlFor={`ownerAddress-${index}`}
               className="block font-medium text-sm"
             >
-              Email Id
+              Owner Address <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              id={`email-${index}`}
-              name="email"
-              placeholder="Enter Email"
-              value={owner.email || ""}
+              id={`ownerAddress-${index}`}
+              name="ownerAddress"
+              placeholder="Enter Owner Address"
+              value={owner.ownerAddress || ""}
+              required
               onChange={(e) =>
-                handleOwnerDtlChange(index, "email", e.target.value)
+                handleOwnerDtlChange(index, "ownerAddress", e.target.value)
               }
               className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              disabled={isDisabled && disabledFields[index]?.email}
+              disabled={isDisabled && disabledFields[index]?.ownerAddress}
             />
-            {error?.ownerErrors && error.ownerErrors[index]?.email && (
+            {error?.ownerErrors && error.ownerErrors[index]?.ownerAddress && (
               <span className="text-red-500">
-                {error.ownerErrors[index].email}
+                {error.ownerErrors[index].ownerAddress}
               </span>
             )}
           </div>
 
-          <div className="">
-            <label
-              htmlFor={`adharNo-${index}`}
-              className="block font-medium text-sm"
-            >
-              Adhar No
-            </label>
-            <input
-              type="text"
-              id={`adharNo-${index}`}
-              name="adharNo"
-              maxLength={12}
-              value={owner.adharNo || ""}
-              onChange={(e) => {
-                // Only allow digits
-                const val = e.target.value.replace(/\D/g, "");
-                handleOwnerDtlChange(index, "adharNo", val);
-              }}
-              placeholder="Enter Aadhar No"
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              disabled={isDisabled && disabledFields[index]?.adharNo}
-            />
-            {error?.ownerErrors && error.ownerErrors[index]?.adharNo && (
-              <span className="text-red-500">
-                {error.ownerErrors[index].adharNo}
-              </span>
-            )}
-          </div>
-
-          <div className="">
-            <label
-              htmlFor={`panNo-${index}`}
-              className="block font-medium text-sm"
-            >
-              Pan No
-            </label>
-            <input
-              type="text"
-              id={`panNo-${index}`}
-              name="panNo"
-              maxLength={10}
-              placeholder="Enter Pan No"
-              value={owner.panNo || ""}
-              onChange={(e) =>
-                handleOwnerDtlChange(index, "panNo", e.target.value)
-              }
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              disabled={isDisabled && disabledFields[index]?.panNo}
-            />
-            {error?.ownerErrors && error.ownerErrors[index]?.panNo && (
-              <span className="text-red-500">
-                {error.ownerErrors[index].panNo}
-              </span>
-            )}
-          </div>
-
-          <div className="">
-            <label
-              htmlFor={`isArmedForce-${index}`}
-              className="block font-medium text-sm"
-            >
-              Is Armed Force <span className="text-red-500">*</span>
-            </label>
-            <select
-              id={`isArmedForce-${index}`}
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              name="isArmedForce"
-              value={owner.isArmedForce || ""}
-              onChange={(e) =>
-                handleOwnerDtlChange(index, "isArmedForce", e.target.value)
-              }
-              disabled={isDisabled && disabledFields[index]?.isArmedForce}
-            >
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </select>
-            {error?.ownerErrors && error.ownerErrors[index]?.isArmedForce && (
-              <span className="text-red-500">
-                {error.ownerErrors[index].isArmedForce}
-              </span>
-            )}
-          </div>
-
-          <div className="">
-            <label
-              htmlFor={`isSpeciallyAbled-${index}`}
-              className="block font-medium text-sm"
-            >
-              Is Specially Abled <span className="text-red-500">*</span>
-            </label>
-            <select
-              id={`isSpeciallyAbled-${index}`}
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              name="isSpeciallyAbled"
-              value={owner.isSpeciallyAbled || 0}
-              onChange={(e) =>
-                handleOwnerDtlChange(index, "isSpeciallyAbled", e.target.value)
-              }
-              disabled={isDisabled && disabledFields[index]?.isSpeciallyAbled}
-            >
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </select>
-            {error?.ownerErrors &&
-              error.ownerErrors[index]?.isSpeciallyAbled && (
-                <span className="text-red-500">
-                  {error.ownerErrors[index].isSpeciallyAbled}
-                </span>
-              )}
-          </div>
 
           <div className="flex justify-end mt-4">
             <div className="flex items-center space-x-2 bg-gray-100 shadow-md px-3 py-2 border border-gray-300 rounded-full">

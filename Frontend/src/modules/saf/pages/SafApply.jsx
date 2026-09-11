@@ -39,7 +39,7 @@ const SafApply = () => {
       </div>
     );
   }
-
+ console.log("mstrdata", mstrData);
   return (
     <div className="flex flex-col gap-4 bg-white shadow-lg mx-auto p-6 rounded-lg container-fluid">
       <AssessmentForm

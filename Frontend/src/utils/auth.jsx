@@ -20,16 +20,10 @@ export const isCitizenAuthenticated = () => {
   return true;
 };
 
-// export function clearAuth() {
-//   localStorage.removeItem("token");
-//   localStorage.removeItem("userDetails");
-//   // Remove cookies if you use them
-// }
 
 export function clearAuth() {
   Cookies.remove("token");
-  localStorage.removeItem("userDetails");
-  // Remove cookies if you use them
+  localStorage.clear();
 }
 
 export const setAuthToken = (token, userDetails) => {

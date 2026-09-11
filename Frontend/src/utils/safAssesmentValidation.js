@@ -229,23 +229,8 @@ export const validateOwnerDtl = (owner, index) => {
     errors.ownerName = `Name is required`;
   }
 
-  if (isEmptyOrWhitespace(owner.dob)) {
-    // errors.dob = `Date of birth is required`;
-  } else {
-    const today = new Date();
-    const dobDate = new Date(owner.dob);
-
-    // Remove time part to compare only dates
-    today.setHours(0, 0, 0, 0);
-    dobDate.setHours(0, 0, 0, 0);
-
-    // Date 10 years ago
-    // const tenYearsAgo = new Date();
-    // tenYearsAgo.setFullYear(today.getFullYear() - 10);
-
-    if (dobDate > today) {
-      errors.dob = `birth cannot be in the future`;
-    }
+  if (isEmptyOrWhitespace(owner.ownerAddress)) {
+    errors.ownerAddress = `Address is required`;
   }
 
   if (isEmptyOrWhitespace(owner.guardianName)) {
@@ -262,44 +247,20 @@ export const validateOwnerDtl = (owner, index) => {
     errors.mobileNo = "Enter a valid 10-digit mobile number starting with 6-9";
   }
 
-  if (!isEmptyOrWhitespace(owner.email)) {
-    // Only validate if email is not empty
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(owner.email)) {
-      errors.email = `Email is not valid`;
-    }
-  }
-
-  if (
-    isEmptyOrWhitespace(owner.aadhaarNo) &&
-    isEmptyOrWhitespace(owner.panNo)
-  ) {
-    errors.identification = `Owner must provide either Aadhaar or PAN number`;
-  } else {
-    // If Aadhaar is provided, validate its format (assuming 12 digits)
-    if (
-      !isEmptyOrWhitespace(owner.aadhaarNo) &&
-      !/^\d{12}$/.test(owner.aadhaarNo)
-    ) {
-      errors.aadhaarNo = `Aadhaar number should be 12 digits`;
-    }
-
-    // If PAN is provided, validate its format (assuming 10 alphanumeric characters)
-    if (
-      !isEmptyOrWhitespace(owner.panNo) &&
-      !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(owner.panNo)
-    ) {
-      errors.panNo = `PAN number should be in the correct format (e.g., ABCDE1234F)`;
-    }
-  }
-
   return errors;
 };
 
 export const validateFloorDtl = (floor, index, formData) => {
   let errors = [];
 
-  if (!(formData.propTypeMstrId == 4 && formData.propTypeMstrId !== "")) {
+
+
+  if (!(formData.propTypeMstrId !== "")) {
+    
+    if (isEmptyOrWhitespace(floor.zoneMasterId)) {
+      errors.zoneMasterId = `${getOrdinal(index + 1)} Zone is required`;
+    }
+
     if (isEmptyOrWhitespace(floor.floorMasterId)) {
       errors.floorMasterId = `${getOrdinal(index + 1)} Floort is required`;
     }
@@ -357,7 +318,6 @@ export const validateFloorDtl = (floor, index, formData) => {
         )} Floor's Upto date can not be in future`;
       }
 
-      // NEW: Comparison Logic (From Date should not be greater than Upto Date)
       if (dateFrom && !isNaN(dateFrom.getTime()) && dateFrom > dateUpto) {
         errors.dateFrom = `${getOrdinal(
           index + 1

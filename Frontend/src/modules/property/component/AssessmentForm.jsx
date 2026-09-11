@@ -38,8 +38,6 @@ const AssessmentForm = ({
   isEdit,
   ulbId,
 }) => {
-  // console.log("mstr data", mstrData);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,13 +48,12 @@ const AssessmentForm = ({
   const formData = useSelector((state) => state.assessment.formData);
   const swmConsumer = useSelector((state) => state.swmConsumer.swmConsumerDtl);
   const [error, setErrors] = useState({});
-  const [newWardList, setNewWardList] = useState([]);
-  const [newWardLoading, setNewWardLoading] = useState(false);
   const [apartmentList, setApartmentList] = useState([]);
   const [disabledFields, setDisabledFields] = useState({});
   const [isFormSubmit, setIsFormSubmit] = useState(false);
 
   const ulbIdL = getUserDetails()?.ulbId;
+  console.log("formData in assessment form:", formData);
 
   useEffect(() => {
     if (ulbIdL) {
@@ -237,27 +234,6 @@ const AssessmentForm = ({
       dispatch(setFormData({ hasSwm: false }));
     }
 
-    if (name === "wardMstrId") {
-      setNewWardLoading(true);
-      dispatch(setFormData({ [name]: updatedValue }));
-      dispatch(setFormData({ newWardMstrId: "" }));
-
-      try {
-        const newWardMstrId = await fetchNewWardByOldWard(
-          updatedValue,
-          token,
-          ulbId,
-        );
-        setNewWardList(newWardMstrId);
-      } catch (error) {
-        console.error("Failed to fetch new ward:", error);
-      } finally {
-        setNewWardLoading(false);
-      }
-
-      return;
-    }
-
     if (name === "isCorrAddDiffer") {
       dispatch(setFormData({ isCorrAddDiffer: checked ? 1 : 0 }));
     }
@@ -274,7 +250,6 @@ const AssessmentForm = ({
     if (formData.propTypeMstrId == 1) getApartment();
   }, [formData.propTypeMstrId]);
 
-  // console.log("formData",formData);
   const handlePreviewFormData = async (e) => {
     e.preventDefault();
 
@@ -304,8 +279,6 @@ const AssessmentForm = ({
 
       return rest;
     });
-
-    console.log("floorPayload", floorPayload);
 
     setIsLoadingGable(true);
     try {
@@ -376,9 +349,6 @@ const AssessmentForm = ({
     }
   };
 
-  console.log("ownerDtl", ownerDtl);
-  console.log("formData", formData);
-
   useEffect(() => {
     if (!propDetails) return;
 
@@ -406,39 +376,12 @@ const AssessmentForm = ({
     );
   }
 
-  // console.log("formData in assessment form:", formData);
+  
 
   return (
     <div className="container-fluid">
       <form className="flex flex-col gap-4" onSubmit={handlePreviewFormData}>
-        <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-4 bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
-          <div>
-            <label htmlFor="zoneMstrId" className="block font-medium text-sm">
-              Circle <span className="text-red-400 text-sm">*</span>
-            </label>
-            <select
-              id="zoneMstrId"
-              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              name="zoneMstrId"
-              required
-              value={formData.zoneMstrId}
-              onChange={handleInputChange}
-              disabled={
-                pathname.includes(formType) && disabledFields?.zoneMstrId
-              }
-            >
-              <option value="">Select Zone</option>
-              {mstrData?.zoneType.map((item, index) => (
-                <option key={index} value={item.id}>
-                  {item.zoneName}
-                </option>
-              ))}
-            </select>
-            {error?.zoneMstrId && (
-              <FormError name="zoneMstrId" errors={error} />
-            )}
-          </div>
-
+        <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-3 bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
           <div>
             <label htmlFor="wardMstrId" className="block font-medium text-sm">
               Ward No <span className="text-red-400 text-sm">*</span>
@@ -524,30 +467,6 @@ const AssessmentForm = ({
             </select>
             <FormError name="propTypeMstrId" errors={error} />
           </div>
-          {[3, 4].includes(Number(formData?.propTypeMstrId)) && (
-            <div className="">
-              <label
-                htmlFor="landOccupationDate"
-                className="block font-medium text-sm"
-              >
-                Date of Possession / Purchase / Acquisition (Whichever is
-                earlier) <span className="text-red-400 text-sm">*</span>
-              </label>
-              <input
-                type="date"
-                id="landOccupationDate"
-                name="landOccupationDate"
-                placeholder=""
-                value={formData.landOccupationDate}
-                required={[3, 4].includes(Number(formData?.propTypeMstrId))}
-                onChange={handleInputChange}
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              />
-              {error?.landOccupationDate && (
-                <FormError name="landOccupationDate" errors={error} />
-              )}
-            </div>
-          )}
 
           {formData.propTypeMstrId == 1 && (
             <div>
@@ -584,33 +503,67 @@ const AssessmentForm = ({
             </div>
           )}
 
-          {formData.propTypeMstrId == 1 && (
-            <div>
+          <div className="">
+            <label
+              htmlFor="roadTypeMstrId"
+              className="block font-medium text-sm"
+            >
+              Road Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="roadTypeMstrId"
+              className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
+              name="roadTypeMstrId"
+              value={formData.roadTypeMstrId}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Road Type</option>
+              {mstrData?.roadType.map((item, index) => (
+                <option key={index} value={item.id}>
+                  {item.roadType}
+                </option>
+              ))}
+            </select>
+
+            {error?.roadWidth && (
+              <span className="text-red-400">{error?.roadWidth}</span>
+            )}
+          </div>
+
+          <div className="">
+            
+            <div className="flex items-center space-x-2 mt-4 py-2">
               <label
-                htmlFor="flatRegistryDate"
-                className="block font-medium text-sm"
+                htmlFor="isMainRoad"
+                className="text-sm font-normal text-gray-700"
               >
-                Flat Registry Date{" "}
-                <span className="text-red-400 text-sm">*</span>
+                Is BPL Category ?
               </label>
               <input
-                type="date"
-                id="flatRegistryDate"
-                name="flatRegistryDate"
-                required={formData.propTypeMstrId == 1}
-                value={formData.flatRegistryDate}
-                onChange={handleInputChange}
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                disabled={
-                  pathname.includes(formType) &&
-                  disabledFields?.flatRegistryDate
-                }
+                type="checkbox"
+                id="isBpl"
+                name="isBpl"
+                checked={formData.isBpl || false}
+                onChange={(e) => {
+                  // Adapt this if your handler expects a custom event object
+                  handleInputChange({
+                    target: {
+                      name: "isBpl",
+                      value: e.target.checked,
+                    },
+                  });
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-              {error?.flatRegistryDate && (
-                <FormError name="flatRegistryDate" errors={error} />
-              )}
+              
             </div>
-          )}
+
+            {error?.isBpl && (
+              <span className="text-red-400 text-xs mt-1 block">
+                {error?.isBpl}
+              </span>
+            )}
+          </div>
 
           {formType === "Mutation" ? (
             <>
@@ -685,135 +638,11 @@ const AssessmentForm = ({
           setErrors={setErrors}
           ownerDtl={ownerDtl || []}
           setOwnerDtl={handleOwnerDtlUpdate}
-          isDisabled={pathname.includes("Reassessment")}
+          isdisabled={pathname.includes("Reassessment")}
           disabledFields={disabledFields?.owners || []}
           isSingleOwner={formData.ownershipTypeMstrId == 1}
         />
         {/* OWNER DETAILS END HERE */}
-
-        {/* ELECTRICITY DETAILS START HERE */}
-        <div className="flex flex-col gap-2 text-gray-700 text-lg electricity_details_container">
-          <h2 className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-400 shadow-md p-3 rounded-md font-bold text-white text-lg uppercase tracking-wide">
-            Electricity Details
-          </h2>
-          <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
-            <div className="gap-4 grid grid-cols-1 md:grid-cols-4">
-              <div className="">
-                <label
-                  htmlFor="electConsumerNo"
-                  className="block font-medium text-sm"
-                >
-                  Electricity K. No{" "}
-                </label>
-                <input
-                  type="text"
-                  id="electConsumerNo"
-                  name="electConsumerNo"
-                  placeholder=""
-                  value={formData.electConsumerNo}
-                  onChange={(e) => {
-                    // Only allow letters and digits
-                    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
-                    handleInputChange({
-                      target: {
-                        name: "electConsumerNo",
-                        value: val,
-                        type: "text",
-                      },
-                    });
-                  }}
-                  autoComplete="off"
-                  className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                />
-                {error?.electConsumerNo && (
-                  <FormError name="electConsumerNo" errors={error} />
-                )}
-              </div>
-
-              <div className="">
-                <label
-                  htmlFor="electAccNo"
-                  className="block font-medium text-sm"
-                >
-                  ACC No
-                </label>
-                <input
-                  type="text"
-                  id="electAccNo"
-                  name="electAccNo"
-                  placeholder=""
-                  value={formData.electAccNo}
-                  onChange={(e) => {
-                    // Only allow digits
-                    const val = e.target.value.replace(/\D/g, "");
-                    handleInputChange({
-                      target: {
-                        name: "electAccNo",
-                        value: val,
-                        type: "text",
-                      },
-                    });
-                  }}
-                  className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                />
-                {error?.electAccNo && (
-                  <FormError name="electAccNo" errors={error} />
-                )}
-              </div>
-
-              <div className="">
-                <label
-                  htmlFor="electBindBookNo"
-                  className="block font-medium text-sm"
-                >
-                  BIND/BOOK No.{" "}
-                </label>
-                <input
-                  type="text"
-                  id="electBindBookNo"
-                  name="electBindBookNo"
-                  placeholder=""
-                  value={formData.electBindBookNo}
-                  onChange={handleInputChange}
-                  className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                />
-                {error?.electBindBookNo && (
-                  <FormError name="electBindBookNo" errors={error} />
-                )}
-              </div>
-
-              <div className="">
-                <label
-                  htmlFor="electConsCategory"
-                  className="block font-medium text-sm"
-                >
-                  Electricity Consumer Category{" "}
-                </label>
-                <select
-                  id="electConsCategory"
-                  className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  name="electConsCategory"
-                  value={formData.electConsCategory}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select Category</option>
-                  {mstrData?.electricityType?.map((item, index) => {
-                    return (
-                      <option key={index} value={item}>
-                        {item}
-                      </option>
-                    );
-                  })}
-                </select>
-
-                {error?.electConsCategory && (
-                  <FormError name="electConsCategory" errors={error} />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* ELECTRICITY DETAILS END HERE HERE */}
 
         {/* PROPERTY DETAILS START HERE */}
         <PropDtl
@@ -821,7 +650,7 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isDisabled={pathname.includes(formType)}
+          isdisabled={pathname.includes(formType)}
           disabledFields={disabledFields || {}}
         />
         {/* PROPERTY DETAILS END HERE HERE */}
@@ -831,66 +660,29 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isDisabled={pathname.includes(formType)}
+          isdisabled={pathname.includes(formType)}
           disabledFields={disabledFields}
         />
         {/* PROPERTY ADDRESS END HERE */}
 
         {/* FLOOR DETAILS START HERE */}
-        {!(formData.propTypeMstrId == 4) &&
-          disabledFields?.propTypeMstrId !== "" && (
-            <FloorDtlAdd
-              mstrData={mstrData}
-              formData={formData}
-              error={error}
-              setErrors={setErrors}
-              floorDtl={floorDtl}
-              setFloorDtl={handleFloorDtlUpdate}
-              isDisabled={pathname.includes("mutation")}
-              disabledFields={disabledFields?.floors}
-            />
-          )}
-        {/* FLOOR DETAILS END HERE */}
-        {/* SWM */}
-        {formType == "New Assessment" && formData?.propTypeMstrId != 4 && (
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasSwm"
-              name="hasSwm"
-              checked={formData.hasSwm}
-              onChange={handleInputChange}
-              className="border-gray-300 rounded w-4 h-4 text-indigo-600"
-            />
-            <label
-              htmlFor="hasSwm"
-              className="block ml-2 text-yellow-600 text-sm"
-            >
-              If Swm Consumer
-            </label>
-          </div>
-        )}
-        {formData.hasSwm && (
-          <SwmConsumerAdd
-            masterData={mstrData}
+        {!disabledFields?.propTypeMstrId !== "" && (
+          <FloorDtlAdd
+            mstrData={mstrData}
+            formData={formData}
             error={error}
             setErrors={setErrors}
-            swmConsumer={swmConsumer || []}
-            setSwmConsumer={handleSwmConsumerUpdate}
+            floorDtl={floorDtl}
+            setFloorDtl={handleFloorDtlUpdate}
+            isdisabled={pathname.includes("mutation")}
+            disabledFields={disabledFields?.floors}
           />
         )}
-        {/* SWM End */}
-
-        <WaterSafPayment
-          mstrData={mstrData}
-          formData={formData}
-          error={error}
-          handleInputChange={handleInputChange}
-        />
+        {/* FLOOR DETAILS END HERE */}
 
         {/* MOBILE TOWER CONTAINER START HERE */}
-        <div className="mobile_petrol_details_container">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mobile_petrol_details_container bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <div className="">
               <label
                 htmlFor="isMobileTower"
@@ -926,29 +718,6 @@ const AssessmentForm = ({
               <>
                 <div className="">
                   <label
-                    htmlFor="towerArea"
-                    className="block font-medium text-sm"
-                  >
-                    Total Area Covered by Mobile Tower & its Supporting
-                    Equipments & Accessories (in Sq. Ft.)
-                  </label>
-                  <input
-                    type="text"
-                    id="towerArea"
-                    name="towerArea"
-                    required={formData.isMobileTower}
-                    placeholder=""
-                    value={formData.towerArea}
-                    onChange={handleInputChange}
-                    className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  />
-                  {error?.towerArea && (
-                    <FormError name="towerArea" errors={error} />
-                  )}
-                </div>
-
-                <div className="">
-                  <label
                     htmlFor="towerInstallationDate"
                     className="block font-medium text-sm"
                   >
@@ -971,223 +740,334 @@ const AssessmentForm = ({
                 </div>
               </>
             )}
-
-            <div className="">
-              <label
-                htmlFor="isHoardingBoard"
-                className="block font-medium text-sm"
-              >
-                Does Property Have Hoarding Board(s) ?{" "}
-                <span className="text-red-400 text-sm">*</span>
-              </label>
-              <select
-                id="isHoardingBoard"
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                name="isHoardingBoard"
-                value={formData.isHoardingBoard}
-                onChange={(e) =>
-                  handleInputChange({
-                    target: {
-                      name: "isHoardingBoard",
-                      value: e.target.value === "true",
-                      type: "select",
-                    },
-                  })
-                }
-              >
-                <option value={false}>No</option>
-                <option value={true}>Yes</option>
-              </select>
-              {error?.isHoardingBoard && (
-                <FormError name="isHoardingBoard" errors={error} />
-              )}
-            </div>
-
-            {formData.isHoardingBoard && (
-              <>
-                <div className="">
-                  <label
-                    htmlFor="hoardingArea"
-                    className="block font-medium text-sm"
-                  >
-                    Total Area of Wall / Roof / Land (in Sq. Ft.){" "}
-                    <span className="text-red-400 text-sm">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="hoardingArea"
-                    name="hoardingArea"
-                    required={formData.isHoardingBoard}
-                    placeholder=""
-                    value={formData.hoardingArea}
-                    onChange={handleInputChange}
-                    className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  />
-                  {error?.hoardingArea && (
-                    <FormError name="hoardingArea" errors={error} />
-                  )}
-                </div>
-
-                <div className="">
-                  <label
-                    htmlFor="hoardingInstallationDate"
-                    className="block font-medium text-sm"
-                  >
-                    Date of Installation of Hoarding Board(s){" "}
-                    <span className="text-red-400 text-sm">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="hoardingInstallationDate"
-                    name="hoardingInstallationDate"
-                    required={formData.isHoardingBoard}
-                    value={formData.hoardingInstallationDate}
-                    onChange={handleInputChange}
-                    className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  />
-                  {error?.hoardingInstallationDate && (
-                    <FormError name="hoardingInstallationDate" errors={error} />
-                  )}
-                </div>
-              </>
-            )}
             {/* MOBILE TOWER CONTAINER END HERE */}
+          </div>
 
-            <div className="">
-              <label
-                htmlFor="isPetrolPump"
-                className="block font-medium text-sm"
-              >
-                Is property a Petrol Pump ?{" "}
-                <span className="text-red-400 text-sm">*</span>
-              </label>
-              <select
-                id="isPetrolPump"
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                name="isPetrolPump"
-                value={formData.isPetrolPump}
-                onChange={(e) =>
-                  handleInputChange({
-                    target: {
-                      name: "isPetrolPump",
-                      value: e.target.value === "true",
-                      type: "select",
-                    },
-                  })
-                }
-              >
-                <option value={false}>No</option>
-                <option value={true}>Yes</option>
-              </select>
-              {error?.isPetrolPump && (
-                <FormError name="isPetrolPump" errors={error} />
-              )}
-            </div>
+          {/* CHECKBOXES */}
 
-            {formData.isPetrolPump && (
-              <>
-                <div className="">
-                  <label
-                    htmlFor="underGroundArea"
-                    className="block font-medium text-sm"
-                  >
-                    Underground Storage Area (in Sq. Ft.){" "}
-                    <span className="text-red-400 text-sm">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="underGroundArea"
-                    name="underGroundArea"
-                    required={formData.isPetrolPump}
-                    placeholder=""
-                    value={formData.underGroundArea}
-                    onChange={handleInputChange}
-                    className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  />
-                  {error?.underGroundArea && (
-                    <FormError name="underGroundArea" errors={error} />
-                  )}
-                </div>
-
-                <div className="">
-                  <label
-                    htmlFor="petrolPumpCompletionDate"
-                    className="block font-medium text-sm"
-                  >
-                    Completion Date of Petrol Pump{" "}
-                    <span className="text-red-400 text-sm">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="petrolPumpCompletionDate"
-                    name="petrolPumpCompletionDate"
-                    required={formData.isPetrolPump}
-                    value={formData.petrolPumpCompletionDate}
-                    onChange={handleInputChange}
-                    className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                  />
-                  {error?.petrolPumpCompletionDate && (
-                    <FormError name="petrolPumpCompletionDate" errors={error} />
-                  )}
-                </div>
-              </>
-            )}
-
-            <div className="">
-              <label
-                htmlFor="isWaterHarvesting"
-                className="block font-medium text-sm"
-              >
-                Rainwater harvesting provision ?{" "}
-                <span className="text-red-400 text-sm">*</span>
-              </label>
-              <select
-                id="isWaterHarvesting"
-                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                name="isWaterHarvesting"
-                value={formData.isWaterHarvesting}
-                onChange={(e) =>
-                  handleInputChange({
-                    target: {
-                      name: "isWaterHarvesting",
-                      value: e.target.value === "true",
-                      type: "select",
-                    },
-                  })
-                }
-              >
-                <option value={false}>No</option>
-                <option value={true}>Yes</option>
-              </select>
-              {error?.isWaterHarvesting && (
-                <FormError name="isWaterHarvesting" errors={error} />
-              )}
-            </div>
-
-            {formData.isWaterHarvesting && (
+          <ul className="list-disc pl-5 mt-4">
+            <li>
               <div className="">
-                <label
-                  htmlFor="waterHarvestingDate"
-                  className="block font-medium text-sm"
-                >
-                  Completion Date of Rain Water Harvesting
-                  <span className="text-red-400 text-sm">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="waterHarvestingDate"
-                  name="waterHarvestingDate"
-                  required={formData.isWaterHarvesting}
-                  value={formData.waterHarvestingDate}
-                  onChange={handleInputChange}
-                  className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-                />
-                {error?.waterHarvestingDate && (
-                  <FormError name="waterHarvestingDate" errors={error} />
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    Does Property belongs to Widow/Abandoment/Mentally
+                    Disable/Visually Impaired? If Yes Than Check
+                  </label>
+
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
                 )}
               </div>
-            )}
-          </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    Does Property belongs with name of Ex-Army? And have Income
+                    Tax Exempted From GOVT. If Yes Than Check
+                  </label>
+
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    Does Property belong to Physically Disable? If Yes Than
+                    Check
+                  </label>
+
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    Old Property waived Off In 2026-2027
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    If Property belongs to IHSDP? If Yes Than Check
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    If School? If Yes Than Check
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    If Complex? If Yes Than Check
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    If Chabutra? If Yes Than Check
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+
+            <li>
+              <div className="">
+                <div className="flex items-center space-x-2 py-2">
+                  <label
+                    htmlFor="isMainRoad"
+                    className="text-sm font-normal text-gray-700"
+                  >
+                    If Holding Belongs To Shop? If Yes Than Check
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="isMainRoad"
+                    name="isMainRoad"
+                    checked={formData.isMainRoad || false}
+                    onChange={(e) => {
+                      // Adapt this if your handler expects a custom event object
+                      handleInputChange({
+                        target: {
+                          name: "isMainRoad",
+                          value: e.target.checked,
+                        },
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {error?.isMainRoad && (
+                  <span className="text-red-400 text-xs mt-1 block">
+                    {error?.isMainRoad}
+                  </span>
+                )}
+              </div>
+            </li>
+          </ul>
+
+          {/* CHECKBOXES END HERE */}
         </div>
 
         <div className="text-center">
@@ -1196,7 +1076,7 @@ const AssessmentForm = ({
             className={`items-center px-4 py-2 rounded text-white ${
               isFormSubmit ? "btn-secondary" : "btn-primary"
             }`}
-            isDisabled={isFormSubmit}
+            isdisabled={isFormSubmit}
           >
             Submit
           </button>

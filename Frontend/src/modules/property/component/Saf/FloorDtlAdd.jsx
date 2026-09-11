@@ -84,6 +84,40 @@ const FloorDtlAdd = ({
           key={index}
         >
           <div className="gap-4 grid grid-cols-1 md:grid-cols-4">
+
+            <div>
+              <label
+                htmlFor={`floorMasterId-${index}`}
+                className="block mb-1 font-semibold text-sm"
+              >
+                Zone <span className="text-sm text-red-400">*</span>
+              </label>
+              <select
+                id={`zoneMasterId-${index}`}
+                className="block bg-white shadow px-3 py-2 border border-gray-300 focus:border-blue-500 rounded-md focus:outline-none focus:ring-blue-500 w-full text-sm"
+                name="zoneMasterId"
+                required
+                value={floor.zoneMasterId || ""}
+                onChange={(e) =>
+                  handleFloorDtl(index, "zoneMasterId", e.target.value)
+                }
+                disabled={isDisabled && disabledFields[index]?.zoneMasterId}
+              >
+                <option value="">Select Zone</option>
+                {mstrData?.zoneType.map((zone, idx) => (
+                  <option key={idx} value={zone.id}>
+                    {zone.zoneName}
+                  </option>
+                ))}
+              </select>
+              {error?.floorErrors &&
+                error.floorErrors[index]?.floorMasterId && (
+                  <span className="text-sm text-red-400 text-xs">
+                    {error.floorErrors[index].floorMasterId}
+                  </span>
+                )}
+            </div>
+
             <div>
               <label
                 htmlFor={`floorMasterId-${index}`}
@@ -332,7 +366,10 @@ const FloorDtlAdd = ({
               )}
             </div>
 
-            <div className="flex flex-col justify-end items-end gap-2">
+            
+          </div>
+
+          <div className="flex flex-col justify-end items-end gap-2">
               <div className="flex items-center space-x-2 bg-blue-50 shadow px-3 py-2 border border-blue-200 rounded-full">
                 <button
                   onClick={handleFloorAdd}
@@ -356,7 +393,7 @@ const FloorDtlAdd = ({
                 )}
               </div>
             </div>
-          </div>
+            
         </div>
       ))}
     </div>

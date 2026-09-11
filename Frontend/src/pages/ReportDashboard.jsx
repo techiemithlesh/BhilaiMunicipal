@@ -240,32 +240,6 @@ function ReportDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Last Financial Year */}
-        {/* <div className="bg-white shadow p-6 rounded-2xl">
-          <h2 className="mb-4 font-bold text-lg">
-            Upto Last Financial Year 2021-2022
-          </h2>
-          <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
-            <StatBox label="Total SAF" value="221590" />
-            <StatBox label="New Assessment" value="131689" />
-            <StatBox label="Reassessment" value="62156" />
-            <StatBox label="Mutation" value="27734" />
-            <StatBox label="Mutation With Reassessment" value="1" />
-            <StatBox label="Mutation with Reassessment" value="10" />
-          </div>
-        </div> */}
-
-        {/* Pending Report - Last Year */}
-        {/* <div className="bg-white shadow p-6 rounded-2xl">
-          <h2 className="mb-4 font-bold text-lg">Property Pending Report</h2>
-          <div className="gap-4 grid md:grid-cols-4">
-            <PendingBox role="Dealing Assistant" value="14" />
-            <PendingBox role="Tax Collector" value="2143" />
-            <PendingBox role="Section Head" value="335" />
-            <PendingBox role="Executive Officer" value="67" />
-          </div>
-        </div> */}
       </div>
     </AdminLayout>
   );
