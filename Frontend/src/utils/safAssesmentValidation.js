@@ -6,15 +6,8 @@ import {
   validateCurrentAddress,
   validateCurrPinCode,
   validateCurrState,
-  validateElectricAccount,
-  validateElectricBindBookNo,
-  validateElectricCategory,
-  validateFlatRegistryDate,
-  validateHoardingArea,
-  validateHoardingInstallationDate,
   validateKhataNo,
   validateMaujaName,
-  validateNewWardNo,
   validateOldWardNo,
   validateOwnershipType,
   validatePinCode,
@@ -26,10 +19,8 @@ import {
   validatePropState,
   validateRoadWidth,
   validateTowerArea,
-  validateTowerInstallationDate,
   validateWaterConnectionDate,
   validateWaterConnectionNo,
-  validateZone,
 } from "./validation";
 
 export const validateFormData = (name, value, formData) => {
@@ -38,12 +29,6 @@ export const validateFormData = (name, value, formData) => {
   switch (name) {
     case "wardMstrId":
       errorMessage = validateOldWardNo(value);
-      break;
-
-    case "newWardMstrId":
-      if (formData.wardMstrId !== "") {
-        errorMessage = validateNewWardNo(value);
-      }
       break;
 
     case "ownershipTypeMstrId":
@@ -58,39 +43,7 @@ export const validateFormData = (name, value, formData) => {
       if (formData.propTypeMstrId == 3 && !value) {
         errorMessage = validateAppartment(value);
       }
-      break;
 
-    case "flatRegistryDate":
-      if (value !== "") {
-        errorMessage = validateFlatRegistryDate(value);
-      }
-      break;
-
-    case "zoneMstrId":
-      errorMessage = validateZone(value);
-      break;
-
-    case "electConsumerNo":
-      if (formData.electAccNo === "" && !value) {
-        errorMessage =
-          "Electric Khata No is required in case no Electric Account No / Bind Book No";
-      }
-      break;
-
-    case "electAccNo":
-      if (formData.electConsumerNo === "" && !value) {
-        errorMessage = validateElectricAccount(value);
-      }
-      break;
-
-    case "electBindBookNo":
-      if (formData.electConsumerNo === "" && !value) {
-        errorMessage = validateElectricBindBookNo(value);
-      }
-      break;
-
-    case "electConsCategory":
-      errorMessage = validateElectricCategory(value);
       break;
 
     case "propAddress":
@@ -166,32 +119,11 @@ export const validateFormData = (name, value, formData) => {
       errorMessage = validateWaterConnectionNo(value);
       break;
 
-    // case "waterConnDate":
-    //   errorMessage = validateWaterConnectionDate(value);
-    //   break;
-
     case "towerArea":
       if (formData.isMobileTower === "1") {
         errorMessage = validateTowerArea(value);
       }
       break;
-
-    case "towerInstallationDate":
-      if (formData.isMobileTower === "1") {
-        errorMessage = validateTowerInstallationDate(value);
-      }
-      break;
-
-    case "hoardingArea":
-      if (formData.isHoardingBoard === "1") {
-        errorMessage = validateHoardingArea(value);
-      }
-      break;
-
-    case "hoardingInstallationDate":
-      if (formData.isHoardingBoard === "1") {
-        errorMessage = validateHoardingInstallationDate(value);
-      }
 
     case "waterHarvestingDate":
       if (formData.isWaterHarvesting === "1") {

@@ -23,7 +23,6 @@ import { applyDefaults } from "../../../utils/initDefaultFormFields";
 import { applyOwnerDefaults } from "../../../utils/initOwnerDefaults";
 import FormError from "../../../components/common/FormError";
 import { formatYearMonth } from "../../../utils/common";
-import { fetchNewWardByOldWard } from "../../../utils/commonFunc";
 import toast from "react-hot-toast";
 import { getUserDetails } from "../../../utils/auth";
 
@@ -140,9 +139,6 @@ const AssessmentForm = ({
     dispatch(setOwnerDtl(updated));
   };
 
-  const handleSwmConsumerUpdate = (updated) => {
-    dispatch(setSwmConsumerDtl(updated));
-  };
 
   const getApartment = async () => {
     setIsLoadingGable(true);
@@ -299,10 +295,9 @@ const AssessmentForm = ({
               formData: payload,
               ownerDtl,
               floorDtl: floorPayload,
-              swmConsumer,
               mstrData,
-              newWardList,
               apartmentList,
+              swmConsumer: swmDetails,
             },
           });
         } else if (response.data.errors) {

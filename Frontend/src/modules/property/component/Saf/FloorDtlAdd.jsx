@@ -91,15 +91,15 @@ const FloorDtlAdd = ({
                 Zone <span className="text-sm text-red-400">*</span>
               </label>
               <select
-                id={`zoneMasterId-${index}`}
+                id={`zoneMstrId-${index}`}
                 className="block bg-white shadow px-3 py-2 border border-gray-300 focus:border-blue-500 rounded-md focus:outline-none focus:ring-blue-500 w-full text-sm"
-                name="zoneMasterId"
+                name="zoneMstrId"
                 required
-                value={floor.zoneMasterId || ""}
+                value={floor.zoneMstrId || ""}
                 onChange={(e) =>
-                  handleFloorDtl(index, "zoneMasterId", e.target.value)
+                  handleFloorDtl(index, "zoneMstrId", e.target.value)
                 }
-                disabled={isDisabled && disabledFields[index]?.zoneMasterId}
+                disabled={isDisabled && disabledFields[index]?.zoneMstrId}
               >
                 <option value="">Select Zone</option>
                 {mstrData?.zoneType.map((zone, idx) => (

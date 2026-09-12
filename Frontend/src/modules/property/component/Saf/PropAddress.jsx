@@ -192,10 +192,10 @@ const PropAddress = ({
 
       {formData.isCorrAddDiffer === 1 && (
         <div className="my-4 p-4 border border-slate-400 rounded-md">
-          {/* Property Address Field */}
+          {/* Correspondence Address Field */}
           <div className="my-2 w-full">
             <label htmlFor="corrAddress" className="block font-medium text-sm">
-              Property Address <span className="text-red-500">*</span>
+              Correspondence Address <span className="text-red-500">*</span>
             </label>
             <textarea
               id="corrAddress"

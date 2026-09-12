@@ -101,7 +101,7 @@ class RequestAddSaf extends ParentRequest
             "previousHoldingId"=>"nullable|required_unless:assessmentType,New Assessment",
             "transferModeMstrId"=>"nullable|required_if:assessmentType,Mutation|int",
             "percentageOfPropertyTransfer"=>"nullable|required_if:assessmentType,Mutation|numeric|min:0.1|max:100",
-            "zoneMstrId"=>"required|int|regex:/^[0-9]+$/|exists:".$this->_ZoneMaster->getConnectionName().".".$this->_ZoneMaster->getTable().",id",
+            // "zoneMstrId"=>"required|int|regex:/^[0-9]+$/|exists:".$this->_ZoneMaster->getConnectionName().".".$this->_ZoneMaster->getTable().",id",
             "roadTypeMstrId"=>"required|int|exists:".$this->_RoadTypeMaster->getConnectionName().".".$this->_RoadTypeMaster->getTable().",id",   
             // "roadWidth"=>"nullable|numeric|".($this->propTypeMstrId==4 ? "min:0":"min:0.5")."|max:499",
             "appartmentDetailsId"=>[
@@ -114,31 +114,42 @@ class RequestAddSaf extends ParentRequest
                     return $query->where('ulb_id', $this->ulbId);
                 }),
             ],
-            "flatRegistryDate"=>"nullable|required_if:propTypeMstrId,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+            // "flatRegistryDate"=>"nullable|required_if:propTypeMstrId,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
             "khataNo"=>"nullable",
             "plotNo"=>"nullable",
             "villageMaujaName"=>"required",
             "areaOfPlot"=>"required|numeric|min:0.1",
-            "builtupArea"=>"nullable|required_unless:propTypeMstrId,4|numeric|min:0".($this->areaOfPlot ? "|max:".($this->areaOfPlot) : ""),
+            // "builtupArea"=>"nullable|required_unless:propTypeMstrId,4|numeric|min:0".($this->areaOfPlot ? "|max:".($this->areaOfPlot) : ""),
             "propAddress"=>"required",
             "propCity"=>"required",
             "propDist"=>"required",
             "propPinCode"=>"required|int|regex:/[0-9]{6}/",
             "propState"=>"required",
-            "isMobileTower"=>"required|boolean",
-            "towerArea"=>"nullable|required_if:isMobileTower,true,1|numeric|min:0.1",
+            "isMobileTower"=>"required|boolean:in:true,false",
+            // "towerArea"=>"nullable|required_if:isMobileTower,true,1|numeric|min:0.1",
             "towerInstallationDate"=>"nullable|required_if:isMobileTower,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-            "isHoardingBoard"=>"required|boolean",
-            "hoardingArea"=>"nullable|required_if:isHoardingBoard,true,1|numeric|min:0.1",
-            "hoardingInstallationDate"=>"nullable|required_if:isHoardingBoard,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-            "isPetrolPump"=>"nullable|required_if:propTypeMstrId,1,2,3|boolean",
-            "underGroundArea"=>"nullable|required_if:isPetrolPump,true,1|numeric|min:0.1",
-            "petrolPumpCompletionDate"=>"nullable|required_if:isPetrolPump,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+            // "isHoardingBoard"=>"required|boolean",
+            // "hoardingArea"=>"nullable|required_if:isHoardingBoard,true,1|numeric|min:0.1",
+            // "hoardingInstallationDate"=>"nullable|required_if:isHoardingBoard,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+            // "isPetrolPump"=>"nullable|required_if:propTypeMstrId,1,2,3|boolean",
+            // "underGroundArea"=>"nullable|required_if:isPetrolPump,true,1|numeric|min:0.1",
+            // "petrolPumpCompletionDate"=>"nullable|required_if:isPetrolPump,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
             "isWaterHarvesting"=>"nullable|required_if:propTypeMstrId,1,2,3,5|boolean",
             "waterHarvestingDate"=>"nullable|required_if:isWaterHarvesting,true,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-            "landOccupationDate"=>"nullable|required_if:propTypeMstrId,3,4|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-            "waterConnectionFacilityTypeId"=>"required|exists:".$this->_WaterConnectionFacilityType->getConnectionName().".".$this->_WaterConnectionFacilityType->getTable().",id",
-            "waterTaxTypeId"=>"required|exists:".$this->_WaterTaxType->getConnectionName().".".$this->_WaterTaxType->getTable().",id",
+            // "landOccupationDate"=>"nullable|required_if:propTypeMstrId,3,4|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+            // "waterConnectionFacilityTypeId"=>"required|exists:".$this->_WaterConnectionFacilityType->getConnectionName().".".$this->_WaterConnectionFacilityType->getTable().",id",
+            // "waterTaxTypeId"=>"required|exists:".$this->_WaterTaxType->getConnectionName().".".$this->_WaterTaxType->getTable().",id",
+
+            "isWidow"=>"required|boolean:in:true,false",
+            "isSchool"=>"required|boolean:in:true,false",
+            "isComplex"=>"required|boolean:in:true,false",
+            "isDp"=>"required|boolean:in:true,false",
+            "isExArmy"=>"required|boolean:in:true,false",
+            "isDisabledPerson"=>"required|boolean:in:true,false",
+            "isOldProperty"=>"required|boolean:in:true,false",
+            "isChabutra"=>"required|boolean:in:true,false",
+            "isShopHolding"=>"required|boolean:in:true,false",
+            "isBpl"=>"required|boolean:in:true,false",
             
             "ownerDtl"=>"required|array",
             "ownerDtl.*.ownerName"=>"required",
@@ -150,11 +161,20 @@ class RequestAddSaf extends ParentRequest
             "ownerDtl.*.aadharNo"=>"nullable|digits:12|regex:/[0-9]{12}/",
             "ownerDtl.*.gender"=>"required|in:Male,Female,Other",
             "ownerDtl.*.dob"=>"nullable|date|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-            "ownerDtl.*.isArmedForce"=>"required|boolean",
-            "ownerDtl.*.isSpeciallyAbled"=>"required|boolean",
+            // "ownerDtl.*.isArmedForce"=>"required|boolean",
+            // "ownerDtl.*.isSpeciallyAbled"=>"required|boolean",
 
             "floorDtl"=>"nullable|required_unless:propTypeMstrId,4|array",
-            "floorDtl.*.builtupArea"=>"nullable|required_unless:propTypeMstrId,4|numeric|min:0.1|max:".($this->builtupArea?$this->builtupArea:"0.2"),
+            "floorDtl.*.zoneMstrId"=>[
+                "required",
+                "regex:/^[0-9]+$/",
+                Rule::exists($this->_ZoneMaster->getConnectionName().".".$this->_ZoneMaster->getTable(), 'id')
+                ->where(function ($query){
+                    return $query->where('lock_status', false);
+                }),
+            ],
+
+            "floorDtl.*.builtupArea"=>"nullable|required_unless:propTypeMstrId,4|numeric|min:0.1|max:".($this->areaOfPlot?$this->areaOfPlot:"0.2"),
             "floorDtl.*.dateFrom"=>"nullable|required_unless:propTypeMstrId,4|date|date_format:Y-m|before_or_equal:".Carbon::now()->format("Y-m"),
             "floorDtl.*.dateUpto"=>[
                 "nullable",
@@ -167,7 +187,6 @@ class RequestAddSaf extends ParentRequest
                     {
                         $fail('The '.$attribute.' field must be a date after or equal to '.$this->floorDtl[$key]["dateFrom"]);
                     }
-
                 },
             ],
             "floorDtl.*.floorMasterId"=>[
@@ -207,42 +226,42 @@ class RequestAddSaf extends ParentRequest
                 }),
             ],
 
-            "swmConsumer"=>"nullable|array",//|required_unless:propTypeMstrId,4
-            "swmConsumer.*.occupancyTypeMasterId"=>[
-                "required",
-                // "required_unless:propTypeMstrId,4",
-                "regex:/^[0-9]+$/",
-                Rule::exists($this->_OccupancyTypeMaster->getConnectionName().".".$this->_OccupancyTypeMaster->getTable(), 'id')
-                ->where(function ($query){
-                    return $query->where('lock_status', false);
-                }),
-            ],
-            "swmConsumer.*.categoryTypeMasterId"=>[
-                "required",
-                // "required_unless:propTypeMstrId,4",
-                "regex:/^[0-9]+$/",
-                Rule::exists($this->_SwmCategoryTypeMaster->getConnectionName().".".$this->_SwmCategoryTypeMaster->getTable(), 'id')
-                ->where(function ($query){
-                    return $query->where('lock_status', false);
-                }),
-            ],
-            "swmConsumer.*.subCategoryTypeMasterId"=>[
-                "required",
-                // "required_unless:propTypeMstrId,4",
-                "regex:/^[0-9]+$/",
-                Rule::exists($this->_SwmSubCategoryTypeMaster->getConnectionName().".".$this->_SwmSubCategoryTypeMaster->getTable(), 'id')
-                ->where(function ($query){
-                    return $query->where('lock_status', false);
-                }),
-            ],
-            "swmConsumer.*.category"=>"required|in:APL,BPL",//|required_unless:propTypeMstrId,4
-            "swmConsumer.*.dateOfEffective"=>"required|date|date_format:Y-m|before_or_equal:".Carbon::now()->format("Y-m"),//required_unless:propTypeMstrId,4|
-            "swmConsumer.*.ownerName"=>"required",
-            "swmConsumer.*.guardianName"=>"nullable",
-            "swmConsumer.*.relationType"=>"nullable|required_with:swmConsumer.*.guardianName|in:S/O,D/O,W/O,C/O",
-            "swmConsumer.*.mobileNo"=>"required|digits:10|regex:/[0-9]{10}/",
-            "swmConsumer.*.email"=>"nullable|email",
-            "swmConsumer.*.gender"=>"nullable|in:Male,Female,Other",
+            // "swmConsumer"=>"nullable|array",//|required_unless:propTypeMstrId,4
+            // "swmConsumer.*.occupancyTypeMasterId"=>[
+            //     "required",
+            //     // "required_unless:propTypeMstrId,4",
+            //     "regex:/^[0-9]+$/",
+            //     Rule::exists($this->_OccupancyTypeMaster->getConnectionName().".".$this->_OccupancyTypeMaster->getTable(), 'id')
+            //     ->where(function ($query){
+            //         return $query->where('lock_status', false);
+            //     }),
+            // ],
+            // "swmConsumer.*.categoryTypeMasterId"=>[
+            //     "required",
+            //     // "required_unless:propTypeMstrId,4",
+            //     "regex:/^[0-9]+$/",
+            //     Rule::exists($this->_SwmCategoryTypeMaster->getConnectionName().".".$this->_SwmCategoryTypeMaster->getTable(), 'id')
+            //     ->where(function ($query){
+            //         return $query->where('lock_status', false);
+            //     }),
+            // ],
+            // "swmConsumer.*.subCategoryTypeMasterId"=>[
+            //     "required",
+            //     // "required_unless:propTypeMstrId,4",
+            //     "regex:/^[0-9]+$/",
+            //     Rule::exists($this->_SwmSubCategoryTypeMaster->getConnectionName().".".$this->_SwmSubCategoryTypeMaster->getTable(), 'id')
+            //     ->where(function ($query){
+            //         return $query->where('lock_status', false);
+            //     }),
+            // ],
+            // "swmConsumer.*.category"=>"required|in:APL,BPL",//|required_unless:propTypeMstrId,4
+            // "swmConsumer.*.dateOfEffective"=>"required|date|date_format:Y-m|before_or_equal:".Carbon::now()->format("Y-m"),//required_unless:propTypeMstrId,4|
+            // "swmConsumer.*.ownerName"=>"required",
+            // "swmConsumer.*.guardianName"=>"nullable",
+            // "swmConsumer.*.relationType"=>"nullable|required_with:swmConsumer.*.guardianName|in:S/O,D/O,W/O,C/O",
+            // "swmConsumer.*.mobileNo"=>"required|digits:10|regex:/[0-9]{10}/",
+            // "swmConsumer.*.email"=>"nullable|email",
+            // "swmConsumer.*.gender"=>"nullable|in:Male,Female,Other",
         ];//dd($rules);
         return $rules;
     }

@@ -28,12 +28,10 @@ export default function Preview() {
     formData,
     ownerDtl,
     floorDtl,
-    swmConsumer,
     mstrData,
-    newWardList,
     apartmentList,
+    swmConsumer,
   } = state || {};
-  console.log("swmConsumerDtl", state);
 
   const buildPayload = () =>
     formData?.propTypeMstrId === 4
@@ -70,6 +68,8 @@ export default function Preview() {
     return item ? item[key] : "N/A";
   };
 
+  console.log("formData", formData);
+
   if (!formData)
     return (
       <div className="mx-auto my-10 text-center container">
@@ -88,12 +88,11 @@ export default function Preview() {
     const rawPayload = buildPayload();
     // normalize numbers/booleans and dates
     const finalPayload = normalizePayload(rawPayload);
-    const swmDetails = formData?.hasSwm ? swmConsumer : [];
     setIsLoadingGable(true);
     try {
       const { data: res } = await axios.post(
         safApplyApi,
-        { ...finalPayload, swmConsumer: swmDetails },
+        { ...finalPayload },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -117,7 +116,6 @@ export default function Preview() {
         dispatch(clearForm());
         dispatch(clearFloorDtl());
         dispatch(clearOwnerDtl());
-        dispatch(clearSwmConsumerDtl());
       } else {
         toast.error(res?.message);
       }
@@ -132,7 +130,6 @@ export default function Preview() {
     return list.find((item) => String(item.id) === String(id))?.[key] || "";
   };
 
-  console.log("taxDtl", taxDtl);
 
   return (
     <>
@@ -144,14 +141,6 @@ export default function Preview() {
             <DetailCard
               label="Assessment Type"
               value={formData?.assessmentType || "New Assessment"}
-            />
-            <DetailCard
-              label="Circle"
-              value={findName(
-                mstrData.zoneType,
-                formData?.zoneMstrId,
-                "zoneName",
-              )}
             />
             <DetailCard
               label="Ward No"
@@ -178,27 +167,15 @@ export default function Preview() {
                 "propertyType",
               )}
             />
-            {[3, 4].includes(Number(formData?.propTypeMstrId)) && (
+            {Number(formData?.propTypeMstrId) === 1 && (
               <DetailCard
-                label="Date of Possession"
-                value={formData?.landOccupationDate}
+                label="Apartment Name"
+                value={findName(
+                  apartmentList,
+                  formData?.appartmentDetailsId,
+                  "apartmentName",
+                )}
               />
-            )}
-            {formData?.propTypeMstrId === 3 && (
-              <>
-                <DetailCard
-                  label="Apartment Name"
-                  value={findName(
-                    apartmentList,
-                    formData?.appartmentDetailsId,
-                    "apartmentName",
-                  )}
-                />
-                <DetailCard
-                  label="Flat Registry Date"
-                  value={formData?.flatRegistryDate}
-                />
-              </>
             )}
             <DetailCard
               label="Road Type"
@@ -208,31 +185,16 @@ export default function Preview() {
                 "roadType",
               )}
             />
+            <DetailCard
+              label="BPL Category"
+              value={formData?.isBpl ? "YES" : "NO"}
+            />
           </div>
         </section>
 
         {/* Owner Details */}
         <OwnerTable data={ownerDtl} />
 
-        {/* Electricity Details */}
-        <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-          <h2 className="font-semibold text-xl">Electricity Details</h2>
-          <div className="gap-4 grid sm:grid-cols-2 md:grid-cols-4 bg-gray-50 rounded">
-            <DetailCard
-              label="Electricity K. No"
-              value={formData?.electConsumerNo}
-            />
-            <DetailCard label="ACC No" value={formData?.electAccNo} />
-            <DetailCard
-              label="BIND/BOOK No."
-              value={formData?.electBindBookNo}
-            />
-            <DetailCard
-              label="Electricity Consumer Category"
-              value={formData?.electConsCategory}
-            />
-          </div>
-        </section>
 
         {/* Property Details */}
         <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
@@ -245,55 +207,14 @@ export default function Preview() {
               value={formData?.villageMaujaName}
             />
             <DetailCard
-              label="Area of Plot (in Decimal)"
+              label="Area of Plot (in Sqft)"
               value={formData?.areaOfPlot}
-            />
-
-            <DetailCard
-              label="Built Up Area (In Sqft) "
-              value={formData?.builtupArea}
             />
 
             {/* Add more fields as per your PropDtl component */}
           </div>
         </section>
 
-        {/* Water Tax Details */}
-        <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-          <h2 className="font-semibold text-xl">Water One Time Payment</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailCard
-              label="Water Connection Facility"
-              value={findName(
-                mstrData.waterFacility,
-                formData?.waterConnectionFacilityTypeId,
-                "facilityType",
-              )}
-            />
-
-            <DetailCard
-              label="Water Tax Type"
-              value={findName(
-                mstrData.waterTax,
-                formData?.waterTaxTypeId,
-                "taxType",
-              )}
-            />
-
-            {/* NOTE */}
-            <div className="col-span-full mt-2">
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-md">
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  <span className="font-semibold">Note:</span> Water Tax is a
-                  one-time tax and is applicable only if you are doing your
-                  assessment for the first time or if you have never paid it
-                  earlier.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Property Address */}
         <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
@@ -498,29 +419,19 @@ const OwnerTable = ({ data }) =>
         "SL",
         "Name",
         "Gender",
-        "DOB",
         "Guardian Name",
         "Relation",
-        "Aadhar No.",
         "Mobile No.",
-        "Email",
-        "Pan No.",
-        "Is Armed Force?",
-        "Is Specially Abled?",
+        "Address"
       ]}
       rows={data.map((o, i) => [
         i + 1,
         o.ownerName,
         o.gender,
-        o.dob,
         o.guardianName,
         o.relationType,
-        o.adharNo,
         o.mobileNo,
-        o.email,
-        o.panNo,
-        o.isArmedForce === 1 ? "YES" : "NO",
-        o.isSpeciallyAbled === 1 ? "YES" : "NO",
+        o.ownerAddress
       ])}
     />
   ) : (
@@ -533,6 +444,7 @@ const FloorTable = ({ data, mstrData }) =>
       title="Floor Details"
       headers={[
         "SL",
+        "Zone",
         "Floor",
         "Usage Type",
         "Occupancy Type",
@@ -543,6 +455,7 @@ const FloorTable = ({ data, mstrData }) =>
       ]}
       rows={data.map((f, i) => [
         i + 1,
+        mstrData.zoneType.find((x) => String(x.id) === String(f.zoneMstrId))?.zoneName || "",
         mstrData.floorType.find((x) => String(x.id) === String(f.floorMasterId))
           ?.floorName || "",
         mstrData.usageType.find(
@@ -598,30 +511,32 @@ const AdditionalDetails = ({ formData }) => (
     <Detail
       label="Have Mobile Tower(s)?"
       value={formData?.isMobileTower}
-      area={formData?.towerArea}
       date={formData?.towerInstallationDate}
     />
     <Detail
-      label="Have Hoarding Board(s)?"
-      value={formData?.isHoardingBoard}
-      area={formData?.hoardingArea}
-      date={formData?.hoardingInstallationDate}
+      label="Widow/Abandoned/Mentally Disable/Visually Impaired?"
+      value={formData?.isWidow}
     />
-    {formData?.propTypeMstrId !== 4 && (
-      <>
-        <Detail
-          label="Have Petrol Pump?"
-          value={formData?.isPetrolPump}
-          area={formData?.underGroundArea}
-          date={formData?.petrolPumpCompletionDate}
-        />
-        <Detail
-          label="Have Rainwater Harvesting?"
-          value={formData?.isWaterHarvesting}
-          date={formData?.waterHarvestingDate}
-        />
-      </>
-    )}
+    <Detail
+      label="Ex-Army (Income Tax Exempted)?"
+      value={formData?.isExArmy}
+    />
+    <Detail
+      label="Physically Disable?"
+      value={formData?.isDisabledPerson}
+    />
+    <Detail
+      label="Old Property waived Off In 2026-2027"
+      value={formData?.isOldProperty}
+    />
+    <Detail label="Belongs to IHSDP?" value={formData?.isDp} />
+    <Detail label="Is School?" value={formData?.isSchool} />
+    <Detail label="Is Complex?" value={formData?.isComplex} />
+    <Detail label="Is Chabutra?" value={formData?.isChabutra} />
+    <Detail
+      label="Holding Belongs To Shop?"
+      value={formData?.isShopHolding}
+    />
   </section>
 );
 
