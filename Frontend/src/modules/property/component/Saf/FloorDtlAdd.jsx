@@ -1,8 +1,6 @@
 import { FaPlusCircle, FaRegBuilding, FaTrash } from "react-icons/fa";
 import { validateFloorDtl } from "../../../../utils/safAssesmentValidation";
-import { DatePicker } from "@nextui-org/date-picker";
 import { parseDate } from "@internationalized/date";
-import { TiDeleteOutline } from "react-icons/ti";
 import { useEffect } from "react";
 
 const getSafeCalendarDate = (value) => {

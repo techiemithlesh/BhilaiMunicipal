@@ -22,7 +22,7 @@ const PropAddress = ({
             cols={10}
             rows={5}
             placeholder=""
-            value={formData.propAddress}
+            value={formData.propAddress || ""}
             onChange={(e) => {
               // Only allow letters and digits
               const val = e.target.value.replace(/[^a-zA-Z0-9\s,./\-#]/g, "");
@@ -53,7 +53,7 @@ const PropAddress = ({
               name="propCity"
               required
               placeholder=""
-              value={formData.propCity}
+              value={formData.propCity || ""}
               onChange={(e) => {
                 // Allow only letters and spaces
                 const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
@@ -84,7 +84,7 @@ const PropAddress = ({
               name="propDist"
               required
               placeholder=""
-              value={formData.propDist}
+              value={formData.propDist || ""}
               onChange={(e) => {
                 // Allow only letters and spaces
                 const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
@@ -115,7 +115,7 @@ const PropAddress = ({
               name="propState"
               required
               placeholder=""
-              value={formData.propState}
+              value={formData.propState || ""}
               onChange={(e) => {
                 // Allow only letters and spaces
                 const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
@@ -147,7 +147,7 @@ const PropAddress = ({
               required
               placeholder=""
               maxLength={6}
-              value={formData.propPinCode}
+              value={formData.propPinCode || ""}
               onChange={(e) => {
                 // Only allow digits
                 const val = e.target.value.replace(/\D/g, "");
@@ -204,7 +204,7 @@ const PropAddress = ({
               rows={5}
               required={formData.isCorrAddDiffer === 1}
               placeholder=""
-              value={formData.corrAddress}
+              value={formData.corrAddress || ""}
               onChange={handleInputChange}
               className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
               disabled={isDisabled && disabledFields?.corrAddress}
@@ -225,7 +225,7 @@ const PropAddress = ({
                 name="corrCity"
                 required={formData.isCorrAddDiffer === 1}
                 placeholder=""
-                value={formData.corrCity}
+                value={formData.corrCity || ""}
                 onChange={handleInputChange}
                 className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
                 disabled={isDisabled && disabledFields?.corrCity}
@@ -245,7 +245,7 @@ const PropAddress = ({
                 id="corrDist"
                 name="corrDist"
                 required={formData.isCorrAddDiffer === 1}
-                value={formData.corrDist}
+                value={formData.corrDist || ""}
                 onChange={handleInputChange}
                 placeholder=""
                 className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
@@ -266,7 +266,7 @@ const PropAddress = ({
                 id="corrState"
                 name="corrState"
                 required={formData.isCorrAddDiffer === 1}
-                value={formData.corrState}
+                value={formData.corrState || ""}
                 onChange={handleInputChange}
                 className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
                 disabled={isDisabled && disabledFields?.corrState}
@@ -290,7 +290,7 @@ const PropAddress = ({
                 name="corrPinCode"
                 required={formData.isCorrAddDiffer === 1}
                 placeholder=""
-                value={formData.corrPinCode}
+                value={formData.corrPinCode || ""}
                 onChange={handleInputChange}
                 className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
                 disabled={isDisabled && disabledFields?.corrPinCode}

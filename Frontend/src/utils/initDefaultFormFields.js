@@ -3,6 +3,16 @@ export const defaultFormFields = {
   isHoardingBoard: false,
   isPetrolPump: false,
   isWaterHarvesting: false,
+  isWidow: false,
+  isSchool: false,
+  isComplex: false,
+  isDp: false,
+  isExArmy: false,
+  isDisabledPerson: false,
+  isOldProperty: false,
+  isChabutra: false,
+  isShopHolding: false,
+  isBpl: false,
 };
 
 export function applyDefaults(currentData) {

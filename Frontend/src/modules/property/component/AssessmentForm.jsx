@@ -22,12 +22,10 @@ import { setSwmConsumerDtl } from "../../../store/slices/swmConsumerSlice";
 import { applyDefaults } from "../../../utils/initDefaultFormFields";
 import { applyOwnerDefaults } from "../../../utils/initOwnerDefaults";
 import FormError from "../../../components/common/FormError";
-import { extractDateYYMM, formatYearMonth } from "../../../utils/common";
+import { formatYearMonth } from "../../../utils/common";
 import { fetchNewWardByOldWard } from "../../../utils/commonFunc";
 import toast from "react-hot-toast";
 import { getUserDetails } from "../../../utils/auth";
-import SwmConsumerAdd from "./Saf/SwmConsumerAdd";
-import WaterSafPayment from "./Saf/WaterSafPayment";
 
 const AssessmentForm = ({
   mstrData,
@@ -100,20 +98,6 @@ const AssessmentForm = ({
     setDiabledFields();
   }, []);
 
-  useEffect(() => {
-    if (formData.wardMstrId) {
-      fetchWardMaster();
-    }
-  }, [formData.wardMstrId]);
-
-  async function fetchWardMaster() {
-    const newWardMstrId = await fetchNewWardByOldWard(
-      formData.wardMstrId,
-      token,
-      ulbId,
-    );
-    setNewWardList(newWardMstrId);
-  }
 
   function setDiabledFields() {
     const fieldMap = {};
@@ -128,8 +112,7 @@ const AssessmentForm = ({
       ) {
         fieldMap[key] = false;
       }
-
-      // ✅ If value is array of objects (e.g., owners, floors)
+      
       else if (Array.isArray(value) && typeof value[0] === "object") {
         const objectWiseMap = value.map((item) => {
           const fieldStatus = {};
@@ -142,7 +125,6 @@ const AssessmentForm = ({
         fieldMap[key] = objectWiseMap;
       }
 
-      // ✅ All other primitive fields
       else {
         fieldMap[key] = !!value;
       }
@@ -178,7 +160,7 @@ const AssessmentForm = ({
         setApartmentList(response.data.data);
       }
     } catch (error) {
-      // console.error("getApartment", error);
+      console.error("getApartment", error);
     } finally {
       setIsLoadingGable(false);
     }
@@ -193,7 +175,6 @@ const AssessmentForm = ({
       dispatch(
         setFormData({
           isMobileTower: false,
-          towerArea: "",
           towerInstallationDate: "",
         }),
       );
@@ -203,7 +184,6 @@ const AssessmentForm = ({
       dispatch(
         setFormData({
           isHoardingBoard: false,
-          hoardingArea: "",
           hoardingInstallationDate: "",
         }),
       );
@@ -213,7 +193,6 @@ const AssessmentForm = ({
       dispatch(
         setFormData({
           isPetrolPump: false,
-          underGroundArea: "",
           petrolPumpCompletionDate: "",
         }),
       );
@@ -262,10 +241,6 @@ const AssessmentForm = ({
       ulbId: ulbId,
     };
 
-    // const floorPayload = floorDtl.map((floor) => ({
-    //   ...floor,
-    //   propFloorDetailId: floor.id,
-    // }));
 
     const floorPayload = floorDtl.map((floor) => {
       const { id, ...rest } = floor;
@@ -303,7 +278,6 @@ const AssessmentForm = ({
           toast.error(response.data.message || "Update failed");
         }
       } else {
-        // 🟠 NORMAL NEW APPLICATION LOGIC (with preview)
         const previewUrl = `/property/apply/preview`;
         const swmDetails = formData?.hasSwm ? swmConsumer : [];
         const response = await axios.post(
@@ -377,7 +351,6 @@ const AssessmentForm = ({
   }
 
   
-
   return (
     <div className="container-fluid">
       <form className="flex flex-col gap-4" onSubmit={handlePreviewFormData}>
@@ -545,7 +518,6 @@ const AssessmentForm = ({
                 name="isBpl"
                 checked={formData.isBpl || false}
                 onChange={(e) => {
-                  // Adapt this if your handler expects a custom event object
                   handleInputChange({
                     target: {
                       name: "isBpl",
@@ -571,7 +543,7 @@ const AssessmentForm = ({
                 <label
                   htmlFor="transferMode"
                   className="block font-medium text-sm"
-                >
+                 >
                   Mode of Ownership Transfer{" "}
                   <span className="text-red-400 text-sm">*</span>
                 </label>
@@ -638,7 +610,7 @@ const AssessmentForm = ({
           setErrors={setErrors}
           ownerDtl={ownerDtl || []}
           setOwnerDtl={handleOwnerDtlUpdate}
-          isdisabled={pathname.includes("Reassessment")}
+          isDisabled={pathname.includes("Reassessment")}
           disabledFields={disabledFields?.owners || []}
           isSingleOwner={formData.ownershipTypeMstrId == 1}
         />
@@ -650,7 +622,7 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isdisabled={pathname.includes(formType)}
+          isDisabled={pathname.includes(formType)}
           disabledFields={disabledFields || {}}
         />
         {/* PROPERTY DETAILS END HERE HERE */}
@@ -660,7 +632,7 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isdisabled={pathname.includes(formType)}
+          isDisabled={pathname.includes(formType)}
           disabledFields={disabledFields}
         />
         {/* PROPERTY ADDRESS END HERE */}
@@ -674,7 +646,7 @@ const AssessmentForm = ({
             setErrors={setErrors}
             floorDtl={floorDtl}
             setFloorDtl={handleFloorDtlUpdate}
-            isdisabled={pathname.includes("mutation")}
+            isDisabled={pathname.includes("mutation")}
             disabledFields={disabledFields?.floors}
           />
         )}
@@ -750,7 +722,7 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isWidow"
                     className="text-sm font-normal text-gray-700"
                   >
                     Does Property belongs to Widow/Abandoment/Mentally
@@ -759,14 +731,13 @@ const AssessmentForm = ({
 
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isWidow"
+                    name="isWidow"
+                    checked={formData.isWidow || false}
                     onChange={(e) => {
-                      // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isWidow",
                           value: e.target.checked,
                         },
                       });
@@ -775,9 +746,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isWidow && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isWidow}
                   </span>
                 )}
               </div>
@@ -787,7 +758,7 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isExArmy"
                     className="text-sm font-normal text-gray-700"
                   >
                     Does Property belongs with name of Ex-Army? And have Income
@@ -796,14 +767,14 @@ const AssessmentForm = ({
 
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isExArmy"
+                    name="isExArmy"
+                    checked={formData.isExArmy || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isExArmy",
                           value: e.target.checked,
                         },
                       });
@@ -812,9 +783,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isExArmy && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isExArmy}
                   </span>
                 )}
               </div>
@@ -823,7 +794,7 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isDisabledPerson"
                     className="text-sm font-normal text-gray-700"
                   >
                     Does Property belong to Physically Disable? If Yes Than
@@ -832,14 +803,14 @@ const AssessmentForm = ({
 
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isDisabledPerson"
+                    name="isDisabledPerson"
+                    checked={formData.isDisabledPerson || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isDisabledPerson",
                           value: e.target.checked,
                         },
                       });
@@ -848,9 +819,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isDisabledPerson && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isDisabledPerson}
                   </span>
                 )}
               </div>
@@ -860,21 +831,21 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isOldProperty"
                     className="text-sm font-normal text-gray-700"
                   >
                     Old Property waived Off In 2026-2027
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isOldProperty"
+                    name="isOldProperty"
+                    checked={formData.isOldProperty || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isOldProperty",
                           value: e.target.checked,
                         },
                       });
@@ -883,9 +854,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isOldProperty && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isOldProperty}
                   </span>
                 )}
               </div>
@@ -895,21 +866,21 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isDp"
                     className="text-sm font-normal text-gray-700"
                   >
                     If Property belongs to IHSDP? If Yes Than Check
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isDp"
+                    name="isDp"
+                    checked={formData.isDp || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isDp",
                           value: e.target.checked,
                         },
                       });
@@ -918,9 +889,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isDp && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isDp}
                   </span>
                 )}
               </div>
@@ -930,21 +901,21 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isSchool"
                     className="text-sm font-normal text-gray-700"
                   >
                     If School? If Yes Than Check
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isSchool"
+                    name="isSchool"
+                    checked={formData.isSchool || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isSchool",
                           value: e.target.checked,
                         },
                       });
@@ -953,9 +924,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isSchool && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isSchool}
                   </span>
                 )}
               </div>
@@ -965,21 +936,21 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isComplex"
                     className="text-sm font-normal text-gray-700"
                   >
                     If Complex? If Yes Than Check
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isComplex"
+                    name="isComplex"
+                    checked={formData.isComplex || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isComplex",
                           value: e.target.checked,
                         },
                       });
@@ -988,9 +959,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isComplex && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isComplex}
                   </span>
                 )}
               </div>
@@ -1007,14 +978,14 @@ const AssessmentForm = ({
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isChabutra"
+                    name="isChabutra"
+                    checked={formData.isChabutra || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isChabutra",
                           value: e.target.checked,
                         },
                       });
@@ -1023,9 +994,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isChabutra && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isChabutra}
                   </span>
                 )}
               </div>
@@ -1035,21 +1006,21 @@ const AssessmentForm = ({
               <div className="">
                 <div className="flex items-center space-x-2 py-2">
                   <label
-                    htmlFor="isMainRoad"
+                    htmlFor="isShopHolding"
                     className="text-sm font-normal text-gray-700"
                   >
                     If Holding Belongs To Shop? If Yes Than Check
                   </label>
                   <input
                     type="checkbox"
-                    id="isMainRoad"
-                    name="isMainRoad"
-                    checked={formData.isMainRoad || false}
+                    id="isShopHolding"
+                    name="isShopHolding"
+                    checked={formData.isShopHolding || false}
                     onChange={(e) => {
                       // Adapt this if your handler expects a custom event object
                       handleInputChange({
                         target: {
-                          name: "isMainRoad",
+                          name: "isShopHolding",
                           value: e.target.checked,
                         },
                       });
@@ -1058,9 +1029,9 @@ const AssessmentForm = ({
                   />
                 </div>
 
-                {error?.isMainRoad && (
+                {error?.isShopHolding && (
                   <span className="text-red-400 text-xs mt-1 block">
-                    {error?.isMainRoad}
+                    {error?.isShopHolding}
                   </span>
                 )}
               </div>
@@ -1076,7 +1047,7 @@ const AssessmentForm = ({
             className={`items-center px-4 py-2 rounded text-white ${
               isFormSubmit ? "btn-secondary" : "btn-primary"
             }`}
-            isdisabled={isFormSubmit}
+            disabled={isFormSubmit}
           >
             Submit
           </button>

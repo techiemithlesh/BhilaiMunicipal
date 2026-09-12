@@ -24,7 +24,7 @@ const PropDtl = ({
               id="khataNo"
               name="khataNo"
               placeholder=""
-              value={formData.khataNo}
+              value={formData.khataNo || ""}
               onChange={(e) => {
                 // Allow only digits and slashes or hyphens
                 const val = e.target.value.replace(/[^a-zA-Z0-9\/-]/g, "");
@@ -52,7 +52,7 @@ const PropDtl = ({
               type="text"
               id="plotNo"
               name="plotNo"
-              value={formData.plotNo}
+              value={formData.plotNo || ""}
               placeholder=""
               onChange={(e) => {
                 // Allow only alphanumeric characters
@@ -86,7 +86,7 @@ const PropDtl = ({
               name="villageMaujaName"
               required
               placeholder=""
-              value={formData.villageMaujaName}
+              value={formData.villageMaujaName || ""}
               onChange={handleInputChange}
               className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
               disabled={isDisabled && disabledFields?.villageMaujaName}
@@ -106,7 +106,7 @@ const PropDtl = ({
               name="areaOfPlot"
               required
               placeholder=""
-              value={formData.areaOfPlot}
+              value={formData.areaOfPlot || ""}
               onChange={(e) => {
                 const val = e.target.value
                   .replace(/[^0-9.]/g, "")
@@ -127,38 +127,7 @@ const PropDtl = ({
             )}
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center space-x-2 py-2">
-              <input
-                type="checkbox"
-                id="isMainRoad"
-                name="isMainRoad"
-                checked={formData.isMainRoad || false}
-                disabled={isDisabled || disabledFields?.isMainRoad}
-                onChange={(e) => {
-                  handleInputChange({
-                    target: {
-                      name: "isMainRoad",
-                      value: e.target.checked,
-                    },
-                  });
-                }}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <label
-                htmlFor="isMainRoad"
-                className="text-sm font-normal text-gray-700"
-              >
-                Principle Main Road, If Yes Then Check
-              </label>
-            </div>
-
-            {error?.isMainRoad && (
-              <span className="text-red-400 text-xs mt-1 block">
-                {error?.isMainRoad}
-              </span>
-            )}
-          </div>
+          
         </div>
       </div>
     </div>
