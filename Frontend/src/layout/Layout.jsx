@@ -15,7 +15,7 @@ const Layout = ({
   author = "Nagar Prishad Arval",
 }) => {
   const [ulbData, setUlbData] = useState(null);
-  const ulbId = 1;
+  const ulbId = import.meta.env.VITE_REACT_APP_ULB_ID;
   // Fetch ULB data
   useEffect(() => {
     const fetchUlbDtl = async () => {

@@ -579,7 +579,7 @@ const AssessmentForm = ({
                   className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
                   name="percentageOfPropertyTransfer"
                   required
-                  value={formData.percentageOfPropertyTransfer}
+                  value={formData.percentageOfPropertyTransfer || ""}
                   onChange={handleInputChange}
                   disabled={
                     pathname.includes(formType) &&
@@ -696,7 +696,7 @@ const AssessmentForm = ({
                     id="towerInstallationDate"
                     name="towerInstallationDate"
                     placeholder=""
-                    value={formData.towerInstallationDate}
+                    value={formData.towerInstallationDate || ""}
                     required={formData.isMobileTower}
                     onChange={handleInputChange}
                     className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"

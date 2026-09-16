@@ -275,7 +275,6 @@ const FloorDtlAdd = ({
                 placeholder="Built Up Area"
                 value={floor.builtupArea || ""}
                 onChange={(e) => {
-                  // Allow only digits and one decimal point
                   let val = e.target.value.replace(/[^0-9.]/g, "");
                   // Prevent more than one decimal point
                   const parts = val.split(".");
