@@ -245,4 +245,12 @@ class QueryEditedController extends Controller
             return responseMsg(false, $e->getMessage(), ""); 
         }
     }
+
+    public function downloadDataExcel(Request $request){
+        try{
+
+        }catch(Exception $e){
+
+        }
+    }
 }

@@ -1,0 +1,741 @@
+<?php
+
+namespace App\Bll\Property;
+
+use App\Models\DBSystem\UlbMaster;
+use App\Models\Property\ApartmentDetail;
+use App\Models\Property\ArvRangRate;
+use App\Models\Property\BuildingArvRateMaster;
+use App\Models\Property\CompositeTaxRate;
+use App\Models\Property\ConstructionTypeMaster;
+use App\Models\Property\FloorMaster;
+use App\Models\Property\OccupancyTypeMaster;
+use App\Models\Property\OwnershipTypeMaster;
+use App\Models\Property\PropertyTypeMaster;
+use App\Models\Property\RoadType;
+use App\Models\Property\RoadTypeMaster;
+use App\Models\Property\UsageTypeMaster;
+use App\Models\Property\UsageTypeRateMaster;
+use App\Models\Property\VacantArvRateMaster;
+use App\Models\Property\ZoneMaster;
+use App\Trait\Property\PropertyTrait;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
+
+class BhiliaTaxCalculator
+{
+    use PropertyTrait;
+
+    public array $_GRID = [];
+    public Collection $_FloorWiseTax;
+    public Collection $_FYearWiseTax;
+    public Collection $_ruleSets;
+
+    public string $_TaxFromYear;
+    public int $_ACT_LIMIT;
+    public string $_fromDate;
+    public string $_acctOfLimitation;
+    public mixed $_PropertyType;
+    public mixed $_RoadTypeId;
+    public mixed $_ulbId;
+    public mixed $_ulbTypeId;
+    public bool $_hasRWH = false;
+    public bool $_isVacantLand = false;
+    public $_REQUEST;
+
+    // Direct Cached Collections
+    public Collection $_mOccupancyTypeMaster;
+    public Collection $_mConstructionTypeMaster;
+    public Collection $_mFloorMaster;
+    public Collection $_mOwnershipTypeMaster;
+    public Collection $_mPropertyTypeMaster;
+    public Collection $_mRoadTypeMaster;
+    public Collection $_mRoadType;
+    public Collection $_mUsageTypeMaster;
+    public Collection $_mBuildingArvRates;
+    public Collection $_mVacantArvRates;
+    public Collection $_mArvRangRates;
+    public Collection $_mUsageTypeRateMaster;
+    public Collection $_mCompositeTaxRates;
+    public Collection $_mZoneMaster;
+
+    public function __construct($request)
+    {
+        $this->_REQUEST = $request;
+        $this->_FloorWiseTax = collect();
+        $this->_FYearWiseTax = collect();
+
+        $this->_ruleSets = collect(Config::get("PropertyConstant.BHILIA_RULE_SETS"));
+        $this->_TaxFromYear = Config::get("PropertyConstant.BHILIA_TAX_FROM_DATE", "1999-04-01");
+        $this->_acctOfLimitation = getFY($this->_TaxFromYear);
+        $this->_ACT_LIMIT = Carbon::now()->year - Carbon::parse($this->_TaxFromYear)->year;
+
+        $this->setPropertyType();
+        $this->setUlb();
+        $this->setRoadType();
+        $this->loadParam();
+        $this->testVacantLand();
+        $this->hasRwh();
+        $this->setFromDate();
+        $this->initFloorWiseTax();
+    }
+
+    public function setPropertyType(): void
+    {
+        $this->_PropertyType = $this->_REQUEST->propTypeMstrId;
+    }
+
+    public function setUlb(): void
+    {
+        $this->_ulbId = $this->_REQUEST->ulbId;
+        $this->_ulbTypeId = UlbMaster::find($this->_ulbId)?->ulb_type_id;
+    }
+
+    public function setRoadType(): void
+    {
+        $this->_RoadTypeId = $this->_REQUEST->roadTypeMstrId;
+    }
+
+    public function loadParam(): void
+    {
+        $this->_mOccupancyTypeMaster = (new OccupancyTypeMaster())->getOccupancyTypeList();
+        $this->_mConstructionTypeMaster = (new ConstructionTypeMaster())->getConstructionTypeList();
+        $this->_mFloorMaster = (new FloorMaster())->getFloorList();
+        $this->_mOwnershipTypeMaster = (new OwnershipTypeMaster())->getOwnershipTypeList();
+        $this->_mPropertyTypeMaster = (new PropertyTypeMaster())->getPropertyTypeList();
+        $this->_mRoadTypeMaster = (new RoadTypeMaster())->getRoadTypeList();
+        $this->_mRoadType = (new RoadType())->getRoadTypeList();
+        $this->_mUsageTypeMaster  = (new UsageTypeMaster())->getUsageTypeList();
+        $this->_mBuildingArvRates = (new BuildingArvRateMaster())->getRate();
+        $this->_mVacantArvRates = (new VacantArvRateMaster())->getRate();
+        $this->_mArvRangRates = (new ArvRangRate())->getArvRangeTypeList();
+        $this->_mUsageTypeRateMaster = (new UsageTypeRateMaster())->getRate();
+        $this->_mCompositeTaxRates = (new CompositeTaxRate())->getRate();
+        $this->_mZoneMaster = (new ZoneMaster())->getZoneList()->where("ulb_id", $this->_ulbId);
+    }
+
+    public function testVacantLand(): void
+    {
+        $vacantLand = $this->_mPropertyTypeMaster->firstWhere("property_type", "VACANT LAND");
+        if ($this->_PropertyType == ($vacantLand->id ?? "")) {
+            $this->_isVacantLand = true;
+        }
+    }
+
+    public function hasRwh(): void
+    {
+        if (($this->_REQUEST["isWaterHarvesting"] ?? false) || $this->_isVacantLand) {
+            $this->_hasRWH = true;
+        }
+    }
+
+    public function setFromDate(): void
+    {
+        $this->_fromDate = $this->_isVacantLand 
+            ? $this->_REQUEST["landOccupationDate"] 
+            : collect($this->_REQUEST["floorDtl"])->min("dateFrom");
+
+        $this->_fromDate = Carbon::parse($this->_fromDate)->format("Y-m-01");
+    }
+
+    public function setRuleSet(string $dateFrom, ?string $dateUpto,bool $isBuilding=true) :Collection {
+        $dateFrom = Carbon::parse($dateFrom)->format("Y-m-d");
+        $dateUpto = Carbon::parse($dateUpto)->format("Y-m-d");
+        $dateFromFyear = getFY($dateFrom);
+        if($dateFromFyear < $this->_acctOfLimitation){
+            $dateFromFyear =   $this->_acctOfLimitation;
+        }
+        $dateUptoFyear = getFY($dateUpto);
+        $rules = [];
+        while($dateFromFyear<=$dateUptoFyear){
+            $testRule = $this->_ruleSets->where("effective_upto_fyear","<=",$dateFromFyear)->where("is_building",$isBuilding);
+            
+            if($testRule->isEmpty()){
+                $testRule = $this->_ruleSets->where("effective_from_fyear","<=",$dateFromFyear)->where("is_building",$isBuilding);
+            }
+            // dd($dateFromFyear,$dateUptoFyear,$testRule,$this->_ruleSets);
+            foreach($testRule as $key=>$item){
+                $rulesFromFYear = getFY($item["effective_from"]);
+                $rulesUptoFYear = getFY($item["effective_upto"]);
+                if($dateFromFyear>=$rulesFromFYear){
+                    $rules[$key] = $item;
+                }
+            }
+            list($fromFyear,$uptoFYear) = explode("-",$dateFromFyear);
+            $dateFromFyear = $uptoFYear."-".($uptoFYear+1);
+        }
+        return collect($rules)->unique();
+    }
+
+    
+    public function initFloorWiseTax(): void
+    {
+        if ($this->_isVacantLand) {
+            $mobileAndHordingTowerArea = 0;
+            if ($this->_REQUEST["isMobileTower"] ?? false) {
+                $mobileAndHordingTowerArea += (float) ($this->_REQUEST["towerArea"] ?? 0);
+            }
+            if ($this->_REQUEST["isHoardingBoard"] ?? false) {
+                $mobileAndHordingTowerArea += (float) ($this->_REQUEST["hoardingArea"] ?? 0);
+            }
+
+            $plotArea = $this->_REQUEST["areaOfPlot"];
+            $floor = [
+                "floorName" => "VacantLand",
+                "areaOfPlot" => $plotArea,
+                "builtupArea" => $plotArea - ($mobileAndHordingTowerArea * 1.43),
+                "mobileAndHordingTowerArea" => $mobileAndHordingTowerArea,
+                "dateFrom" => $this->_REQUEST["landOccupationDate"],
+                "floorMasterId" => "0",
+                "usageTypeMasterId" => "1",
+                "constructionTypeMasterId" => 0,
+                "occupancyTypeMasterId" => 1,
+                "tax" => collect(),
+            ];
+
+            $floor["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $floor["usageTypeMasterId"])->usage_type ?? "";
+            $floor["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $floor["constructionTypeMasterId"])->construction_type ?? "";
+            $floor["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $floor["occupancyTypeMasterId"])->occupancy_name ?? "";
+            $floor["ruleSets"] = $this->setRuleSet($floor["dateFrom"], $floor["dateUpto"] ?? null, false);
+            
+            $this->_FloorWiseTax->push($floor);
+        } else {
+            foreach ($this->_REQUEST["floorDtl"] as $val) {
+                $val["tax"] = collect();
+                $val["ruleSets"] = $this->setRuleSet($val["dateFrom"], $val["dateUpto"] ?? null);
+                $val["zoneName"] = $this->_mZoneMaster->firstWhere("id", $val["zoneMstrId"])->zone_name ?? "";
+                $val["floorName"] = $this->_mFloorMaster->firstWhere("id", $val["floorMasterId"])->floor_name ?? "";
+                $val["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $val["usageTypeMasterId"])->usage_type ?? "";
+                $val["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $val["constructionTypeMasterId"])->construction_type ?? "";
+                $val["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $val["occupancyTypeMasterId"])->occupancy_name ?? "";
+                
+                $this->_FloorWiseTax->push($val);
+            }
+        }
+    }
+
+    public function FloorTaxCalculator(): void
+    {
+        foreach ($this->_FloorWiseTax as $key => $val) {
+            foreach ($val["ruleSets"] as $rulName => $ruleSets) {
+                $tax = $this->$rulName($val);
+                $this->_FloorWiseTax[$key]["tax"]->push($tax);
+
+                if (!isset($this->_FYearWiseTax[$rulName])) {
+                    $this->_FYearWiseTax[$rulName] = collect();
+                }
+
+                $floorDtl = [
+                    "floorDtl" => collect($val)->only([
+                        "builtupArea", "dateFrom", "dateUpto", "floorName", "usageType", "constructionType", "occupancyType"
+                    ])
+                ];
+
+                $this->_FYearWiseTax[$rulName]->push(collect($tax)->merge($floorDtl)->toArray());
+            }
+        }
+        $this->_GRID["FloorWiseTax"] = $this->_FloorWiseTax;
+    }
+
+    public function FYearTaxCalculator(): void
+    {
+        $allTaxes = collect();
+        foreach ($this->_ruleSets as $key => $val) {
+            foreach ($this->_FYearWiseTax[$key] ?? [] as $tax) {
+                foreach ($tax["fyearTax"] as $yearlytax) {
+                    $allTaxes->push($yearlytax);
+                }
+            }
+        }
+
+        $fyearList = $allTaxes->pluck("fyear")->unique()->sort();
+
+        foreach ($fyearList as $year) {
+            $currentTax = $allTaxes->where("fyear", $year);
+            if ($currentTax->isEmpty()) {
+                continue;
+            }
+
+            $allQuarterlyTax = $currentTax->pluck("quarterly")->flatten(1);
+            $fromQtr = $allQuarterlyTax->min("qtr");
+            $uptoQtr = $allQuarterlyTax->max("qtr");
+
+            $quarterly = [];
+            for ($cFromQtr = $fromQtr; $cFromQtr <= $uptoQtr; $cFromQtr++) {
+                $qTaxes = $allQuarterlyTax->where("qtr", $cFromQtr);
+                if ($qTaxes->isNotEmpty()) {
+                    $quarterly[] = [
+                        "floorCount"     => $qTaxes->count(),
+                        "qtr"            => $cFromQtr,
+                        "dueDate"        => $qTaxes->max("dueDate"),
+                        "fyear"          => $year,
+                        "propertyTax"    => roundFigure($qTaxes->sum("propertyTax")),
+                        "HoldingTax"     => roundFigure($qTaxes->sum("HoldingTax")),
+                        "CompositeTax"   => roundFigure($qTaxes->sum("CompositeTax")),
+                        "LatrineTax"     => roundFigure($qTaxes->sum("LatrineTax")),
+                        "WaterTax"       => roundFigure($qTaxes->sum("WaterTax")),
+                        "HealthCessTax"  => roundFigure($qTaxes->sum("HealthCessTax")),
+                        "EducationCessTax" => roundFigure($qTaxes->sum("EducationCessTax")),
+                        "RWH"            => roundFigure($qTaxes->sum("RWH")),
+                        "TotalTax"       => roundFigure($qTaxes->sum("TotalTax")),
+                        "monthDiff"      => roundFigure($qTaxes->sum("monthDiff")),
+                        "monthlyPenalty" => roundFigure($qTaxes->sum("monthlyPenalty")),
+                    ];
+                }
+            }
+
+            $this->_GRID["FyearWiseTax"][] = [
+                "floorCount"          => $currentTax->count(),
+                "fyear"               => $year,
+                "quarterly"           => $quarterly,
+                "fromFYear"           => $currentTax->min("fyear"),
+                "fromQtr"             => $fromQtr,
+                "uptoFYear"           => $currentTax->max("fyear"),
+                "uptoQtr"             => $uptoQtr,
+                "propertyTax"         => roundFigure($currentTax->sum("propertyTax")),
+                "HoldingTax"          => roundFigure($currentTax->sum("HoldingTax")),
+                "HoldingTaxQuarterly" => roundFigure($currentTax->sum("HoldingTaxQuarterly")),
+                "CompositeTax"        => roundFigure($currentTax->sum("CompositeTax")),
+                "CompositeTaxQuarterly" => roundFigure($currentTax->sum("CompositeTaxQuarterly")),
+                "LatrineTax"          => roundFigure($currentTax->sum("LatrineTax")),
+                "LatrineTaxQuarterly" => roundFigure($currentTax->sum("LatrineTaxQuarterly")),
+                "WaterTax"            => roundFigure($currentTax->sum("WaterTax")),
+                "WaterTaxQuarterly"   => roundFigure($currentTax->sum("WaterTaxQuarterly")),
+                "HealthCessTax"       => roundFigure($currentTax->sum("HealthCessTax")),
+                "HealthCessTaxQuarterly" => roundFigure($currentTax->sum("HealthCessTaxQuarterly")),
+                "EducationCessTax"    => roundFigure($currentTax->sum("EducationCessTax")),
+                "EducationCessTaxQuarterly" => roundFigure($currentTax->sum("EducationCessTaxQuarterly")),
+                "RWH"                 => roundFigure($currentTax->sum("RWH")),
+                "TotalTax"            => roundFigure($currentTax->sum("TotalTax")),
+                "TotalTaxQuarterly"   => roundFigure($currentTax->sum("TotalTaxQuarterly")),
+                "monthlyPenalty"      => roundFigure($currentTax->sum("monthlyPenalty")),
+            ];
+        }
+    }
+
+    public function RuleSetTaxCalculator(): void
+    {
+        $this->_GRID["RuleSetWiseTax"] = $this->_FYearWiseTax;
+    }
+
+    public function RuleSetVersionTaxCalculator(): void
+    {
+        $allRuleSetTax = $this->_FYearWiseTax->flatten(1);
+        $ruleSetsVersion = $this->_ruleSets->where("is_building", !$this->_isVacantLand);
+
+        foreach ($ruleSetsVersion as $val) {
+            $tax = $allRuleSetTax
+                ->where("effectiveFrom", ">=", $val["effective_from"])
+                ->where("effectiveUpto", "<=", $val["effective_upto"]);
+
+            if ($tax->isNotEmpty()) {
+                $allTaxes = $tax->pluck("fyearTax")->flatten(1);
+                $fyearList = $allTaxes->pluck("fyear")->unique()->sort();
+                $Fyearlytax = [];
+
+                foreach ($fyearList as $year) {
+                    $currentTax = $allTaxes->where("fyear", $year);
+                    if ($currentTax->isNotEmpty()) {
+                        $allQuarterlyTax = $currentTax->pluck("quarterly")->flatten(1);
+                        $fromQtr = $allQuarterlyTax->min("qtr");
+                        $uptoQtr = $allQuarterlyTax->max("qtr");
+
+                        $quarterly = [];
+                        for ($cFromQtr = $fromQtr; $cFromQtr <= $uptoQtr; $cFromQtr++) {
+                            $qTaxes = $allQuarterlyTax->where("qtr", $cFromQtr);
+                            if ($qTaxes->isNotEmpty()) {
+                                $quarterly[] = [
+                                    "floorCount"     => $qTaxes->count(),
+                                    "qtr"            => $cFromQtr,
+                                    "dueDate"        => $qTaxes->max("dueDate"),
+                                    "fyear"          => $year,
+                                    "propertyTax"    => roundFigure($qTaxes->sum("propertyTax")),
+                                    "HoldingTax"     => roundFigure($qTaxes->sum("HoldingTax")),
+                                    "CompositeTax"   => roundFigure($qTaxes->sum("CompositeTax")),
+                                    "LatrineTax"     => roundFigure($qTaxes->sum("LatrineTax")),
+                                    "WaterTax"       => roundFigure($qTaxes->sum("WaterTax")),
+                                    "HealthCessTax"  => roundFigure($qTaxes->sum("HealthCessTax")),
+                                    "EducationCessTax" => roundFigure($qTaxes->sum("EducationCessTax")),
+                                    "RWH"            => roundFigure($qTaxes->sum("RWH")),
+                                    "TotalTax"       => roundFigure($qTaxes->sum("TotalTax")),
+                                    "monthlyPenalty" => roundFigure($qTaxes->sum("monthlyPenalty")),
+                                ];
+                            }
+                        }
+
+                        $Fyearlytax[] = [
+                            "floorCount"          => $currentTax->count(),
+                            "fyear"               => $year,
+                            "quarterly"           => collect($quarterly)->sortBy("qtr")->values()->toArray(),
+                            "fromFYear"           => $currentTax->min("fyear"),
+                            "fromQtr"             => $fromQtr,
+                            "uptoFYear"           => $currentTax->max("fyear"),
+                            "uptoQtr"             => $uptoQtr,
+                            "propertyTax"         => roundFigure($currentTax->sum("propertyTax")),
+                            "HoldingTax"          => roundFigure($currentTax->sum("HoldingTax")),
+                            "HoldingTaxQuarterly" => roundFigure($currentTax->sum("HoldingTaxQuarterly")),
+                            "CompositeTax"        => roundFigure($currentTax->sum("CompositeTax")),
+                            "CompositeTaxQuarterly" => roundFigure($currentTax->sum("CompositeTaxQuarterly")),
+                            "LatrineTax"          => roundFigure($currentTax->sum("LatrineTax")),
+                            "LatrineTaxQuarterly" => roundFigure($currentTax->sum("LatrineTaxQuarterly")),
+                            "WaterTax"            => roundFigure($currentTax->sum("WaterTax")),
+                            "WaterTaxQuarterly"   => roundFigure($currentTax->sum("WaterTaxQuarterly")),
+                            "HealthCessTax"       => roundFigure($currentTax->sum("HealthCessTax")),
+                            "HealthCessTaxQuarterly" => roundFigure($currentTax->sum("HealthCessTaxQuarterly")),
+                            "EducationCessTax"    => roundFigure($currentTax->sum("EducationCessTax")),
+                            "EducationCessTaxQuarterly" => roundFigure($currentTax->sum("EducationCessTaxQuarterly")),
+                            "RWH"                 => roundFigure($currentTax->sum("RWH")),
+                            "TotalTax"            => roundFigure($currentTax->sum("TotalTax")),
+                            "TotalTaxQuarterly"   => roundFigure($currentTax->sum("TotalTaxQuarterly")),
+                            "monthlyPenalty"      => roundFigure($currentTax->sum("monthlyPenalty")),
+                        ];
+                    }
+                }
+
+                $this->_GRID["RuleSetVersionTax"][] = [
+                    "ruleSet"             => $tax->pluck("ruleSet")->unique()->implode(", "),
+                    "description"         => $tax->pluck("description")->unique()->implode(", "),
+                    "effectiveFrom"       => $tax->min("effectiveFrom"),
+                    "effectiveFromFYear"  => $tax->min("effectiveFromFYear"),
+                    "effectiveUpto"       => $tax->max("effectiveUpto"),
+                    "effectiveUptoFYear"  => $tax->max("effectiveUptoFYear"),
+                    "fromFYear"           => $tax->min("fromFYear"),
+                    "fromQtr"             => $tax->min("fromQtr"),
+                    "uptoFYear"           => $tax->max("uptoFYear"),
+                    "uptoQtr"             => $tax->max("uptoQtr"),
+                    "ARV"                 => roundFigure($tax->sum("ARV")),
+                    "propertyTax"         => roundFigure($tax->sum("propertyTax")),
+                    "HoldingTax"          => roundFigure($tax->sum("HoldingTax")),
+                    "HoldingTaxQuarterly" => roundFigure($tax->sum("HoldingTaxQuarterly")),
+                    "CompositeTax"        => roundFigure($tax->sum("CompositeTax")),
+                    "CompositeTaxQuarterly" => roundFigure($tax->sum("CompositeTaxQuarterly")),
+                    "LatrineTax"          => roundFigure($tax->sum("LatrineTax")),
+                    "LatrineTaxQuarterly" => roundFigure($tax->sum("LatrineTaxQuarterly")),
+                    "WaterTax"            => roundFigure($tax->sum("WaterTax")),
+                    "WaterTaxQuarterly"   => roundFigure($tax->sum("WaterTaxQuarterly")),
+                    "HealthCessTax"       => roundFigure($tax->sum("HealthCessTax")),
+                    "HealthCessTaxQuarterly" => roundFigure($tax->sum("HealthCessTaxQuarterly")),
+                    "EducationCessTax"    => roundFigure($tax->sum("EducationCessTax")),
+                    "EducationCessTaxQuarterly" => roundFigure($tax->sum("EducationCessTaxQuarterly")),
+                    "RWH"                 => roundFigure($tax->sum("RWH")),
+                    "RWHQuarterly"        => roundFigure($tax->sum("Quarterly")),
+                    "TotalTax"            => roundFigure($tax->sum("TotalTax")),
+                    "TotalTaxQuarterly"   => roundFigure($tax->sum("TotalTaxQuarterly")),
+                    "monthlyPenalty"      => roundFigure($tax->sum("monthlyPenalty")),
+                    "Fyearlytax"          => collect($Fyearlytax)->sortBy("fyear")->values()->toArray(),
+                    "DTL"                 => $tax->values()
+                ];
+            }
+        }
+    }
+
+    public function GenerateRuleSetFyearTax(array $RuleSetTax): array
+    {
+        $fromFyear = $RuleSetTax["fromFYear"];
+        $qtr = $RuleSetTax["fromQtr"];
+
+        if (isset($RuleSetTax["effectiveFromFYear"]) && $fromFyear < $RuleSetTax["effectiveFromFYear"]) {
+            $fromFyear = $RuleSetTax["effectiveFromFYear"];
+            $qtr = getQtr($RuleSetTax["effectiveFrom"]);
+        }
+
+        $uptoFYear = $RuleSetTax["uptoFYear"];
+        if (isset($RuleSetTax["effectiveUptoFYear"]) && $uptoFYear > $RuleSetTax["effectiveUptoFYear"]) {
+            $uptoFYear = $RuleSetTax["effectiveUptoFYear"];
+        }
+
+        $AllfyearTax = [];
+
+        while ($fromFyear <= $uptoFYear) {
+            $fyearTax = $RuleSetTax;
+            $fyearTax["fyear"] = $fromFyear;
+            $currentUptoQtr = ($fromFyear == $uptoFYear) ? $RuleSetTax["uptoQtr"] : 4;
+
+            while ($qtr <= $currentUptoQtr) {
+                $fyearTax["quarterly"][] = [
+                    "qtr"                     => $qtr,
+                    "dueDate"                 => FyearQutUptoDate($fromFyear, $qtr),
+                    "fyear"                   => $fromFyear,
+                    "ARV"                     => ($RuleSetTax["ARV"] ?? 0) / 4,
+                    "propertyTax"             => ($RuleSetTax["propertyTax"] ?? 0) / 4,
+                    "arvRate"                 => $RuleSetTax["arvRate"] ?? 0,
+                    "HoldingTaxPercent"       => $RuleSetTax["HoldingTaxPercent"] ?? 0,
+                    "HoldingTax"              => $RuleSetTax["HoldingTaxQuarterly"] ?? 0,
+                    "CompositeTax"            => $RuleSetTax["CompositeTaxQuarterly"] ?? 0,
+                    "LatrineTaxPercent"       => $RuleSetTax["LatrineTaxPercent"] ?? 0,
+                    "LatrineTax"              => $RuleSetTax["LatrineTaxQuarterly"] ?? 0,
+                    "WaterTaxPercent"         => $RuleSetTax["WaterTaxPercent"] ?? 0,
+                    "WaterTax"                => $RuleSetTax["WaterTaxQuarterly"] ?? 0,
+                    "HealthCessTaxPercent"    => $RuleSetTax["HealthCessTaxPercent"] ?? 0,
+                    "HealthCessTax"           => $RuleSetTax["HealthCessTaxQuarterly"] ?? 0,
+                    "EducationCessTaxPercent" => $RuleSetTax["EducationCessTaxPercent"] ?? 0,
+                    "EducationCessTax"        => $RuleSetTax["EducationCessTaxQuarterly"] ?? 0,
+                    "RWHTaxPercent"           => $RuleSetTax["RWHTaxPercent"] ?? 0,
+                    "RWH"                     => $RuleSetTax["RWHQuarterly"] ?? 0,
+                    "TotalTax"                => $RuleSetTax["TotalTaxQuarterly"] ?? 0,
+                ];
+                $qtr++;
+            }
+            $qtr = 1;
+
+            $fyearTax["monthlyPenalty"] = round(collect($fyearTax["quarterly"])->sum("monthlyPenalty"), 2);
+            $AllfyearTax[] = $fyearTax;
+
+            [, $uptoYear] = explode("-", $fromFyear);
+            $fromFyear = $uptoYear . "-" . ($uptoYear + 1);
+        }
+
+        return $AllfyearTax;
+    }
+
+    /**
+     * Central execution pipeline while maintaining exact description/formulas
+     */
+    private function processBuildingRules(string $ruleName, array $floor, string $description, bool $isEducationCessFromHoldingTax = false): array
+    {
+        $rules = $this->_ruleSets[$ruleName];
+        $floorTax = [
+            "ruleSet"            => $ruleName,
+            "effectiveFrom"      => $rules["effective_from"],
+            "effectiveFromFYear" => $rules["effective_from_fyear"],
+            "effectiveUpto"      => $rules["effective_upto"],
+            "effectiveUptoFYear" => $rules["effective_upto_fyear"],
+            "description"        => $description,
+        ];
+
+        $buildupArea = $floor["builtupArea"];
+        $zoneMstrId = $floor["zoneMstrId"];
+        $occupancyTypeMasterId = $floor["constructionTypeMasterId"];
+        $usageTypeMasterId = $floor["usageTypeMasterId"];
+
+        $usageFactorDtl = $this->_mUsageTypeRateMaster
+            ->where("usage_type_master_id", $usageTypeMasterId)
+            ->first(fn($item) => $item->effective_from <= $floorTax["effectiveUpto"] && ($item->effective_upto === null || $item->effective_upto >= $floorTax["effectiveFrom"]));
+
+        $compositeDtl = $this->_mCompositeTaxRates
+            ->where("ulb_id", $this->_ulbId)
+            ->first(fn($item) => $item->from_date <= $floorTax["effectiveUpto"] && ($item->upto_date === null || $item->upto_date >= $floorTax["effectiveFrom"]));
+
+        $arvRateDtl = $this->_mBuildingArvRates
+            ->where("ulb_id", $this->_ulbId)
+            ->where("zone_id", $zoneMstrId)
+            ->where("road_type_id", $this->_RoadTypeId)
+            ->where("construction_type_master_id", $occupancyTypeMasterId)
+            ->where("usage_type_id", $usageTypeMasterId)
+            ->first(fn($item) => $item["effective_from"] <= $floorTax["effectiveUpto"] && ($item["effective_upto"] === null || $item["effective_upto"] >= $floorTax["effectiveFrom"]));
+
+        $arvRate = $arvRateDtl->rate ?? 0;
+        $usageFactor = $usageFactorDtl->rate ?? 0;
+
+        $yearlyARV = $buildupArea * $arvRate;
+        $arv10Percent = $yearlyARV * 0.1;
+        $taxableARV = $yearlyARV - $arv10Percent;
+
+        $ratePercentDtl = $this->_mArvRangRates
+            ->where("ulb_id", $this->_ulbId)
+            ->first(fn($item) => 
+                $item["from_arv"] <= $taxableARV &&
+                ($item["upto_arv"] === null || $item["upto_arv"] >= $taxableARV) &&
+                $item["from_date"] <= $floorTax["effectiveUpto"] &&
+                ($item["upto_date"] === null || $item["upto_date"] >= $floorTax["effectiveFrom"])
+            );
+
+        $ratePercent = $ratePercentDtl->rate_percent ?? 0;
+
+        if (($buildupArea <= 500 && $floor["occupancyTypeMasterId"] == 3) || $this->_REQUEST->isDp) {
+            $ratePercent = 0;
+        }
+
+        $HoldingTax = round(($taxableARV * ($ratePercent / 100) * $usageFactor), 2);
+        $compositeTax = round($compositeDtl->tax ?? 0, 2);
+        
+        // Exact rule variant logic switch
+        $EducationCessTax = $isEducationCessFromHoldingTax 
+            ? round(($HoldingTax * 0.02), 2) 
+            : round(($taxableARV * 0.02), 2);
+
+        $TotalTax = round($HoldingTax + $compositeTax + $EducationCessTax, 2);
+
+        $taxMinFYear = getFY(subtractYear(null, $this->_ACT_LIMIT));
+        $floorFYear = getFY($floor["dateFrom"]);
+        $qtr = getQtr($floor["dateFrom"]);
+
+        if ($floorFYear < $taxMinFYear) {
+            $floorFYear = $taxMinFYear;
+            $qtr = 1;
+        }
+
+        $uptoFYear = getFY($floor["dateUpto"] ?? "");
+        $uptoQtr = isset($floor["dateUpto"]) ? getQtr($floor["dateUpto"]) : 4;
+
+        if ($uptoFYear > $floorTax["effectiveUptoFYear"]) {
+            $uptoFYear = $floorTax["effectiveUptoFYear"];
+            $uptoQtr = isset($floorTax["effectiveUpto"]) ? getQtr($floorTax["effectiveUpto"]) : 4;
+        }
+
+        $tax = [
+            "fromFYear"             => $floorFYear,
+            "fromQtr"               => $qtr,
+            "uptoFYear"             => $uptoFYear,
+            "uptoQtr"               => $uptoQtr,
+            "yearlyARV"             => $yearlyARV,
+            "ARV_10_percent_rebate" => $arv10Percent,
+            "ARV"                   => $taxableARV,
+            "arvRate"               => $arvRate,
+            "ratePercent"           => $ratePercent,
+            "taxableArea"           => $buildupArea,
+            "usageType"             => $this->floorResCommOtherUsage($usageTypeMasterId),
+            "HoldingTax"            => $HoldingTax,
+            "HoldingTaxQuarterly"   => round($HoldingTax / 4, 2),
+            "CompositeTax"          => $compositeTax,
+            "CompositeTaxQuarterly" => round($compositeTax / 4, 2),
+            "LatrineTax"            => 0,
+            "LatrineTaxQuarterly"   => 0,
+            "WaterTax"              => 0,
+            "WaterTaxQuarterly"     => 0,
+            "HealthCessTax"         => 0,
+            "HealthCessTaxQuarterly"=> 0,
+            "EducationCessTax"      => $EducationCessTax,
+            "EducationCessTaxQuarterly" => round($EducationCessTax / 4, 2),
+            "RWH"                   => 0,
+            "RWHQuarterly"          => 0,
+            "TotalTax"              => $TotalTax,
+            "TotalTaxQuarterly"     => round($TotalTax / 4, 2),
+        ];
+
+        $floorTax = array_merge($floorTax, $tax);
+        $floorTax["fyearTax"] = $this->GenerateRuleSetFyearTax($floorTax);
+        $floorTax["monthlyPenalty"] = round(collect($floorTax["fyearTax"])->sum("monthlyPenalty"), 2);
+
+        return $floorTax;
+    }
+
+    public function BuildingRules1(array $floor): array
+    {
+        $desc = "<pre>
+                                \n* ======================== Formula ==========================================
+                                \n*              Yearly ARV = Buildup Area(Sq. Ft) X ARV Rate
+                                \n*              Taxable ARV = Yearly ARV - ( Yearly ARV X 10 %)
+                                \n*      -------------------------------------------------------------------------------------------
+                                \n*              (a) Property Tax = Taxable ARV x Rate % X Usage Factor
+                                \n*                        # clause 
+                                \n*                        # (a) IF custruction type other and buildup area <= 500 sq ft AND construction type other then 0
+                                \n*                        # (b) IF Made By BPL catogory or construct under IHSDP (Integrated Housing and Slum Development Programme) [एकीकृत आवास और झुग्गी विकास कार्यक्रम]
+                                \n*
+                                \n*              (b) Composite Tax = Fix Tax 
+                                \n*              (c) Education Cess = Property Tax x 2 % 
+                                \n*              
+                                \n*              
+                                \n*              Yearly Tax = Property Tax + Composite Tax + Education Cess
+                                \n*                                 
+                            \n
+                </pre>";
+
+        return $this->processBuildingRules(__FUNCTION__, $floor, $desc, true);
+    }
+
+    public function BuildingRules2(array $floor): array
+    {
+        $desc = "<pre>
+                                \n* ======================== Formula ==========================================
+                                \n*              Yearly ARV = Buildup Area(Sq. Ft) X ARV Rate
+                                \n*              Taxable ARV = Yearly ARV - ( Yearly ARV X 10 %)
+                                \n*      -------------------------------------------------------------------------------------------
+                                \n*              (a) Property Tax = Taxable ARV x Rate % X Usage Factor
+                                \n*                        # clause 
+                                \n*                        # (a) IF custruction type other and buildup area <= 500 sq ft AND construction type other then 0
+                                \n*                        # (b) IF Made By BPL catogory or construct under IHSDP (Integrated Housing and Slum Development Programme) [एकीकृत आवास और झुग्गी विकास कार्यक्रम]
+                                \n*
+                                \n*              (b) Composite Tax = Fix Tax 
+                                \n*              (c) Education Cess = Taxable ARV x 2 % 
+                                \n*              
+                                \n*              
+                                \n*              Yearly Tax = Property Tax + Composite Tax + Education Cess
+                                \n*                                 
+                            \n
+                </pre>";
+
+        return $this->processBuildingRules(__FUNCTION__, $floor, $desc, false);
+    }
+
+    public function BuildingRules3(array $floor): array
+    {
+        $desc = "<pre>
+                                \n* ======================== Formula ==========================================
+                                \n*              Yearly ARV = Buildup Area(Sq. Ft) X ARV Rate
+                                \n*              Taxable ARV = Yearly ARV - ( Yearly ARV X 10 %)
+                                \n*      -------------------------------------------------------------------------------------------
+                                \n*              (a) Property Tax = Taxable ARV x Rate % X Usage Factor
+                                \n*                        # clause 
+                                \n*                        # (a) IF custruction type other and buildup area <= 500 sq ft then 0
+                                \n*                        # (b) IF Made By BPL catogory or construct under IHSDP (Integrated Housing and Slum Development Programme) [एकीकृत आवास और झुग्गी विकास कार्यक्रम]
+                                \n*
+                                \n*              (b) Composite Tax = Fix Tax 
+                                \n*              (c) Education Cess = Taxable ARV x 2 % 
+                                \n*              
+                                \n*              
+                                \n*              Yearly Tax = Property Tax + Composite Tax + Education Cess
+                                \n*                                 
+                            \n
+                </pre>";
+
+        return $this->processBuildingRules(__FUNCTION__, $floor, $desc, false);
+    }
+
+    public function BuildingRules4(array $floor): array
+    {
+        $desc = "<pre>
+                                \n* ======================== Formula ==========================================
+                                \n*              Yearly ARV = Buildup Area(Sq. Ft) X ARV Rate
+                                \n*              Taxable ARV = Yearly ARV - ( Yearly ARV X 10 %)
+                                \n*      -------------------------------------------------------------------------------------------
+                                \n*              (a) Property Tax = Taxable ARV x Rate % X Usage Factor
+                                \n*                        # clause 
+                                \n*                        # (a) IF custruction type other and buildup area <= 500 sq ft AND construction type other then 0
+                                \n*                        # (b) IF Made By BPL catogory or construct under IHSDP (Integrated Housing and Slum Development Programme) [एकीकृत आवास और झुग्गी विकास कार्यक्रम]
+                                \n*
+                                \n*              (b) Composite Tax = Fix Tax 
+                                \n*              (c) Education Cess = Taxable ARV x 2 % 
+                                \n*              
+                                \n*              
+                                \n*              Yearly Tax = Property Tax + Composite Tax + Education Cess
+                                \n*                                 
+                            \n
+                </pre>";
+
+        return $this->processBuildingRules(__FUNCTION__, $floor, $desc, false);
+    }
+
+    public function BuildingRules5(array $floor): array
+    {
+        $desc = "<pre>
+                                \n* ======================== Formula ==========================================
+                                \n*              Yearly ARV = Buildup Area(Sq. Ft) X ARV Rate
+                                \n*              Taxable ARV = Yearly ARV - ( Yearly ARV X 10 %)
+                                \n*      -------------------------------------------------------------------------------------------
+                                \n*              (a) Property Tax = Taxable ARV x Rate % X Usage Factor
+                                \n*                        # clause 
+                                \n*                        # (a) IF custruction type other and buildup area <= 500 sq ft AND construction type other then 0
+                                \n*                        # (b) IF Made By BPL catogory or construct under IHSDP (Integrated Housing and Slum Development Programme) [एकीकृत आवास और झुग्गी विकास कार्यक्रम]
+                                \n*
+                                \n*              (b) Composite Tax = Fix Tax 
+                                \n*              (c) Education Cess = Taxable ARV x 2 % 
+                                \n*              
+                                \n*              
+                                \n*              Yearly Tax = Property Tax + Composite Tax + Education Cess
+                                \n*                                 
+                            \n
+                </pre>";
+
+        return $this->processBuildingRules(__FUNCTION__, $floor, $desc, false);
+    }
+
+    public function calculateTax(): void
+    {
+        $this->FloorTaxCalculator();
+        $this->FYearTaxCalculator();
+        $this->RuleSetTaxCalculator();
+        $this->RuleSetVersionTaxCalculator();
+    }
+}

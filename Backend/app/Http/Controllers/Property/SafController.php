@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Property;
 
 use App\Bll\Common;
-use App\Bll\Property\BiharTaxCalculator;
+use App\Bll\Property\BhiliaTaxCalculator;
 use App\Bll\Property\GenerateMemoBll;
 use App\Bll\Property\MemoReceiptBll;
 use App\Bll\Property\PaymentReceiptBll;
@@ -200,6 +200,9 @@ class SafController extends Controller
             $ulbWardMaster = $this->_UlbWardMaster->getNumericWardList($ulbId);
             $electricityType = Config::get('PropertyConstant.ELECTRIC_CATEGORY');
             $zoneType = $this->_ZoneMaster->getZoneList();
+            $applicationType = [
+                "NIGAM","ZONE"
+            ];
             $swmConsumerType = $this->_SwmCategoryTypeMaster->getCategoryTypeList();
             $fyearList = collect(FyListdesc(null,"1986"))->map(function($item){
                 return ["fromDate"=>Carbon::parse(FyearQutFromDate($item,1))->format("Y-m"),"uptoDate"=>Carbon::parse(FyearQutUptoDate($item,4))->format("Y-m"),"fyear"=>$item];
@@ -212,6 +215,7 @@ class SafController extends Controller
             });
 
             $data=[
+                "applicationType"=>$applicationType,
                 "wardList"=>$ulbWardMaster,
                 "ownershipType"=>$ownershipTypeMaster,
                 "propertyType"=>$propertyTypeMaster,
@@ -323,7 +327,7 @@ class SafController extends Controller
 
     public function reviewTax(RequestTaxReview $request){
         try{
-            $calCulator = new BiharTaxCalculator($request);
+            $calCulator = new BhiliaTaxCalculator($request);
             $calCulator->calculateTax();
             return responseMsg(true,"Tax Review",camelCase(remove_null($calCulator->_GRID)));
         }catch(CustomException $e){
@@ -416,7 +420,7 @@ class SafController extends Controller
             } 
             $holdingType = $this->getHoldingType($request);
             $additionData["holdingType"]=$holdingType;
-            $calCulator = new BiharTaxCalculator($request);
+            $calCulator = new BhiliaTaxCalculator($request);
             $calCulator->calculateTax();
             $tax = collect($calCulator->_GRID);
             $propertyTypeMaster = $this->_PropertyTypeMaster->getPropertyTypeList();
@@ -525,7 +529,7 @@ class SafController extends Controller
                             ->setRedirector(app('redirect'))
                             ->setUserResolver(fn () => auth()->user());
 
-                // // 4️⃣ Trigger validation + authorize()
+                // 4️⃣ Trigger validation + authorize()
                 $formRequest->validateResolved();
 
                 // 5️⃣ Call destination method

@@ -8,7 +8,7 @@ const userFromStorage = localStorage.getItem("userDetails");
 const expiryFromStorage = localStorage.getItem("expiry");
 
 const initialState = {
-  token: tokenFromStorage ? JSON.parse(tokenFromStorage) : null,
+  token: tokenFromStorage ? tokenFromStorage : null,
   userDetails: userFromStorage ? JSON.parse(userFromStorage) : null,
   expiry: expiryFromStorage ? JSON.parse(expiryFromStorage) : null,
 };

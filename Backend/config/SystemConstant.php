@@ -7,12 +7,12 @@ return [
         "git"=>env('GITHUB_CLIENT_ID', "git"),
     ],
     "ULB-DB"=>[
-        1=>[
+        2=>[
             "property"=>"pgsql_property",
             "water"=>"pgsql_water",
             "trade"=>"pgsql_trade",
         ],
-        2=>[
+        1=>[
             "property"=>"pgsql_dmc_property",
             "water"=>"pgsql_dmc_water",
             "trade"=>"pgsql_dmc_trade",

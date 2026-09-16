@@ -14,6 +14,7 @@ class PreventConcurrentRequests
      */
     public function handle(Request $request, Closure $next): Response
     {
+        return $next($request);
         // 1. Get the identifying data
         $url = $request->fullUrl();
         $ip = $request->ip();

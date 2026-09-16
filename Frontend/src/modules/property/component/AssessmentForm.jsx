@@ -213,7 +213,7 @@ const AssessmentForm = ({
       dispatch(setFormData({ isCorrAddDiffer: checked ? 1 : 0 }));
     }
 
-    if (name === "propTypeMstrId" && updatedValue == 1) {
+    if (name === "propTypeMstrId" && updatedValue == 3) {
       getApartment();
     }
 
@@ -222,7 +222,7 @@ const AssessmentForm = ({
   };
 
   useEffect(() => {
-    if (formData.propTypeMstrId == 1) getApartment();
+    if (formData.propTypeMstrId == 3) getApartment();
   }, [formData.propTypeMstrId]);
 
   const handlePreviewFormData = async (e) => {
@@ -436,7 +436,7 @@ const AssessmentForm = ({
             <FormError name="propTypeMstrId" errors={error} />
           </div>
 
-          {formData.propTypeMstrId == 1 && (
+          {formData.propTypeMstrId == 3 && (
             <div>
               <label
                 htmlFor="appartmentDetailsId"
@@ -449,7 +449,7 @@ const AssessmentForm = ({
                 className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
                 name="appartmentDetailsId"
                 value={formData.appartmentDetailsId}
-                required={formData.propTypeMstrId == 1}
+                required={formData.propTypeMstrId == 3}
                 onChange={handleInputChange}
                 disabled={
                   pathname.includes(formType) &&

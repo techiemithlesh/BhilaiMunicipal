@@ -101,12 +101,13 @@ class RequestAddSaf extends ParentRequest
             "previousHoldingId"=>"nullable|required_unless:assessmentType,New Assessment",
             "transferModeMstrId"=>"nullable|required_if:assessmentType,Mutation|int",
             "percentageOfPropertyTransfer"=>"nullable|required_if:assessmentType,Mutation|numeric|min:0.1|max:100",
+            "applicationFrom"=>"required|in:NIGAM,ZONE",
             // "zoneMstrId"=>"required|int|regex:/^[0-9]+$/|exists:".$this->_ZoneMaster->getConnectionName().".".$this->_ZoneMaster->getTable().",id",
             "roadTypeMstrId"=>"required|int|exists:".$this->_RoadTypeMaster->getConnectionName().".".$this->_RoadTypeMaster->getTable().",id",   
             // "roadWidth"=>"nullable|numeric|".($this->propTypeMstrId==4 ? "min:0":"min:0.5")."|max:499",
             "appartmentDetailsId"=>[
                 "nullable",
-                "required_if:propTypeMstrId,1",
+                "required_if:propTypeMstrId,3",
                 "int",
                 "regex:/^[0-9]+$/",
                 Rule::exists($this->_ApartmentDetail->getConnectionName().".".$this->_ApartmentDetail->getTable(), 'id')
@@ -114,7 +115,7 @@ class RequestAddSaf extends ParentRequest
                     return $query->where('ulb_id', $this->ulbId);
                 }),
             ],
-            // "flatRegistryDate"=>"nullable|required_if:propTypeMstrId,1|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+            // "flatRegistryDate"=>"nullable|required_if:propTypeMstrId,3|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
             "khataNo"=>"nullable",
             "plotNo"=>"nullable",
             "villageMaujaName"=>"required",
