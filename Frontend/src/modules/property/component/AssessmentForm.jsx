@@ -18,7 +18,6 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import { setFormData } from "../../../store/slices/assessmentSlice";
 import { setOwnerDtl } from "../../../store/slices/ownerSlice";
 import { setFloorDtl } from "../../../store/slices/floorSlice";
-import { setSwmConsumerDtl } from "../../../store/slices/swmConsumerSlice";
 import { applyDefaults } from "../../../utils/initDefaultFormFields";
 import { applyOwnerDefaults } from "../../../utils/initOwnerDefaults";
 import FormError from "../../../components/common/FormError";
@@ -43,7 +42,6 @@ const AssessmentForm = ({
   const floorDtl = useSelector((state) => state.floor.floorDtl);
   const ownerDtl = useSelector((state) => state.owner.OwnerDtl);
   const formData = useSelector((state) => state.assessment.formData);
-  const swmConsumer = useSelector((state) => state.swmConsumer.swmConsumerDtl);
   const [error, setErrors] = useState({});
   const [apartmentList, setApartmentList] = useState([]);
   const [disabledFields, setDisabledFields] = useState({});
@@ -267,14 +265,12 @@ const AssessmentForm = ({
         }
       } else {
         const previewUrl = `/property/apply/preview`;
-        const swmDetails = formData?.hasSwm ? swmConsumer : [];
         const response = await axios.post(
           propertyTestRequestApi,
           {
             ...payload,
             ownerDtl,
             floorDtl: floorPayload,
-            swmConsumer: swmDetails,
             ulbId,
           },
           { headers: { Authorization: `Bearer ${token}` } },
@@ -288,8 +284,7 @@ const AssessmentForm = ({
               ownerDtl,
               floorDtl: floorPayload,
               mstrData,
-              apartmentList,
-              swmConsumer: swmDetails,
+              apartmentList
             },
           });
         } else if (response.data.errors) {

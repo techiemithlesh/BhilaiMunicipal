@@ -39,7 +39,6 @@ import PaymentReceiptModal from "../components/PaymentReceiptModal";
 import RemarksModal from "../components/RemarksModal";
 import SAFHeaderCard from "../components/SAFHeader";
 import SAMModal from "../components/SAMModal";
-import { includes } from "lodash";
 
 const Details = () => {
   const { safDtlId } = useParams();
@@ -248,33 +247,21 @@ const Details = () => {
   const fields = [
     { label: "SAF No", value: safDetails?.safNo },
     { label: "Apply Date", value: safDetails?.applyDate },
+    { label: "Application Type", value: safDetails?.applicationFrom },
     { label: "Ward No", value: safDetails?.wardNo },
     { label: "Assessment Type", value: safDetails?.assessmentType },
     { label: "Property Type", value: safDetails?.propertyType },
     { label: "Ownership Type", value: safDetails?.ownershipType },
     { label: "Road Type", value: safDetails?.roadType },
+    { label: "BPL Category", value: safDetails?.isBpl ? "Yes" : "No" },
     { label: "Plot No", value: safDetails?.plotNo },
     { label: "Area of Plot (In Sqft)", value: safDetails?.areaOfPlot },
     { label: "Built Up Area (In Sqft)", value: safDetails?.builtupArea },
-    {
-      label: "Rain Water Harvesting",
-      value: safDetails?.rainWaterHarvesting ? "Yes" : "No",
-    },
     { label: "Address", value: safDetails?.propAddress },
-    {label: "Road Type", value: safDetails?.roadType },
     { label: "Circle", value: safDetails?.zone },
-    // Only add these fields if propertyType matches
-    ...(safDetails?.propTypeMstrId === 1
-      ? [
-          { label: "Apartment Name", value: safDetails?.apartmentName },
-          { label: "Flat Registry Date", value: safDetails?.flatRegistryDate },
-        ]
-      : []),
-
-      ...(([3,4].includes(safDetails?.propTypeMstrId))
-      ? [
-          { label: "Date of Possession / Purchase / Acquisition", value: safDetails?.landOccupationDate },
-        ]
+    // Only add this field if propertyType matches
+    ...(safDetails?.propertyType?.toLowerCase().includes("flat")
+      ? [{ label: "Apartment Name", value: safDetails?.apartmentName }]
       : []),
 
       ...(safDetails?.previousHoldingId != ""
@@ -289,6 +276,8 @@ const Details = () => {
         ]
       : []),
   ];
+
+  console.log("safDetails", safDetails);
 
   return (
     <div className="mx-auto container">
@@ -318,104 +307,26 @@ const Details = () => {
               headers={[
                 "SL",
                 "Owner",
+                "Gender",
                 "Guardian",
                 "Relation",
                 "Mobile",
-                "Email",
-                "Aadhar No",
-                "PAN No",
-                "Gender",
-                "Dob",
-                "Armed Force",
-                "Specially Abled",
-                "Applicant Image",
-                "Applicant Document",
+                "Address",
               ]}
               data={safDetails.owners}
               renderRow={(owner, idx) => (
                 <tr key={idx}>
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{owner.ownerName}</td>
+                  <td className="px-3 py-2 border">{owner?.gender ?? "NA"}</td>
                   <td className="px-3 py-2 border">{owner.guardianName}</td>
                   <td className="px-3 py-2 border">{owner.relationType}</td>
                   <td className="px-3 py-2 border">{owner.mobileNo}</td>
-                  <td className="px-3 py-2 border">{owner.email}</td>
                   <td className="px-3 py-2 border">
-                    {owner?.aadharNo ?? "NA"}
-                  </td>
-                  <td className="px-3 py-2 border">{owner?.panNo ?? "NA"}</td>
-                  <td className="px-3 py-2 border">{owner?.gender ?? "NA"}</td>
-                  <td className="px-3 py-2 border">{owner?.dob ?? "NA"}</td>
-                  <td className="px-3 py-2 border">
-                    {owner?.isArmedForce ? "YES" : "NO"}
-                  </td>
-                  <td className="px-3 py-2 border">
-                    {owner?.isSpeciallyAbled ? "YES" : "NO"}
-                  </td>
-                  <td className="px-3 py-2 border">
-                    {owner?.ownerPhoto ? (
-                      <img
-                        src={owner.ownerPhoto}
-                        alt="Owner"
-                        className="border rounded w-16 h-16 object-cover"
-                      />
-                    ) : (
-                      "NA"
-                    )}
-                  </td>
-                  <td className="px-3 py-2 border">
-                    {owner?.ownerDoc ? (
-                      <iframe
-                        src={owner.ownerDoc}
-                        title="Owner Document"
-                        className="border rounded w-32 h-16"
-                      />
-                    ) : (
-                      "NA"
-                    )}
+                    {owner?.ownerAddress ?? "NA"}
                   </td>
                 </tr>
               )}
-            />
-            <DetailGrid
-              title="Electricity Details"
-              note="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
-              data={[
-                {
-                  label: "Electricity K. No",
-                  value: safDetails.electConsumerNo,
-                },
-                { label: "ACC No.", value: safDetails.electAccNo },
-                {
-                  label: "BIND/BOOK No.",
-                  value: safDetails?.electBindBookNo ? "electBindBookNo" : "NA",
-                },
-                {
-                  label: "Electricity Consumer Category",
-                  value: safDetails.electConsCategory,
-                },
-              ]}
-            />
-            <DetailGrid
-              title="Building Plan/Water Connection Details"
-              data={[
-                {
-                  label: "Building Plan Approval No",
-                  value: safDetails.buildingPlanApprovalNo || "NA",
-                },
-                {
-                  label: "Building Plan Approval Date",
-                  value: safDetails.buildingPlanApprovalDate || "NA",
-                },
-                {
-                  label: "Water Consumer No",
-                  value: safDetails?.waterConnNo || "NA",
-                },
-                {
-                  label: "Water Connection Date",
-                  value: safDetails?.waterConnDate || "NA",
-                },
-              ]}
             />
             <DetailGrid
               title="Property Details"
@@ -427,7 +338,7 @@ const Details = () => {
                   value: safDetails?.villageMaujaName || "NA",
                 },
                 {
-                  label: "Area of Plot (in Decimal)",
+                  label: "Area of Plot (in Sqft)",
                   value: safDetails?.areaOfPlot || "NA",
                 },
               ]}
@@ -579,21 +490,6 @@ const Details = () => {
                   />
               )}
             
-            {/* WATER ONE TIME DETAILS */}
-            <DetailGrid
-              note={"Note: Water Tax is a one-time tax and is applicable only if you are doing your assessment for the first time or if you have never paid it earlier."}
-              data={[
-                {
-                  label: "Water Connection Facility",
-                  value: safDetails?.waterConnectionFacilityType || "NA",
-                },
-                {
-                  label: "Water Tax Type",
-                  value: safDetails?.waterTaxType || "NA",
-                },
-              ]}
-            />
-
             {/* ADDITIONAL INFORMATION */}
             <AditionalDetails data={safDetails} />
             {/* TAX DETAILS */}

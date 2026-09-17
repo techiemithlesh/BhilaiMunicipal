@@ -5,8 +5,12 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import { getToken } from "../../../utils/auth";
 import axios from "axios";
 import TaxViewTab from "../../property/component/Saf/TaxViewTab";
+import BhilaiTaxHistory, {
+  buildEntriesFromTaxDtl,
+} from "../../property/component/Saf/BhilaiTaxHistory";
 import toast from "react-hot-toast";
 import SuccessModal from "../../property/component/SuccessModal";
+import ConfirmSubmitModal from "../../property/component/ConfirmSubmitModal";
 import { clearOwnerDtl } from "../../../store/slices/ownerSlice";
 import { clearFloorDtl } from "../../../store/slices/floorSlice";
 import { normalizePayload } from "../../../utils/utils";
@@ -22,6 +26,7 @@ export default function Preview() {
   const { setIsLoadingGable } = useLoading();
   const [taxDtl, setTaxDtl] = useState({});
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [data, setIsData] = useState([]);
 
   const {
@@ -171,7 +176,13 @@ export default function Preview() {
                 "propertyType",
               )}
             />
-            {Number(formData?.propTypeMstrId) === 1 && (
+            {findName(
+              mstrData.propertyType,
+              formData?.propTypeMstrId,
+              "propertyType",
+            )
+              ?.toLowerCase()
+              .includes("flat") && (
               <DetailCard
                 label="Apartment Name"
                 value={findName(
@@ -294,54 +305,7 @@ export default function Preview() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {swmConsumer?.map((app, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-2 border border-gray-500 font-medium text-gray-900 text-sm whitespace-nowrap">
-                        {getName(
-                          mstrData?.occupancyType,
-                          app?.occupancyTypeMasterId,
-                          "occupancyName",
-                        )}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.ownerName}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.guardianName}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.relationType}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.mobileNo}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {getName(
-                          mstrData?.swmConsumerType,
-                          app.categoryTypeMasterId,
-                          "categoryType",
-                        )}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.category}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {getName(
-                          app?.subCategoryList,
-                          app.subCategoryTypeMasterId,
-                          "subCategoryType",
-                        )}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app.dateOfEffective}
-                      </td>
-                      <td className="px-4 py-2 border border-gray-500 text-gray-500 text-sm whitespace-nowrap">
-                        {app?.rate}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+               
               </table>
             </div>
           </div>
@@ -353,17 +317,12 @@ export default function Preview() {
         {/* Tax Details */}
         <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
           <h2 className="font-semibold text-xl">Tax Details</h2>
-          {Object.keys(taxDtl).length > 0 && <TaxViewTab taxDtl={taxDtl} />}
+          {/* {Object.keys(taxDtl).length > 0 && <TaxViewTab taxDtl={taxDtl} />} */}
+          <BhilaiTaxHistory entries={buildEntriesFromTaxDtl(taxDtl)} />
         </section>
 
-        {taxDtl?.lateAssessmentPenalty && (
-          <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-            <h2 className="font-semibold text-xl">Penalty - <span>₹ {taxDtl.lateAssessmentPenalty} (Late Assessment Penalty)</span></h2>
-          </section>
-        )}
-
         {/* Navigation Buttons */}
-        <div className="flex space-x-4">
+        <div className="flex justify-center space-x-4">
           <button
             className="bg-gray-300 hover:bg-gray-400 px-5 py-2 rounded"
             onClick={() => navigate(-1)}
@@ -372,12 +331,21 @@ export default function Preview() {
           </button>
           <button
             className="bg-green-600 hover:bg-green-700 px-5 py-2 rounded text-white"
-            onClick={handleSubmitForm}
+            onClick={() => setConfirmOpen(true)}
           >
             Submit
           </button>
         </div>
       </div>
+
+      <ConfirmSubmitModal
+        isOpen={isConfirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleSubmitForm();
+        }}
+      />
 
       {isModalOpen && (
         <SuccessModal

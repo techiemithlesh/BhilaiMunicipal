@@ -21,7 +21,7 @@ class ActiveSafDetail extends ParamModel
         "percentage_of_property_transfer",
         "assessment_type",
         "holding_type",
-        "zone_mstr_id",
+        // "zone_mstr_id",
         "ward_mstr_id",
         "new_ward_mstr_id",
         "ownership_type_mstr_id",
@@ -90,6 +90,18 @@ class ActiveSafDetail extends ParamModel
         "water_tax_type_id",
         "skip_tc_level",
         "lock_status",
+        "is_widow",
+        "is_school",
+        "is_complex",
+        "is_bpl",
+        "is_dp",
+        "is_disabled_person",
+        "is_builder",
+        "is_chabutra",
+        "is_shop_holding",
+        "application_from",
+        "is_ex_army",
+        "is_old_property"
     ];
 
     public function store($request){

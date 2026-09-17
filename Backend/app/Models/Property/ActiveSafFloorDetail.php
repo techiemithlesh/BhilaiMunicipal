@@ -22,6 +22,7 @@ class ActiveSafFloorDetail extends ParamModel
         "user_id",
         "prop_floor_detail_id",
         "lock_status",
+        "zone_mstr_id"
     ];
 
     public function store($request){
