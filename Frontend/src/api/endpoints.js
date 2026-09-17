@@ -43,6 +43,7 @@ export const dbListApi = `${BASE_URL}/api/editor/get-db`;
 export const tableListApi = `${BASE_URL}/api/editor/get-table`;
 export const executeQueryApi = `${BASE_URL}/api/editor/execute`;
 export const bdBackupApi = `${BASE_URL}/api/editor/backup-download`;
+export const exportExcelQueryApi = `${BASE_URL}/api/editor/export-excel`;
 
 /**
  * ==============setting [WF]======================

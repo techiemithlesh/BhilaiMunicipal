@@ -213,6 +213,7 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
             Route::post("get-table","getTableList");
             Route::post("execute","QueryExecute");
             Route::post("backup-download","downloadBackup");
+            Route::post("export-excel","downloadDataExcel");
         });
     });
 });

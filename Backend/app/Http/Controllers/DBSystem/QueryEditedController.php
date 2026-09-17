@@ -246,11 +246,47 @@ class QueryEditedController extends Controller
         }
     }
 
-    public function downloadDataExcel(Request $request){
-        try{
+    public function downloadDataExcel(Request $request)
+    {
+        try {
+            $rules = [
+                'conn' => 'nullable|string',
+                'statement' => 'required|string',
+                'file_name' => 'nullable|string',
+                'title' => 'nullable|string',
+                'columns' => 'required|array',
+            ];
 
-        }catch(Exception $e){
+            $validator = Validator::make($request->all(), $rules);
+            if ($validator->fails()) {
+                return validationError($validator);
+            }
 
+            $this->checkAdminPermission();
+            $this->resolveDynamicConnection($request->conn);
+
+            $fileName = ($request->file_name ?: 'property_export_' . time()) . '.xls';
+            $userId = auth()->id();
+
+            // Dispatch background queue job
+            ExportExcelJob::dispatch(
+                $userId,
+                $this->conn,
+                $request->statement,
+                $request->columns,
+                $request->title,
+                $fileName
+            );
+
+            return responseMsg(true, "Export process queued. You will receive the download link shortly.", [
+                'file_name' => $fileName,
+                'status' => 'queued'
+            ]);
+
+        } catch (CustomException $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        } catch (Exception $e) {
+            return responseMsg(false, "Export Dispatch Error: " . $e->getMessage(), "");
         }
     }
 }
