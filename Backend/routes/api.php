@@ -15,7 +15,9 @@ use App\Http\Controllers\DBSystem\WorkflowController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\OnlinePaymentController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -217,3 +219,22 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         });
     });
 });
+
+
+
+Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+    return Broadcast::auth($request);
+});
+Route::get('/excel-download/{fileName}', function ($fileName) {
+    $filePath = 'exports/' . $fileName;
+
+    if (!Storage::disk('local')->exists($filePath)) {
+        return response()->json(['status' => false, 'message' => 'File not found or expired.'], 404);
+    }
+
+    $fullPath = Storage::disk('local')->path($filePath);
+
+    return response()->download($fullPath, $fileName, [
+        'Content-Type' => 'application/vnd.ms-excel',
+    ])->deleteFileAfterSend(true);
+})->name('excel.download')->middleware('signed');

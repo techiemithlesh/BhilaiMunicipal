@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Jobs\ExportExcelJob;
 
 class QueryEditedController extends Controller
 {
@@ -265,7 +266,7 @@ class QueryEditedController extends Controller
             $this->checkAdminPermission();
             $this->resolveDynamicConnection($request->conn);
 
-            $fileName = ($request->file_name ?: 'property_export_' . time()) . '.xls';
+            $fileName = ($request->file_name ?: 'Export_Report')."_". time() . '.xls';
             $userId = auth()->id();
 
             // Dispatch background queue job
@@ -274,19 +275,43 @@ class QueryEditedController extends Controller
                 $this->conn,
                 $request->statement,
                 $request->columns,
-                $request->title,
+                $request->title ?: 'Property Details Report',
                 $fileName
             );
+            // $this->startQueueWorkerInBackground();
 
-            return responseMsg(true, "Export process queued. You will receive the download link shortly.", [
-                'file_name' => $fileName,
-                'status' => 'queued'
-            ]);
+            return responseMsg(
+                true, 
+                "Excel export process queued in background.", 
+                [
+                    'file_name' => $fileName,
+                    'status' => 'queued'
+                ]
+            );
 
         } catch (CustomException $e) {
             return responseMsg(false, $e->getMessage(), "");
         } catch (Exception $e) {
             return responseMsg(false, "Export Dispatch Error: " . $e->getMessage(), "");
+        }
+    }
+
+    /**
+     * Spawns a background worker execution if no active worker is detected.
+     */
+    private function startQueueWorkerInBackground()
+    {
+        try {
+            if (str_starts_with(php_uname('s'), 'Windows')) {
+                // Windows OS background process launcher
+                pclose(popen("start /B php " . base_path('artisan') . " queue:work --once --tries=1", "r"));
+            } else {
+                // Linux/macOS background process launcher
+                exec("php " . base_path('artisan') . " queue:work --once --tries=1 > /dev/null 2>&1 &");
+            }
+        } catch (Exception $e) {
+            // Silently log or ignore process launch errors
+            logger()->error("Queue worker background launch failed: " . $e->getMessage());
         }
     }
 }

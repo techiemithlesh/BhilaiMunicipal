@@ -1,46 +1,65 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getToken, getUserDetails } from "../../../utils/auth";
 import axios from "axios";
-import { bdBackupApi, dbListApi, executeQueryApi, exportExcelQueryApi, tableListApi } from "../../../api/endpoints";
-import DataTableFullData from "../../../components/common/DataTableFullData";
-import { Spinner } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
+import { getToken, getUserDetails } from "../../../utils/auth";
 import { toastMsg } from "../../../utils/utils";
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+import {
+  bdBackupApi,
+  dbListApi,
+  executeQueryApi,
+  exportExcelQueryApi,
+  tableListApi,
+} from "../../../api/endpoints";
+
+import DatabaseSidebar from "../queryComponents/DatabaseSidebar";
+import SqlWorkspace from "../queryComponents/SqlWorkspace";
+import ExportConfigModal from "../queryComponents/ExportConfigModal";
+
+import Echo from "laravel-echo";
+import Pusher from "pusher-js";
 
 window.Pusher = Pusher;
 
-// const echo = new Echo({
-//   broadcaster: 'reverb', // Use 'pusher' if using Pusher Channels instead of Reverb
-//   key: import.meta.env.VITE_REVERB_APP_KEY,
-//   wsHost: import.meta.env.VITE_REVERB_HOST,
-//   wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-//   wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-//   forceTLS: false,//(import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-//   enabledTransports: ['ws', 'wss'],
-//   authEndpoint: '/broadcasting/auth',
-//   auth: {
-//     headers: {
-//       Authorization: `Bearer ${localStorage.getItem('token')}`,
-//     },
-//   },
-// });
-
+// Fixed Laravel Echo configuration with dynamic Bearer Token authorization
 export const echo = new Echo({
-  broadcaster: 'reverb',
-  key: import.meta.env.VITE_REVERB_APP_KEY || 'local_key',
-  wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
+  broadcaster: "reverb",
+  key: import.meta.env.VITE_REVERB_APP_KEY || "local_key",
+  wsHost: import.meta.env.VITE_REVERB_HOST || "127.0.0.1",
   wsPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
   wssPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
-  forceTLS: false, // Forces HTTP / ws:// connection for local development
-  enabledTransports: ['ws', 'wss'],
-  authEndpoint: 'http://localhost:8091/api/broadcasting/auth', // Your backend API host
-  auth: {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-      Accept: 'application/json',
-    },
+  forceTLS: false,
+  enabledTransports: ["ws", "wss"],
+  authorizer: (channel, options) => {
+    return {
+      authorize: (socketId, callback) => {
+        const token = getToken() || localStorage.getItem("token");
+
+        fetch("http://localhost:8091/api/broadcasting/auth", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            socket_id: socketId,
+            channel_name: channel.name,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Auth failed with status ${response.status}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            callback(false, data);
+          })
+          .catch((error) => {
+            callback(true, error);
+          });
+      },
+    };
   },
 });
 
@@ -48,10 +67,12 @@ export default function QueryEditorUI() {
   const [selectedDb, setSelectedDb] = useState("");
   const [query, setQuery] = useState("");
   const textareaRef = useRef(null);
+
   const [dbList, setDbList] = useState([]);
   const [tablesList, setTableList] = useState([]);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [isDbLoading, setIsDbLoading] = useState(false);
   const [isTableLoading, setIsTableLoading] = useState(false);
@@ -61,31 +82,96 @@ export default function QueryEditorUI() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Modal & Configuration States
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportTitle, setExportTitle] = useState("Property Details Report");
-  const [exportFileName, setExportFileName] = useState("Property_Report");
-
-  // Modal Specific SQL and Config Execution States
+  const [exportTitle, setExportTitle] = useState("Details Report");
+  const [exportFileName, setExportFileName] = useState("Report");
   const [modalSql, setModalSql] = useState("");
   const [isConfigExecuting, setIsConfigExecuting] = useState(false);
 
-  // Dynamic Card-based Column Configuration State
   const [cardsConfig, setCardsConfig] = useState([]);
   const [childGroups, setChildGroups] = useState([]);
-
-  // Drag & Drop States
-  const [draggedCardIndex, setDraggedCardIndex] = useState(null);
-  const [draggedColInfo, setDraggedColInfo] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const profile = getUserDetails();
   const token = getToken();
   const navigator = useNavigate();
 
-  /**
-   * Automatically parses SQL statement and returned structure into:
-   * 1 Parent Card and N Child Cards based on JSON Array fields
-   */
+  // Helper to trigger direct browser file download from standard Base64 string
+  const triggerFileDownload = (fileBlob, fileName, mimeType) => {
+    try {
+      const byteCharacters = atob(fileBlob);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: mimeType || "application/vnd.ms-excel",
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error("Error blob converting:", err);
+      toastMsg("Failed to construct downloaded file payload.", "error");
+    }
+  };
+
+  // WebSocket Listener: Listen strictly on the private user broadcast channel
+  useEffect(() => {
+    if (!profile?.id) {
+      console.warn("WebSocket setup skipped: User profile ID is missing.");
+      return;
+    }
+
+    const channelName = `user.${profile.id}`;
+    console.log(`[WebSocket] Subscribing to private channel: ${channelName}`);
+
+    const channel = echo.private(channelName);
+
+    // Debug: Log successful connection/subscription to channel
+    channel.subscribed(() => {
+      console.log(`[WebSocket] Successfully subscribed to channel: ${channelName}`);
+    });
+
+    // Listen for the custom event sent from Laravel
+    channel.listen(".ExcelExportReady", (eventData) => {
+      console.log("[WebSocket] Event received: .ExcelExportReady");
+      console.log("[WebSocket] Full Payload Data:", eventData);
+
+      setIsExporting(false);
+
+      if (eventData.status) {
+        console.log("[WebSocket] Export status is true. Downloading Excel file...");
+
+        const link = document.createElement("a");
+        link.href = eventData.download_url;
+        link.setAttribute("download", eventData.file_name);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toastMsg("Excel export completed successfully!", "success");
+        setIsExportModalOpen(false);
+      } else {
+        console.error("[WebSocket] Export payload returned an error status:", eventData.message);
+        toastMsg(eventData.message || "Failed to process export.", "error");
+      }
+    });
+
+    return () => {
+      console.log(`[WebSocket] Unsubscribing from channel: ${channelName}`);
+      echo.leave(`user.${profile.id}`);
+    };
+  }, [profile?.id]);
+
+  // Auto detect card configuration logic
   const autoDetectColumnsFromQueryAndData = (sqlStatement, responseData) => {
     if (!responseData?.headers || responseData.headers.length === 0) return;
 
@@ -101,7 +187,11 @@ export default function QueryEditorUI() {
         } catch (e) {}
       }
 
-      if (Array.isArray(rawVal) && rawVal.length > 0 && typeof rawVal[0] === "object") {
+      if (
+        Array.isArray(rawVal) &&
+        rawVal.length > 0 &&
+        typeof rawVal[0] === "object"
+      ) {
         detectedChildGroups.push(headerKey);
         jsonChildMap[headerKey] = Object.keys(rawVal[0]);
       }
@@ -119,15 +209,15 @@ export default function QueryEditorUI() {
     setChildGroups(detectedChildGroups);
 
     const initialCards = [];
-
-    // --- Create Parent Card ---
     const parentCols = [{ key: "serial_no", label: "#", type: "parent" }];
 
     responseData.headers.forEach((key) => {
       if (!detectedChildGroups.includes(key)) {
         parentCols.push({
           key: key,
-          label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          label: key
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase()),
           type: "parent",
         });
       }
@@ -142,7 +232,6 @@ export default function QueryEditorUI() {
       columns: parentCols,
     });
 
-    // --- Create Child Cards ---
     detectedChildGroups.forEach((childKey) => {
       const childCols = [];
       const keysList = jsonChildMap[childKey] || [];
@@ -150,7 +239,9 @@ export default function QueryEditorUI() {
       keysList.forEach((subKey) => {
         childCols.push({
           key: subKey,
-          label: subKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          label: subKey
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase()),
           type: `child_${childKey}`,
         });
       });
@@ -175,7 +266,6 @@ export default function QueryEditorUI() {
     }
   }, [data]);
 
-  // Open modal and initialize Modal SQL
   const handleOpenExportModal = () => {
     let activeQuery = query;
     if (textareaRef.current) {
@@ -188,23 +278,16 @@ export default function QueryEditorUI() {
     setIsExportModalOpen(true);
   };
 
-  /**
-   * Start Configuration:
-   * Strips existing LIMIT clause, appends LIMIT 1, executes query, and sets configuration cards.
-   */
   const handleStartConfig = async () => {
     if (!modalSql.trim()) {
       toastMsg("Please enter a SQL statement", "error");
       return;
     }
 
-    // Remove any existing LIMIT clause (case-insensitive)
-    let cleanedSql = modalSql.replace(/\s+LIMIT\s+\d+(\s+OFFSET\s+\d+)?/gi, "").trim();
-
-    // Clean trailing semicolons if present
+    let cleanedSql = modalSql
+      .replace(/\s+LIMIT\s+\d+(\s+OFFSET\s+\d+)?/gi, "")
+      .trim();
     cleanedSql = cleanedSql.replace(/;+$/, "");
-
-    // Enforce LIMIT 1 for configuration sampling
     const configSql = `${cleanedSql} LIMIT 1`;
 
     setIsConfigExecuting(true);
@@ -217,7 +300,10 @@ export default function QueryEditorUI() {
 
       if (response?.data?.status && response?.data?.data) {
         autoDetectColumnsFromQueryAndData(configSql, response.data.data);
-        toastMsg("Configuration loaded successfully with single record!", "success");
+        toastMsg(
+          "Configuration loaded successfully with single record!",
+          "success"
+        );
       } else {
         toastMsg(response?.data?.message || "Failed to execute query", "error");
       }
@@ -228,9 +314,6 @@ export default function QueryEditorUI() {
     }
   };
 
-  /**
-   * Reset Configuration: Clears out all current configuration cards
-   */
   const handleResetConfig = () => {
     setCardsConfig([]);
     setChildGroups([]);
@@ -241,9 +324,7 @@ export default function QueryEditorUI() {
     const fetchDb = async () => {
       if (!profile?.roleDtls?.some((item) => item?.id == 1)) {
         toastMsg("Permission Denied!!!", "blank");
-        setTimeout(() => {
-          navigator(-1);
-        }, 5000);
+        setTimeout(() => navigator(-1), 5000);
         return;
       }
       setIsDbLoading(true);
@@ -253,11 +334,9 @@ export default function QueryEditorUI() {
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        if (response?.data?.status) {
-          setDbList(response?.data?.data);
-        }
+        if (response?.data?.status) setDbList(response?.data?.data);
       } catch (err) {
-        console.log("error", err);
+        console.error(err);
       } finally {
         setIsDbLoading(false);
       }
@@ -275,18 +354,14 @@ export default function QueryEditorUI() {
           { conn: selectedDb },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        if (response?.data?.status) {
-          setTableList(response?.data?.data);
-        }
+        if (response?.data?.status) setTableList(response?.data?.data);
       } catch (err) {
-        console.log("error", err);
+        console.error(err);
       } finally {
         setIsTableLoading(false);
       }
     };
-    if (token) {
-      fetchTable();
-    }
+    if (token) fetchTable();
   }, [token, selectedDb]);
 
   const executeSql = async () => {
@@ -301,7 +376,7 @@ export default function QueryEditorUI() {
     try {
       const response = await axios.post(
         executeQueryApi,
-        { conn: selectedDb, statement: statement },
+        { conn: selectedDb, statement },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response?.data?.status) {
@@ -312,7 +387,6 @@ export default function QueryEditorUI() {
         setError(response?.data?.message);
       }
     } catch (err) {
-      console.log("error", err);
       setData(null);
       setError("Something went wrong");
     } finally {
@@ -322,27 +396,11 @@ export default function QueryEditorUI() {
 
   const handleTableClick = (tableName) => {
     const trimmed = query.trim();
-
-    if (!trimmed) {
+    if (!trimmed || isAutoGenerated) {
       setQuery(`SELECT * FROM ${tableName} LIMIT 1`);
       setIsAutoGenerated(true);
       return;
     }
-
-    if (isAutoGenerated) {
-      const regex = /(FROM\s+)([a-zA-Z0-9_."]+)(\s+LIMIT\s+1)/i;
-      if (regex.test(query)) {
-        const updated = query.replace(regex, `$1${tableName}$3`);
-        setQuery(updated);
-        setIsAutoGenerated(true);
-        return;
-      }
-
-      setQuery(`SELECT * FROM ${tableName} LIMIT 1`);
-      setIsAutoGenerated(true);
-      return;
-    }
-
     setHint(true);
     setTimeout(() => setHint(false), 800);
   };
@@ -358,25 +416,7 @@ export default function QueryEditorUI() {
 
       if (response.data.status) {
         const { file_name, file_blob } = response.data.data;
-
-        const byteCharacters = atob(file_blob);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-
-        const blob = new Blob([byteArray], { type: "application/zip" });
-        const downloadUrl = window.URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.setAttribute("download", file_name);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-
+        triggerFileDownload(file_blob, file_name, "application/zip");
         toastMsg(response.data.message, "success");
       } else {
         toastMsg("Backup compilation issue encountered.", "error");
@@ -404,9 +444,9 @@ export default function QueryEditorUI() {
     return flatCols;
   };
 
+  // Triggers backend queued job & waits for WebSocket event
   const handleExportExcel = async () => {
     let exportQuery = modalSql || query;
-
     setIsExporting(true);
     try {
       const response = await axios.post(
@@ -422,151 +462,16 @@ export default function QueryEditorUI() {
       );
 
       if (response.data.status) {
-        const { file_name, file_blob, mime_type } = response.data.data;
-
-        const byteCharacters = atob(file_blob);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-
-        const blob = new Blob([byteArray], { type: mime_type || "application/vnd.ms-excel" });
-        const downloadUrl = window.URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.setAttribute("download", file_name);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-
-        toastMsg("Excel exported successfully!", "success");
-        setIsExportModalOpen(false);
+        toastMsg("Excel generation started in background...", "success");
       } else {
-        toastMsg(response.data.message || "Export failed", "error");
+        setIsExporting(false);
+        toastMsg(response.data.message || "Export failed to trigger", "error");
       }
     } catch (err) {
-      console.error(err);
-      toastMsg("Server error during Excel generation", "error");
-    } finally {
       setIsExporting(false);
+      toastMsg("Server error while initializing export process", "error");
     }
   };
-
-  // --- CARD MANAGEMENT ---
-  const addNewCard = () => {
-    const cardCount = cardsConfig.length + 1;
-    setCardsConfig([
-      ...cardsConfig,
-      {
-        cardId: "card_" + Date.now(),
-        title: `NEW SECTION #${cardCount}`,
-        type: "parent",
-        metaHeader: `SECTION ${cardCount} HEADER`,
-        subMetaHeader: "Custom Sub-Details",
-        columns: [
-          {
-            key: "",
-            label: "New Field",
-            type: "parent",
-          },
-        ],
-      },
-    ]);
-  };
-
-  const removeCard = (cardIndex) => {
-    setCardsConfig(cardsConfig.filter((_, i) => i !== cardIndex));
-  };
-
-  // --- DRAG & DROP SWAPPING HANDLERS ---
-  const handleCardDragStart = (e, index) => {
-    setDraggedCardIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleCardDragOver = (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedCardIndex === null || draggedCardIndex === targetIndex) return;
-
-    const updated = [...cardsConfig];
-    const draggedCard = updated[draggedCardIndex];
-    updated.splice(draggedCardIndex, 1);
-    updated.splice(targetIndex, 0, draggedCard);
-
-    setDraggedCardIndex(targetIndex);
-    setCardsConfig(updated);
-  };
-
-  const handleCardDragEnd = () => {
-    setDraggedCardIndex(null);
-  };
-
-  const handleColDragStart = (e, cardIndex, colIndex) => {
-    e.stopPropagation();
-    setDraggedColInfo({ cardIndex, colIndex });
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleColDragOver = (e, targetCardIndex, targetColIndex) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!draggedColInfo) return;
-    const { cardIndex: srcCardIdx, colIndex: srcColIdx } = draggedColInfo;
-
-    if (srcCardIdx !== targetCardIndex || srcColIdx === targetColIndex) return;
-
-    const updatedCards = [...cardsConfig];
-    const targetCardCols = [...updatedCards[targetCardIndex].columns];
-
-    const draggedCol = targetCardCols[srcColIdx];
-    targetCardCols.splice(srcColIdx, 1);
-    targetCardCols.splice(targetColIndex, 0, draggedCol);
-
-    updatedCards[targetCardIndex].columns = targetCardCols;
-
-    setDraggedColInfo({ cardIndex: targetCardIndex, colIndex: targetColIndex });
-    setCardsConfig(updatedCards);
-  };
-
-  const handleColDragEnd = (e) => {
-    e.stopPropagation();
-    setDraggedColInfo(null);
-  };
-
-  const updateCardHeader = (cardIndex, field, value) => {
-    const updated = [...cardsConfig];
-    updated[cardIndex][field] = value;
-    setCardsConfig(updated);
-  };
-
-  const updateColumnItem = (cardIndex, colIndex, field, value) => {
-    const updated = [...cardsConfig];
-    updated[cardIndex].columns[colIndex][field] = value;
-    setCardsConfig(updated);
-  };
-
-  const addColumnToCard = (cardIndex) => {
-    const updated = [...cardsConfig];
-    const card = updated[cardIndex];
-    card.columns.push({
-      key: "",
-      label: "New Column",
-      type: card.type,
-    });
-    setCardsConfig(updated);
-  };
-
-  const removeColumnFromCard = (cardIndex, colIndex) => {
-    const updated = [...cardsConfig];
-    updated[cardIndex].columns.splice(colIndex, 1);
-    setCardsConfig(updated);
-  };
-
-  const flatColumns = getFlatColumnsConfig();
 
   return (
     <div
@@ -575,10 +480,11 @@ export default function QueryEditorUI() {
       } p-1 bg-gray-100 min-h-screen`}
     >
       <div className="bg-white shadow rounded p-1">
+        {/* Top Header Actions */}
         <div className="mb-2 flex items-center justify-between px-2">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 text-xs font-medium rounded flex items-center gap-1 transition-colors duration-200"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 text-xs font-medium rounded flex items-center gap-1 transition-colors"
           >
             {isSidebarOpen ? "← Hide Sidebar" : "→ Show Sidebar"}
           </button>
@@ -593,447 +499,64 @@ export default function QueryEditorUI() {
               onClick={handleDownloadBackup}
               disabled={isDownloading}
               className={`px-4 py-2 text-white rounded ${
-                isDownloading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                isDownloading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
               }`}
             >
-              {isDownloading ? "Generating Backup..." : `Download Backup for (${selectedDb})`}
+              {isDownloading
+                ? "Generating Backup..."
+                : `Download Backup for (${selectedDb})`}
             </button>
           </div>
         </div>
 
+        {/* Main Grid Workspace */}
         <div className="grid grid-cols-12 gap-4">
-          <div
-            className={`${
-              isSidebarOpen ? "col-span-3 block" : "hidden"
-            } bg-gray-50 border rounded p-3 transition-all duration-300`}
-          >
-            <h3 className="font-semibold text-sm mb-2">Database</h3>
+          <DatabaseSidebar
+            isSidebarOpen={isSidebarOpen}
+            selectedDb={selectedDb}
+            setSelectedDb={setSelectedDb}
+            dbList={dbList}
+            tablesList={tablesList}
+            isTableLoading={isTableLoading}
+            handleTableClick={handleTableClick}
+          />
 
-            <select
-              className="w-full border p-2 rounded"
-              value={selectedDb}
-              onChange={(e) => setSelectedDb(e.target.value)}
-            >
-              {dbList.map((db, i) => (
-                <option key={i} value={db?.value}>
-                  {db?.label}
-                </option>
-              ))}
-            </select>
-
-            <h3 className="font-semibold text-sm mt-4 mb-2">Tables</h3>
-
-            <div className="h-[400px] overflow-y-scroll border p-2 rounded bg-white">
-              {tablesList.map((t, i) => (
-                <div
-                  key={i}
-                  className={`${
-                    t?.relkind == "f"
-                      ? "text-red-500"
-                      : t?.relkind == "v"
-                      ? "text-yellow-600"
-                      : t?.relkind == "m"
-                      ? "text-yellow-900"
-                      : "text-blue-700"
-                  } cursor-pointer hover:underline text-sm py-1`}
-                  onClick={() => handleTableClick(t?.name)}
-                  title={t?.table_type}
-                >
-                  {t?.name}
-                </div>
-              ))}
-              {isTableLoading && <Spinner />}
-            </div>
-          </div>
-
-          <div
-            className={`${
-              isSidebarOpen ? "col-span-9" : "col-span-12"
-            } transition-all duration-300`}
-          >
-            <textarea
-              ref={textareaRef}
-              rows={5}
-              className={`w-full border rounded p-3 font-mono transition-all duration-300 text-xs ${
-                hint
-                  ? "border-yellow-500 text-gray-500 bg-yellow-50 shadow-md"
-                  : "border-gray-300"
-              }`}
-              placeholder="Write your SQL query here..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setIsAutoGenerated(false);
-              }}
-            />
-
-            <div className="mt-3 flex gap-3">
-              <button
-                disabled={isButtonDisabled}
-                onClick={executeSql}
-                className={`${
-                  isButtonDisabled
-                    ? "bg-gray-600 hover:bg-gray-300"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } text-white px-4 py-2 rounded`}
-              >
-                Execute
-              </button>
-            </div>
-
-            <div
-              className={`${
-                isButtonDisabled ? "pointer-events-none filter blur-sm" : ""
-              } mt-5 bg-gray-50 border p-3 rounded`}
-            >
-              {error && <p className="text-red-600 font-medium">{error}</p>}
-
-              {data?.headers && data?.data ? (
-                <DataTableFullData
-                  title={"Data Output"}
-                  startingItemsPerPage={10}
-                  isExport={true}
-                  headers={[
-                    { label: "#", key: "serial" },
-                    ...data.headers.map((header) => ({
-                      label: header,
-                      key: header,
-                    })),
-                  ]}
-                  data={data.data}
-                  renderRow={(item, idx) => (
-                    <tr key={idx}>
-                      <td className="px-3 py-2 border">{idx + 1}</td>
-                      {data.headers.map((header, key) => (
-                        <td key={key} className="px-3 py-2 border">
-                          {String(item?.[header])}
-                        </td>
-                      ))}
-                    </tr>
-                  )}
-                />
-              ) : data ? (
-                <p className="text-green-500">{data}</p>
-              ) : (
-                !error && <p className="text-gray-500">No Data Found</p>
-              )}
-            </div>
-          </div>
+          <SqlWorkspace
+            isSidebarOpen={isSidebarOpen}
+            textareaRef={textareaRef}
+            query={query}
+            setQuery={setQuery}
+            hint={hint}
+            setIsAutoGenerated={setIsAutoGenerated}
+            executeSql={executeSql}
+            isButtonDisabled={isButtonDisabled}
+            error={error}
+            data={data}
+          />
         </div>
       </div>
 
-      {/* CARD & EXCEL EXPORT CONFIGURATION MODAL */}
+      {/* Export Configuration Modal */}
       {isExportModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-[98vw] max-w-[1500px] h-[92vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-3 border-b flex justify-between items-center bg-gray-50">
-              <div>
-                <h3 className="text-base font-bold text-gray-800">
-                  Excel Configuration & Export Configurator
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Set SQL statement, start configuration with single record (`LIMIT 1`), drag cards/columns, or reset.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsExportModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 font-bold text-xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* SQL STATEMENT TEXTAREA & CONTROL BUTTONS */}
-            <div className="p-3 bg-slate-50 border-b flex flex-col gap-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase">
-                Configuration SQL Statement
-              </label>
-              <textarea
-                rows={3}
-                className="w-full border p-2 rounded text-xs font-mono bg-white border-slate-300"
-                placeholder="Enter SQL statement for configuration..."
-                value={modalSql}
-                onChange={(e) => setModalSql(e.target.value)}
-              />
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleStartConfig}
-                    disabled={isConfigExecuting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 shadow-sm"
-                  >
-                    {isConfigExecuting ? "Executing..." : "▶ Start Configuration"}
-                  </button>
-                  <button
-                    onClick={handleResetConfig}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                  >
-                    ↺ Reset Configuration
-                  </button>
-                </div>
-                <button
-                  onClick={addNewCard}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"
-                >
-                  + Add New Card Section
-                </button>
-              </div>
-            </div>
-
-            {/* Global Title Inputs */}
-            <div className="px-4 py-2 border-b bg-gray-100 flex gap-4">
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                  Excel Title
-                </label>
-                <input
-                  type="text"
-                  className="w-full border p-1 rounded text-xs bg-white"
-                  value={exportTitle}
-                  onChange={(e) => setExportTitle(e.target.value)}
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-700 mb-0.5">
-                  File Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full border p-1 rounded text-xs bg-white"
-                  value={exportFileName}
-                  onChange={(e) => setExportFileName(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* MAIN CONTENT AREA: CARDS + LIVE PREVIEW */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-200 flex flex-col gap-6">
-              
-              {/* HORIZONTAL CARDS CONTAINER */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-600 uppercase mb-2">
-                  1. Dynamic Card Layout Configurator
-                </h4>
-                {cardsConfig.length === 0 ? (
-                  <div className="p-8 bg-white border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500 text-xs">
-                    No active cards configured. Click <b>"▶ Start Configuration"</b> above to automatically build default cards from your query.
-                  </div>
-                ) : (
-                  <div className="flex gap-4 overflow-x-auto pb-3">
-                    {cardsConfig.map((card, cardIdx) => (
-                      <div
-                        key={card.cardId || cardIdx}
-                        draggable
-                        onDragStart={(e) => handleCardDragStart(e, cardIdx)}
-                        onDragOver={(e) => handleCardDragOver(e, cardIdx)}
-                        onDragEnd={handleCardDragEnd}
-                        className={`w-80 shrink-0 bg-white border-2 rounded-lg shadow-md p-3 flex flex-col gap-3 transition-all cursor-move select-none ${
-                          draggedCardIndex === cardIdx
-                            ? "border-purple-600 bg-purple-50 scale-95 opacity-80"
-                            : card.type === "parent"
-                            ? "border-blue-300 hover:border-blue-500"
-                            : "border-teal-300 hover:border-teal-500"
-                        }`}
-                      >
-                        {/* Card Header Controls */}
-                        <div className="flex justify-between items-center bg-gray-100 p-2 rounded border">
-                          <span className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                            ⠿ Card #{cardIdx + 1}: {card.title}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
-                                card.type === "parent"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-teal-100 text-teal-800"
-                              }`}
-                            >
-                              {card.type}
-                            </span>
-                            <button
-                              onClick={() => removeCard(cardIdx)}
-                              className="text-red-500 hover:text-red-700 font-bold text-xs ml-1 p-0.5 hover:bg-red-50 rounded"
-                              title="Remove card"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card Metadata Section */}
-                        <div className="space-y-2 bg-gray-50 p-2 rounded border">
-                          <div>
-                            <label className="block text-[10px] uppercase font-bold text-indigo-800 mb-0.5">
-                              Card Alias
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full border border-gray-300 p-1 rounded text-xs font-semibold bg-white mb-1.5"
-                              value={card.title}
-                              onChange={(e) =>
-                                updateCardHeader(cardIdx, "title", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] uppercase font-bold text-indigo-800 mb-0.5">
-                              Tier 1: Meta Header
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full border border-indigo-200 p-1.5 rounded text-xs font-semibold bg-white"
-                              value={card.metaHeader}
-                              onChange={(e) =>
-                                updateCardHeader(cardIdx, "metaHeader", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] uppercase font-bold text-teal-800 mb-0.5">
-                              Tier 2: Sub-Meta Header
-                            </label>
-                            <input
-                              type="text"
-                              className="w-full border border-teal-200 p-1.5 rounded text-xs font-semibold bg-white"
-                              value={card.subMetaHeader}
-                              onChange={(e) =>
-                                updateCardHeader(cardIdx, "subMetaHeader", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] uppercase font-bold text-gray-600 mb-0.5">
-                              Data Source Type
-                            </label>
-                            <select
-                              className="w-full border p-1 rounded text-xs bg-white"
-                              value={card.type}
-                              onChange={(e) =>
-                                updateCardHeader(cardIdx, "type", e.target.value)
-                              }
-                            >
-                              <option value="parent">Parent Table</option>
-                              {childGroups.map((group, idx) => (
-                                <option key={idx} value={`child_${group}`}>
-                                  Child Group: {group}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Card Columns Items */}
-                        <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-60 pr-1">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">
-                            Configured Columns ({card.columns.length})
-                          </span>
-                          {card.columns.map((col, colIdx) => (
-                            <div
-                              key={colIdx}
-                              draggable
-                              onDragStart={(e) => handleColDragStart(e, cardIdx, colIdx)}
-                              onDragOver={(e) => handleColDragOver(e, cardIdx, colIdx)}
-                              onDragEnd={handleColDragEnd}
-                              className="flex items-center gap-1.5 bg-gray-50 border p-1.5 rounded text-xs cursor-move hover:bg-gray-100"
-                            >
-                              <span className="text-gray-400 font-bold">::</span>
-                              <input
-                                type="text"
-                                placeholder="Key"
-                                className="w-1/2 border p-1 rounded text-[11px] bg-white font-mono"
-                                value={col.key}
-                                onChange={(e) =>
-                                  updateColumnItem(cardIdx, colIdx, "key", e.target.value)
-                                }
-                              />
-                              <input
-                                type="text"
-                                placeholder="Label"
-                                className="w-1/2 border p-1 rounded text-[11px] bg-white"
-                                value={col.label}
-                                onChange={(e) =>
-                                  updateColumnItem(cardIdx, colIdx, "label", e.target.value)
-                                }
-                              />
-                              <button
-                                onClick={() => removeColumnFromCard(cardIdx, colIdx)}
-                                className="text-red-500 hover:text-red-700 font-bold text-xs p-1"
-                                title="Delete Field"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        <button
-                          onClick={() => addColumnToCard(cardIdx)}
-                          className="w-full border-2 border-dashed border-gray-300 hover:border-gray-400 text-gray-600 py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1"
-                        >
-                          + Add Column
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* LIVE EXCEL EXPORT PREVIEW TABLE */}
-              <div className="bg-white p-4 rounded-lg shadow-md border">
-                <h4 className="text-xs font-bold text-gray-600 uppercase mb-3">
-                  2. Generated Flattened Layout Preview
-                </h4>
-                <div className="overflow-x-auto border rounded max-h-48">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-slate-800 text-white">
-                      <tr>
-                        {flatColumns.map((col, idx) => (
-                          <th key={idx} className="border px-3 py-2 whitespace-nowrap">
-                            <div className="text-[10px] text-indigo-300 font-bold uppercase">
-                              {col.metaHeader || "NO META HEADER"}
-                            </div>
-                            <div className="text-[10px] text-teal-300 uppercase">
-                              {col.subMetaHeader || "NO SUB HEADER"}
-                            </div>
-                            <div className="text-xs font-bold mt-1 text-white">{col.label}</div>
-                            <div className="text-[10px] font-mono text-slate-400">({col.key})</div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="bg-gray-50 text-gray-400 italic">
-                        {flatColumns.map((_, idx) => (
-                          <td key={idx} className="border px-3 py-2 whitespace-nowrap">
-                            [Sample Data Cell]
-                          </td>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer Controls */}
-            <div className="px-6 py-3 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setIsExportModalOpen(false)}
-                className="px-4 py-2 border rounded text-xs font-semibold text-gray-600 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded text-xs font-bold flex items-center gap-2 shadow-md disabled:bg-gray-400"
-              >
-                {isExporting ? "Exporting..." : "⬇ Download Formatted Excel"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ExportConfigModal
+          setIsExportModalOpen={setIsExportModalOpen}
+          modalSql={modalSql}
+          setModalSql={setModalSql}
+          handleStartConfig={handleStartConfig}
+          handleResetConfig={handleResetConfig}
+          isConfigExecuting={isConfigExecuting}
+          exportTitle={exportTitle}
+          setExportTitle={setExportTitle}
+          exportFileName={exportFileName}
+          setExportFileName={setExportFileName}
+          cardsConfig={cardsConfig}
+          setCardsConfig={setCardsConfig}
+          childGroups={childGroups}
+          handleExportExcel={handleExportExcel}
+          isExporting={isExporting}
+        />
       )}
     </div>
   );
