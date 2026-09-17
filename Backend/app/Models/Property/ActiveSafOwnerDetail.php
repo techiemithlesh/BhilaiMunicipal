@@ -24,6 +24,7 @@ class ActiveSafOwnerDetail extends ParamModel
         "is_specially_abled",
         "user_id",
         "lock_status",
+        "address"
     ];
 
     public function store($request){

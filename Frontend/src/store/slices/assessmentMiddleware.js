@@ -3,7 +3,7 @@ import { clearForm, setFormData } from "./assessmentSlice";
 import { clearFloorDtl, setFloorDtl } from "./floorSlice";
 import { clearOwnerDtl, setOwnerDtl } from "./ownerSlice";
 
-const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
 
 export const assessmentMiddleware = (store) => {
   let timeoutId = null;

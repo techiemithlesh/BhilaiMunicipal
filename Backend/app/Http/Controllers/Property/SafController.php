@@ -406,11 +406,11 @@ class SafController extends Controller
                 }
                 $testPendingSaf = $this->_ActiveSafDetail->where("previous_holding_id",$request->previousHoldingId)->first();
                 if($testPendingSaf && in_array($request->assessmentType,["Reassessment"])){
-                    throw new CustomException("You Have Already Apply A Saf (".$testPendingSaf->saf_no.") That Is Not Approve. Please Wait For Approval...");
+                    throw new CustomException("You Have Already Apply A Saf (".$testPendingSaf->saf_no.") That Is Not Approved. Please Wait For Approval...");
                 }
                 $isCurrentSafPending = $this->_ActiveSafDetail->find($property->saf_detail_id);
                 if($isCurrentSafPending){
-                    throw new CustomException("Your Saf (".$isCurrentSafPending->saf_no.") Application Is Not Approve. Please Wait For Approval...");
+                    throw new CustomException("Your Saf (".$isCurrentSafPending->saf_no.") Application Is Not Approved. Please Wait For Approval...");
                 }
                 $additionData["citizenId"] = $property->citizen_id ? $property->citizen_id : $additionData["citizenId"]??null;
                 $additionData["holdingNo"] = $property->new_holding_no ? $property->new_holding_no : $property->holding_no;
@@ -426,7 +426,7 @@ class SafController extends Controller
             $propertyTypeMaster = $this->_PropertyTypeMaster->getPropertyTypeList();
             
             $workflowMater = $this->_WorkflowMaster->where("module_id",$this->_MODULE_ID )
-                ->where("workflow_name",$request->assessmentType)
+                ->where("workflow_name",$request->applicationFrom)
                 ->where("lock_status",false)
                 ->first();
             if(!$workflowMater){
