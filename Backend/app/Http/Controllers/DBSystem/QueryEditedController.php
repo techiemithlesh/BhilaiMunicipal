@@ -278,7 +278,7 @@ class QueryEditedController extends Controller
                 $request->title ?: 'Property Details Report',
                 $fileName
             );
-            // $this->startQueueWorkerInBackground();
+            $this->startQueueWorkerInBackground();
 
             return responseMsg(
                 true, 

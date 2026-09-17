@@ -8,6 +8,7 @@ import {
   dbListApi,
   executeQueryApi,
   exportExcelQueryApi,
+  QueryBroadcastAuthApi,
   tableListApi,
 } from "../../../api/endpoints";
 
@@ -23,10 +24,10 @@ window.Pusher = Pusher;
 // Fixed Laravel Echo configuration with dynamic Bearer Token authorization
 export const echo = new Echo({
   broadcaster: "reverb",
-  key: import.meta.env.VITE_REVERB_APP_KEY || "local_key",
-  wsHost: import.meta.env.VITE_REVERB_HOST || "127.0.0.1",
-  wsPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
-  wssPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
+  key: import.meta.env.VITE_REVERB_APP_KEY ,
+  wsHost: import.meta.env.VITE_REVERB_HOST,
+  wsPort: Number(import.meta.env.VITE_REVERB_PORT),
+  wssPort: Number(import.meta.env.VITE_REVERB_PORT),
   forceTLS: false,
   enabledTransports: ["ws", "wss"],
   authorizer: (channel, options) => {
@@ -34,7 +35,7 @@ export const echo = new Echo({
       authorize: (socketId, callback) => {
         const token = getToken() || localStorage.getItem("token");
 
-        fetch("http://localhost:8091/api/broadcasting/auth", {
+        fetch(QueryBroadcastAuthApi, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
