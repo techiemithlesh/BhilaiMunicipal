@@ -29,55 +29,38 @@ const AditionalDetails = ({ data }) => {
           }
           rightValue={data.isMobileTower ? data.towerInstallationDate : null}
         />
-        {data.isMobileTower && data.towerArea && (
-          <InfoRow
-            leftLabel="Total Area Covered by Mobile Tower & its Equipments (Sq. Ft.)"
-            leftValue={data.towerArea}
-          />
-        )}
-
-        {/* Hoarding Board */}
         <InfoRow
-          leftLabel="Does Property Have Hoarding Board(s)?"
-          leftValue={data.isHoardingBoard ? "Yes" : "No"}
-          rightLabel={
-            data.isHoardingBoard
-              ? "Date of Installation of Hoarding Board(s)"
-              : null
-          }
-          rightValue={
-            data.isHoardingBoard ? data.hoardingInstallationDate : null
-          }
+          leftLabel="Widow/Abandoned/Mentally Disable/Visually Impaired?"
+          leftValue={data.isWidow ? "Yes" : "No"}
         />
-        {data.isHoardingBoard && data.hoardingArea && (
-          <InfoRow
-            leftLabel="Total Area of Wall / Roof / Land (in Sq. Ft.)"
-            leftValue={data.hoardingArea}
-          />
-        )}
-
-        {/* Petrol Pump */}
         <InfoRow
-          leftLabel="Is Property a Petrol Pump?"
-          leftValue={data.isPetrolPump ? "Yes" : "No"}
-          rightLabel={
-            data.isPetrolPump ? "Completion Date of Petrol Pump" : null
-          }
-          rightValue={data.isPetrolPump ? data.petrolPumpCompletionDate : null}
+          leftLabel="Ex-Army (Income Tax Exempted)?"
+          leftValue={data.isExArmy ? "Yes" : "No"}
         />
-        {data.isPetrolPump && data.underGroundArea && (
-          <InfoRow
-            leftLabel="Underground Storage Area (in Sq. Ft.)"
-            leftValue={data.underGroundArea}
-          />
-        )}
-
-        {/* Rainwater Harvesting */}
         <InfoRow
-          leftLabel="Rainwater Harvesting provision?"
-          leftValue={data.isWaterHarvesting ? "Yes" : "No"}
-          rightLabel={data.isWaterHarvesting ? "Installation Date" : null}
-          rightValue={data.isWaterHarvesting ? data.waterHarvestingDate : null}
+          leftLabel="Physically Disable?"
+          leftValue={data.isDisabledPerson ? "Yes" : "No"}
+        />
+        <InfoRow
+          leftLabel="Old Property waived Off?"
+          leftValue={data.isOldProperty ? "Yes" : "No"}
+        />
+        <InfoRow
+          leftLabel="Belongs to IHSDP?"
+          leftValue={data.isDp ? "Yes" : "No"}
+        />
+        <InfoRow leftLabel="Is School?" leftValue={data.isSchool ? "Yes" : "No"} />
+        <InfoRow
+          leftLabel="Is Complex?"
+          leftValue={data.isComplex ? "Yes" : "No"}
+        />
+        <InfoRow
+          leftLabel="Is Chabutra?"
+          leftValue={data.isChabutra ? "Yes" : "No"}
+        />
+        <InfoRow
+          leftLabel="Holding Belongs To Shop?"
+          leftValue={data.isShopHolding ? "Yes" : "No"}
         />
       </div>
     </div>

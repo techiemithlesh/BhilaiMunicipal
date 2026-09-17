@@ -21,7 +21,7 @@ class ActiveSafDetail extends ParamModel
         "percentage_of_property_transfer",
         "assessment_type",
         "holding_type",
-        "zone_mstr_id",
+        // "zone_mstr_id",
         "ward_mstr_id",
         "new_ward_mstr_id",
         "ownership_type_mstr_id",
