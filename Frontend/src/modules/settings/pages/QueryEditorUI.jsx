@@ -11,18 +11,35 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-const echo = new Echo({
-  broadcaster: 'reverb', // Use 'pusher' if using Pusher Channels instead of Reverb
-  key: import.meta.env.VITE_REVERB_APP_KEY,
-  wsHost: import.meta.env.VITE_REVERB_HOST,
-  wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-  wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-  forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+// const echo = new Echo({
+//   broadcaster: 'reverb', // Use 'pusher' if using Pusher Channels instead of Reverb
+//   key: import.meta.env.VITE_REVERB_APP_KEY,
+//   wsHost: import.meta.env.VITE_REVERB_HOST,
+//   wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+//   wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+//   forceTLS: false,//(import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+//   enabledTransports: ['ws', 'wss'],
+//   authEndpoint: '/broadcasting/auth',
+//   auth: {
+//     headers: {
+//       Authorization: `Bearer ${localStorage.getItem('token')}`,
+//     },
+//   },
+// });
+
+export const echo = new Echo({
+  broadcaster: 'reverb',
+  key: import.meta.env.VITE_REVERB_APP_KEY || 'local_key',
+  wsHost: import.meta.env.VITE_REVERB_HOST || '127.0.0.1',
+  wsPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
+  wssPort: Number(import.meta.env.VITE_REVERB_PORT) || 8085,
+  forceTLS: false, // Forces HTTP / ws:// connection for local development
   enabledTransports: ['ws', 'wss'],
-  authEndpoint: '/broadcasting/auth',
+  authEndpoint: 'http://localhost:8091/api/broadcasting/auth', // Your backend API host
   auth: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,
+      Accept: 'application/json',
     },
   },
 });

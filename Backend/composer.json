@@ -8,6 +8,7 @@
         "php": "^8.2",
         "google/apiclient": "^2.18",
         "laravel/framework": "^11.9",
+        "laravel/reverb": "@beta",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.21",
         "laravel/tinker": "^2.9",
