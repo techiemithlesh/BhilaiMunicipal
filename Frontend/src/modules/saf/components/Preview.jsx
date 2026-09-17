@@ -139,6 +139,10 @@ export default function Preview() {
           <h2 className="font-semibold text-xl">Assessment Information</h2>
           <div className="gap-4 grid sm:grid-cols-2 md:grid-cols-4 bg-gray-50 rounded">
             <DetailCard
+              label="Application Type"
+              value={formData?.applicationFrom || ""}
+            />
+            <DetailCard
               label="Assessment Type"
               value={formData?.assessmentType || "New Assessment"}
             />

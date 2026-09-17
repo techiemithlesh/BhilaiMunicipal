@@ -50,7 +50,6 @@ const AssessmentForm = ({
   const [isFormSubmit, setIsFormSubmit] = useState(false);
 
   const ulbIdL = getUserDetails()?.ulbId;
-  console.log("formData in assessment form:", formData);
 
   useEffect(() => {
     if (ulbIdL) {
@@ -97,7 +96,6 @@ const AssessmentForm = ({
     setDiabledFields();
   }, []);
 
-
   function setDiabledFields() {
     const fieldMap = {};
 
@@ -110,9 +108,7 @@ const AssessmentForm = ({
         (Array.isArray(value) && value.length === 0)
       ) {
         fieldMap[key] = false;
-      }
-      
-      else if (Array.isArray(value) && typeof value[0] === "object") {
+      } else if (Array.isArray(value) && typeof value[0] === "object") {
         const objectWiseMap = value.map((item) => {
           const fieldStatus = {};
           for (const field in item) {
@@ -122,9 +118,7 @@ const AssessmentForm = ({
         });
 
         fieldMap[key] = objectWiseMap;
-      }
-
-      else {
+      } else {
         fieldMap[key] = !!value;
       }
     }
@@ -138,7 +132,6 @@ const AssessmentForm = ({
   const handleOwnerDtlUpdate = (updated) => {
     dispatch(setOwnerDtl(updated));
   };
-
 
   const getApartment = async () => {
     setIsLoadingGable(true);
@@ -236,7 +229,6 @@ const AssessmentForm = ({
       assessmentType: formType,
       ulbId: ulbId,
     };
-
 
     const floorPayload = floorDtl.map((floor) => {
       const { id, ...rest } = floor;
@@ -345,11 +337,38 @@ const AssessmentForm = ({
     );
   }
 
-  
+  console.log("formData", formData);
+  console.log("mstrData", mstrData);
+
   return (
     <div className="container-fluid">
       <form className="flex flex-col gap-4" onSubmit={handlePreviewFormData}>
         <div className="items-center gap-2 grid grid-cols-1 md:grid-cols-3 bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
+          <div>
+            <label htmlFor="applicationFrom" className="block font-medium text-sm">
+              Application Type <span className="text-red-400 text-sm">*</span>
+              <select
+                id="applicationFrom"
+                className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
+                name="applicationFrom"
+                required
+                value={formData.applicationFrom}
+                onChange={handleInputChange}
+                disabled={
+                  pathname.includes(formType) && disabledFields?.applicationFrom
+                }
+              >
+                <option value="">Select Application Type</option>
+                {mstrData?.applicationType.map((appType, index) => (
+                  <option key={index} value={appType}>
+                    {appType}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <FormError name="applicationFrom" errors={error} />
+          </div>
+
           <div>
             <label htmlFor="wardMstrId" className="block font-medium text-sm">
               Ward No <span className="text-red-400 text-sm">*</span>
@@ -499,7 +518,6 @@ const AssessmentForm = ({
           </div>
 
           <div className="">
-            
             <div className="flex items-center space-x-2 mt-4 py-2">
               <label
                 htmlFor="isMainRoad"
@@ -522,7 +540,6 @@ const AssessmentForm = ({
                 }}
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-              
             </div>
 
             {error?.isBpl && (
@@ -538,7 +555,7 @@ const AssessmentForm = ({
                 <label
                   htmlFor="transferMode"
                   className="block font-medium text-sm"
-                 >
+                >
                   Mode of Ownership Transfer{" "}
                   <span className="text-red-400 text-sm">*</span>
                 </label>

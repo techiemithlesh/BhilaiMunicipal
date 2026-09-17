@@ -9,10 +9,10 @@ import axios from "axios";
 
 const Layout = ({
   children,
-  title = "Nagar Prishad - Arval",
-  description = "Official portal for Nagar Prishad Arval - Property Tax, Water Charges, Trade License and more services online.",
-  keywords = "Nagar Prishad Arval, Property Tax, Water Charges, Trade License, Nagar Prishad Arval",
-  author = "Nagar Prishad Arval",
+  title = "Municipal Corporation - Bhilai | Property Tax, Water Charges, Solid Waste and more services online.",
+  description = "Official portal for Municipal Corporation Bhilai - Property Tax, Water Charges, Solid Waste and more services online.",
+  keywords = "Municipal Corporation Bhilai, Property Tax, Water Charges, Solid Waste, Municipal Corporation Bhilai",
+  author = "Municipal Corporation Bhilai",
 }) => {
   const [ulbData, setUlbData] = useState(null);
   const ulbId = import.meta.env.VITE_REACT_APP_ULB_ID;
