@@ -78,12 +78,6 @@ trait PropertyTrait{
     public function getZone($zoneId){
         $zone = ZoneMaster::find($zoneId);
         return $zone?->zone_name;
-        if($zoneId==1){
-            return "Zone 1";
-        }
-        if($zoneId==2){
-            return "Zone 2";
-        }
     }
 
     public function adjustSafValue($saf){
@@ -114,55 +108,38 @@ trait PropertyTrait{
         return $saf;
     }
 
-    public function adjustFloorValue($floor){
+    public function adjustFloorValue($floor)
+    {
         $floor = collect($floor);
-        $floor = ($floor)->map(function($val){
-            $floorTypeMaster = new FloorMaster();
-            $usageTypeMaster = new UsageTypeMaster();
-            $constructionTypeMaster = new ConstructionTypeMaster();
-            $occupancyTypeMaster = new OccupancyTypeMaster();
-            $val->floor_name = $floorTypeMaster->where("id",$val->floor_master_id)->first()->floor_name??"";
-            $val->usage_type = $usageTypeMaster->where("id",$val->usage_type_master_id)->first()->usage_type??"";
-            $val->construction_type = $constructionTypeMaster->where("id",$val->construction_type_master_id)->first()->construction_type??"";
-            $val->occupancy_name = $occupancyTypeMaster->where("id",$val->occupancy_type_master_id)->first()->occupancy_name??"";
+
+        if ($floor->isEmpty()) {
+            return $floor;
+        }
+
+        // 1. Extract unique master IDs across all floors
+        $floorMasterIds        = $floor->pluck('floor_master_id')->filter()->unique();
+        $usageMasterIds        = $floor->pluck('usage_type_master_id')->filter()->unique();
+        $constructionMasterIds = $floor->pluck('construction_type_master_id')->filter()->unique();
+        $occupancyMasterIds    = $floor->pluck('occupancy_type_master_id')->filter()->unique();
+        $zoneMasterIds         = $floor->pluck('zone_mstr_id')->filter()->unique();
+
+        // 2. Fetch all required master records in 5 batch queries keyed by ID
+        $floors        = FloorMaster::whereIn('id', $floorMasterIds)->pluck('floor_name', 'id');
+        $usages        = UsageTypeMaster::whereIn('id', $usageMasterIds)->pluck('usage_type', 'id');
+        $constructions = ConstructionTypeMaster::whereIn('id', $constructionMasterIds)->pluck('construction_type', 'id');
+        $occupancies   = OccupancyTypeMaster::whereIn('id', $occupancyMasterIds)->pluck('occupancy_name', 'id');
+        $zones         = ZoneMaster::whereIn('id', $zoneMasterIds)->pluck('zone_name', 'id');
+
+        // 3. Map values using in-memory key lookups (0 database queries)
+        return $floor->map(function ($val) use ($floors, $usages, $constructions, $occupancies, $zones) {
+            $val->floor_name        = $floors->get($val->floor_master_id, "");
+            $val->usage_type        = $usages->get($val->usage_type_master_id, "");
+            $val->construction_type = $constructions->get($val->construction_type_master_id, "");
+            $val->occupancy_name    = $occupancies->get($val->occupancy_type_master_id, "");
+            $val->zone_name         = $zones->get($val->zone_mstr_id, "");
+
             return $val;
         });
-        return $floor;
-    }
-
-    public function getSafStatus_old($id){
-        $status = "";
-        $saf = ActiveSafDetail::find($id);
-        if(!$saf){
-            $saf=SafDetail::find($id);
-        }if(!$saf){
-            $saf=RejectedSafDetail::find($id);
-        }
-        if($saf->getTable()=="saf_details"){
-            $role = RoleTypeMstr::find($saf->current_role_id);
-            $status="Application Approved ";
-            if($role){
-                $status.=" By ".$role->role_name??""." On ".$saf->saf_approved_date;
-            }
-        }
-        elseif($saf->saf_pending_status == 1){
-            $status ="Application Approved";
-        }elseif($saf->is_btc){
-            $role = RoleTypeMstr::find($saf->current_role_id);
-            $status ="Application Back To Citizen ".($role ? "From ".$role->role_name??"" : " ");
-        }elseif(!$saf->payment_status && !$saf->is_doc_upload){
-            $status ="Payment Not Done And Document Not Uploaded";
-        }elseif($saf->payment_status && !$saf->is_doc_upload){
-            $role = RoleTypeMstr::find($saf->current_role_id);
-            $status ="Payment Done But Document Not Uploaded ";
-        }elseif(!$saf->payment_status && $saf->is_doc_upload){
-            $role = RoleTypeMstr::find($saf->current_role_id);
-            $status ="Document Uploaded But Payment Not Done";
-        }else{
-            $role = RoleTypeMstr::find($saf->current_role_id);
-            $status ="Application Pending At ".($role ? $role->role_name : "");
-        }
-        return $status;
     }
 
     public function getSafStatus($id){

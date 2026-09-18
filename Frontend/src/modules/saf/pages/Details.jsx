@@ -377,6 +377,7 @@ const Details = () => {
               note="Built Up :<span> It refers to the entire carpet area along with the thickness of the external walls of the apartment. It includes the thickness of the internal walls and the columns."
               headers={[
                 "SL",
+                "Zone",
                 "Floor No",
                 "Usege Type",
                 "Occupancy Type",
@@ -389,6 +390,9 @@ const Details = () => {
               renderRow={(floor, idx) => (
                 <tr key={idx}>
                   <td className="px-3 py-2 border">{idx + 1}</td>
+                  <td className="px-3 py-2 border">
+                    {floor?.zoneName || "NA"}
+                  </td>
                   <td className="px-3 py-2 border">
                     {floor?.floorName || "NA"}
                   </td>
@@ -496,11 +500,12 @@ const Details = () => {
                 "ARV",
                 "Effect From",
                 "Holding Tax",
+                "Composite Tax",
                 "Water Tax",
                 "Conservancy/Latrine Tax",
                 "Education Cess",
                 "RWH Penalty",
-                "Quarterly Tax",
+                "Yearly Tax",
               ]}
               data={safDetails.taxDtl}
               renderRow={(tax, idx) => (
@@ -508,12 +513,13 @@ const Details = () => {
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{tax?.arv || "NA"}</td>
                   <td className="px-3 py-2 border">
-                    {tax?.qtr && tax?.fyear
-                      ? `${tax.qtr} / ${tax.fyear}`
+                    {tax?.fyear
+                      ? `${tax.fyear}`
                       : "NA"}
                   </td>
 
                   <td className="px-3 py-2 border">{tax?.holdingTax || ""}</td>
+                  <td className="px-3 py-2 border">{tax?.compositeTax || ""}</td>
                   <td className="px-3 py-2 border">{tax?.rwhTax || ""}</td>
                   <td className="px-3 py-2 border">{tax?.latrineTax || ""}</td>
                   <td className="px-3 py-2 border">
@@ -521,7 +527,7 @@ const Details = () => {
                   </td>
                   <td className="px-3 py-2 border">{tax?.rwhTax ?? ""}</td>
                   <td className="px-3 py-2 border">
-                    {tax?.quarterlyTax ?? ""}
+                    {tax?.propertyTax ?? ""}
                   </td>
                 </tr>
               )}
