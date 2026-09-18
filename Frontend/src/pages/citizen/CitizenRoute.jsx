@@ -28,7 +28,6 @@ import Details from "../../components/citizen/holding/Details";
 import ProtectedRouteCitizen from "../../components/common/ProtectedRouteCitizen";
 import ConsumerDetails from "../../components/citizen/consumer/ConsumerDetails";
 
-// import Preview from "./component/Preview";
 
 export default function CitizenRoute() {
   const token = useSelector((state) => state.citizenAuth.token);
