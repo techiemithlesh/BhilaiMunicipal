@@ -150,6 +150,10 @@ export default function QueryEditorUI() {
       setIsExporting(false);
 
       if (eventData.status) {
+        console.log("token",token)
+        if(token!=eventData?.token){
+          return;
+        }
         console.log("[WebSocket] Export status is true. Downloading Excel file...");
 
         const link = document.createElement("a");

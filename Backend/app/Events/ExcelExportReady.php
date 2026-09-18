@@ -17,10 +17,12 @@ class ExcelExportReady implements ShouldBroadcastNow
     public $message;
     public $file_name;
     public $download_url;
+    public $token;
 
-    public function __construct($userId, $status, $message, $fileName = '', $downloadUrl = '')
+    public function __construct($userId, $token ,$status, $message, $fileName = '', $downloadUrl = '')
     {
         $this->userId = $userId;
+        $this->token = $token;
         $this->status = $status;
         $this->message = $message;
         $this->file_name = $fileName;

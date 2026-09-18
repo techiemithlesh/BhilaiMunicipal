@@ -272,6 +272,7 @@ class QueryEditedController extends Controller
             // Dispatch background queue job
             ExportExcelJob::dispatch(
                 $userId,
+                $request->bearerToken(),
                 $this->conn,
                 $request->statement,
                 $request->columns,

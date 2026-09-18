@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\ExcelExportReady;
+use App\Jobs\DeleteExportFileJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,20 +19,24 @@ class ExportExcelJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $userId;
+    protected $token;
     protected $conn;
     protected $statement;
     protected $columns;
     protected $title;
     protected $fileName;
+    protected $requestId;
 
-    public function __construct($userId, $conn, $statement, $columns, $title, $fileName)
+    public function __construct($userId, $token, $conn, $statement, $columns, $title, $fileName, $requestId = null)
     {
-        $this->userId = $userId;
-        $this->conn = $conn;
+        $this->userId    = $userId;
+        $this->token     = $token;
+        $this->conn      = $conn;
         $this->statement = $statement;
-        $this->columns = $columns;
-        $this->title = $title;
-        $this->fileName = $fileName;
+        $this->columns   = $columns;
+        $this->title     = $title;
+        $this->fileName  = $fileName;
+        $this->requestId = $requestId;
     }
 
     public function handle()
@@ -41,7 +46,15 @@ class ExportExcelJob implements ShouldQueue
             $results = DB::connection($this->conn)->select($this->statement);
 
             if (empty($results)) {
-                event(new ExcelExportReady($this->userId, false, 'No data returned for export.', '', ''));
+                event(new ExcelExportReady(
+                    $this->userId,
+                    $this->token,
+                    false,
+                    'No data returned for export.',
+                    '',
+                    '',
+                    $this->requestId
+                ));
                 return;
             }
 
@@ -53,7 +66,7 @@ class ExportExcelJob implements ShouldQueue
             }
 
             // 3. Construct Excel HTML markup
-            $html = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
+            $html  = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /></head><body>';
             $html .= '<table border="1" style="border-collapse:collapse;">';
 
             // Document Header Row
@@ -72,8 +85,15 @@ class ExportExcelJob implements ShouldQueue
             // Sub-Meta Header Level Row
             $html .= '<tr style="background-color: #475569; color: #f1f5f9; text-align: center;">';
             foreach ($metaGroups as $cols) {
-                $subMeta = $cols[0]['subMetaHeader'] ?? 'Details';
-                $html .= '<th colspan="' . count($cols) . '" style="padding: 4px;">' . htmlspecialchars($subMeta) . '</th>';
+                // Group columns under current meta header by subMetaHeader
+                $subMetaGroups = [];
+                foreach ($cols as $col) {
+                    $subMeta = $col['subMetaHeader'] ?? 'Details';
+                    $subMetaGroups[$subMeta][] = $col;
+                }
+                foreach ($subMetaGroups as $subMetaTitle => $subCols) {
+                    $html .= '<th colspan="' . count($subCols) . '" style="padding: 4px;">' . htmlspecialchars($subMetaTitle) . '</th>';
+                }
             }
             $html .= '</tr>';
 
@@ -105,25 +125,41 @@ class ExportExcelJob implements ShouldQueue
             }
 
             $html .= '</table></body></html>';
+
+            // 4. Save to Storage
             $filePath = 'exports/' . $this->fileName;
             Storage::disk('local')->put($filePath, $html);
+
             $downloadUrl = URL::temporarySignedRoute(
                 'excel.download',
                 now()->addMinutes(30),
                 ['fileName' => $this->fileName]
             );
-            
+
             // 5. Broadcast payload to private user channel
             event(new ExcelExportReady(
                 $this->userId,
+                $this->token,
                 true,
                 'File compiled successfully.',
                 $this->fileName,
                 $downloadUrl,
+                $this->requestId
             ));
 
+            // 6. Schedule auto-deletion after 30 minutes
+            DeleteExportFileJob::dispatch($filePath)->delay(now()->addMinutes(30));
+
         } catch (Exception $e) {
-            event(new ExcelExportReady($this->userId, false, 'Export job failed: ' . $e->getMessage(), '', ''));
+            event(new ExcelExportReady(
+                $this->userId,
+                $this->token,
+                false,
+                'Export job failed: ' . $e->getMessage(),
+                '',
+                '',
+                $this->requestId
+            ));
         }
     }
 }
