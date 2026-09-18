@@ -6,20 +6,17 @@ import {
   safApplicationDetailsApi,
   safDocListApi,
   safDocUploadApi,
-  safDueApi,
-  safPaymentApi,
   safPostNextLevelApi,
   wfPermissionApi,
 } from "../../../api/endpoints";
 import { motion } from "framer-motion";
-import { FaCommentDollar, FaEye, FaTimes } from "react-icons/fa";
+import { FaCommentDollar, FaEye, FaTimes, FaUpload } from "react-icons/fa";
 import toast from "react-hot-toast";
 import AditionalDetails from "../../../modules/saf/components/AditionalDetails";
 import DocUploadModal from "../../../modules/saf/components/DocUploadModal";
 import RemarksModal from "../../../modules/saf/components/RemarksModal";
 import DocViewModal from "../../../modules/saf/components/DocViewModal";
 import SAMModal from "../../../modules/saf/components/SAMModal";
-import DemandViewModal from "../../../modules/saf/components/DemandViewModal";
 import PaymentReceiptModal from "../../../modules/saf/components/PaymentReceiptModal";
 import FamReceiptModal from "../../../modules/saf/components/FamReceiptModal";
 import FieldVerificationView from "../../../modules/saf/components/FieldVerificationView";
@@ -50,7 +47,6 @@ const CitizenDetails = () => {
   const [verificationId, setVerificationId] = useState(null);
   const [isDocUploadModal, setIsDocUploadModal] = useState(false);
   const [isDocViewModal, setIsDocViewModal] = useState(false);
-  const [isDemandViewModal, setIsDemandViewModal] = useState(false);
   const [isDemandViewPayModal, setIsDemandViewPayModal] = useState(false);
   const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
   const [isShowPaymentReceiptModal, setIsShowPaymentReceiptModal] =
@@ -63,15 +59,6 @@ const CitizenDetails = () => {
   const token = useSelector((state) => state.citizenAuth.token);
   const navigate = useNavigate();
   const actions = [
-    {
-      label: "View Demand",
-      onClick: () => {
-        setIsDemandViewModal(true);
-      },
-      icon: <FaEye />,
-      show: true,
-      // show: propDetails?.paymentStatus == 0,
-    },
     {
       label: "Proceed Payment",
       onClick: () => {
@@ -95,6 +82,19 @@ const CitizenDetails = () => {
       show: Boolean(propId) && propDetails?.paymentStatus == 0,
     },
     {
+      label: "Upload Document",
+      onClick: () => {
+        setIsDocUploadModal(true);
+      },
+      icon: <FaUpload />,
+      show:
+        !propDetails?.isApproved &&
+        (!propDetails?.isDocUpload ||
+          propDetails?.isBtc ||
+          propDetails?.currentRoleId == propDetails?.initiatorRoleId) &&
+        Boolean(safId),
+    },
+    {
       label: "Edit",
       onClick: () => navigate(`/citizen/saf/edit/${safId}`),
       icon: <FaEye />,
@@ -103,9 +103,7 @@ const CitizenDetails = () => {
         (!propDetails?.isDocUpload ||
           propDetails?.isBtc ||
           propDetails?.currentRoleId == propDetails?.initiatorRoleId) &&
-        Boolean(safId) &&
-        propDetails?.paymentStatus == 0,
-      // show: Boolean(safId) && propDetails?.paymentStatus == 0,
+        Boolean(safId),
     },
   ];
 
@@ -260,15 +258,8 @@ const CitizenDetails = () => {
               "Guardian",
               "Relation",
               "Mobile",
-              "Email",
-              "Aadhar No",
-              "PAN No",
               "Gender",
-              "Dob",
-              "Armed Force",
-              "Specially Abled",
-              "Applicant Image",
-              "Applicant Document",
+              "Address"
             ]}
             data={propDetails.owners}
             renderRow={(owner, idx) => (
@@ -278,81 +269,12 @@ const CitizenDetails = () => {
                 <td className="px-3 py-2 border">{owner.guardianName}</td>
                 <td className="px-3 py-2 border">{owner.relationType}</td>
                 <td className="px-3 py-2 border">{owner.mobileNo}</td>
-                <td className="px-3 py-2 border">{owner.email}</td>
-                <td className="px-3 py-2 border">{owner?.aadharNo ?? "NA"}</td>
-                <td className="px-3 py-2 border">{owner?.panNo ?? "NA"}</td>
                 <td className="px-3 py-2 border">{owner?.gender ?? "NA"}</td>
-                <td className="px-3 py-2 border">
-                  {owner?.isArmedForce ? "YES" : "NO"}
-                </td>
-                <td className="px-3 py-2 border">
-                  {owner?.isSpeciallyAbled ? "YES" : "NO"}
-                </td>
-                <td className="px-3 py-2 border">
-                  {owner?.ownerPhoto ? (
-                    <img
-                      src={owner.ownerPhoto}
-                      alt="Owner"
-                      className="border rounded w-16 h-16 object-cover"
-                    />
-                  ) : (
-                    "NA"
-                  )}
-                </td>
-                <td className="px-3 py-2 border">
-                  {owner?.ownerDoc ? (
-                    <iframe
-                      src={owner.ownerDoc}
-                      title="Owner Document"
-                      className="border rounded w-32 h-16"
-                    />
-                  ) : (
-                    "NA"
-                  )}
-                </td>
+                <td className="px-3 py-2 border">{owner?.address ?? "NA"}</td>
               </tr>
             )}
           />
-          <DetailGrid
-            title="Electricity Details"
-            note="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
-            data={[
-              {
-                label: "Electricity K. No",
-                value: propDetails.electConsumerNo,
-              },
-              { label: "ACC No.", value: propDetails.electAccNo },
-              {
-                label: "BIND/BOOK No.",
-                value: propDetails?.electBindBookNo ? "electBindBookNo" : "NA",
-              },
-              {
-                label: "Electricity Consumer Category",
-                value: propDetails.electConsCategory,
-              },
-            ]}
-          />
-          <DetailGrid
-            title="Building Plan/Water Connection Details"
-            data={[
-              {
-                label: "Building Plan Approval No",
-                value: propDetails.buildingPlanApprovalNo || "NA",
-              },
-              {
-                label: "Building Plan Approval Date",
-                value: propDetails.buildingPlanApprovalDate || "NA",
-              },
-              {
-                label: "Water Consumer No",
-                value: propDetails?.waterConnNo || "NA",
-              },
-              {
-                label: "Water Connection Date",
-                value: propDetails?.waterConnDate || "NA",
-              },
-            ]}
-          />
+          
           <DetailGrid
             title="Property Details"
             data={[
@@ -403,9 +325,10 @@ const CitizenDetails = () => {
           {/* FLOOR DETAILS */}
           <SectionCard
             title="Floor Details"
-            note="Built Up :<span> It refers to the entire carpet area along with the thickness of the external walls of the apartment. It includes the thickness of the internal walls and the columns."
+            // note="Built Up :<span> It refers to the entire carpet area along with the thickness of the external walls of the apartment. It includes the thickness of the internal walls and the columns."
             headers={[
               "SL",
+              "Zone",
               "Floor No",
               "Usege Type",
               "Occupancy Type",
@@ -418,6 +341,7 @@ const CitizenDetails = () => {
             renderRow={(floor, idx) => (
               <tr key={idx}>
                 <td className="px-3 py-2 border">{idx + 1}</td>
+                <td className="px-3 py-2 border">{floor?.zoneMstrId || "NA"}</td>
                 <td className="px-3 py-2 border">{floor?.floorName || "NA"}</td>
                 <td className="px-3 py-2 border">{floor?.usageType || "NA"}</td>
                 <td className="px-3 py-2 border">
@@ -433,110 +357,6 @@ const CitizenDetails = () => {
             )}
           />
 
-          {/* SWM CONSUMER DETAILS */}
-
-          {Array.isArray(propDetails?.swmConsumer) &&
-            propDetails.swmConsumer.length > 0 && (
-              <DetailGrid
-                title="SWM Consumer Details"
-                data={propDetails.swmConsumer.map((consumer, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded-lg shadow-sm p-4 space-y-4 ${
-                      index % 2 == 0 ? "bg-white" : "bg-gray-200"
-                    }`}
-                  >
-                    {/* Header */}
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <h3 className="font-semibold text-base">Consumer No.</h3>
-                      <span className="text-sm text-gray-600">
-                        {consumer.consumerNo || "NA"}
-                      </span>
-                    </div>
-
-                    {/* Consumer Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <p className="text-gray-500">Occupancy Type</p>
-                        <p className="font-medium">
-                          {consumer.occupancyType || "NA"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Category</p>
-                        <p className="font-medium">
-                          {consumer.category || "NA"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Sub Category</p>
-                        <p className="font-medium">
-                          {consumer.subCategoryType || "NA"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Effective From</p>
-                        <p className="font-medium">
-                          {formatLocalDate(consumer.dateOfEffective)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Owners */}
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Owner(s)</h4>
-
-                      <div className="space-y-2">
-                        <SectionCard
-                          headers={[
-                            "SL",
-                            "Owner",
-                            "Guardian",
-                            "Relation",
-                            "Mobile",
-                          ]}
-                          data={consumer.owners}
-                          renderRow={(owner, idx) => (
-                            <tr key={idx}>
-                              <td className="px-3 py-2 border">{idx + 1}</td>
-                              <td className="px-3 py-2 border">
-                                {owner?.ownerName || "NA"}
-                              </td>
-                              <td className="px-3 py-2 border">
-                                {owner?.guardianName || "NA"}
-                              </td>
-                              <td className="px-3 py-2 border">
-                                {owner?.relationType || "NA"}
-                              </td>
-                              <td className="px-3 py-2 border">
-                                {owner?.mobileNo || "NA"}
-                              </td>
-                            </tr>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              />
-            )}
-
-          {/* WATER ONE TIME DETAILS */}
-          <DetailGrid
-            note={
-              "Note: Water Tax is a one-time tax and is applicable only if you are doing your assessment for the first time or if you have never paid it earlier."
-            }
-            data={[
-              {
-                label: "Water Connection Facility",
-                value: propDetails?.waterConnectionFacilityType || "NA",
-              },
-              {
-                label: "Water Tax Type",
-                value: propDetails?.waterTaxType || "NA",
-              },
-            ]}
-          />
 
           {/* ADDITIONAL INFORMATION */}
           <AditionalDetails data={propDetails} />
@@ -548,8 +368,8 @@ const CitizenDetails = () => {
               "ARV",
               "Effect From",
               "Holding Tax",
-              "Water Tax",
-              "Conservancy/Latrine Tax",
+              "Common Water Tax",
+              "Composite Tax",
               "Education Cess",
               "RWH Penalty",
               "Quarterly Tax",
@@ -564,8 +384,8 @@ const CitizenDetails = () => {
                 </td>
 
                 <td className="px-3 py-2 border">{tax?.holdingTax || ""}</td>
-                <td className="px-3 py-2 border">{tax?.rwhTax || ""}</td>
-                <td className="px-3 py-2 border">{tax?.latrineTax || ""}</td>
+                <td className="px-3 py-2 border">{tax?.commonWtrTax || ""}</td>
+                <td className="px-3 py-2 border">{tax?.compositeTax || ""}</td>
                 <td className="px-3 py-2 border">
                   {tax?.educationCess ?? "NA"}
                 </td>
@@ -651,24 +471,6 @@ const CitizenDetails = () => {
               id={propDetails.id}
               onClose={() => setIsDocViewModal(false)}
               token={token}
-            />
-          )}
-
-          {isDemandViewModal && (
-            <DemandViewModal
-              id={propDetails.id}
-              onClose={() => setIsDemandViewModal(false)}
-              apiUrl={safDueApi}
-            />
-          )}
-          {isDemandViewPayModal && (
-            <DemandViewModal
-              id={propDetails.id}
-              actionType={"Payment"}
-              onSuccess={fetchPropertyDetails}
-              onClose={() => setIsDemandViewPayModal(false)}
-              apiUrl={safDueApi}
-              submitApiUrl={safPaymentApi}
             />
           )}
 

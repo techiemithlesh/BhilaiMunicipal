@@ -132,13 +132,6 @@ export default function CitizenLayout({ children }) {
       ],
     },
     {
-      label: "Trade",
-      children: [
-        { label: "Apply License", path: "/citizen/trade/apply-license" },
-        { label: "Search", path: "/citizen/trade/search" },
-      ],
-    },
-    {
       label: "Solid Waste",
       children: [
         { label: "Apply Waste", path: "/citizen/holding/apply-saf3" },

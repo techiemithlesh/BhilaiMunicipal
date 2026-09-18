@@ -161,7 +161,7 @@ const CitizenAuth = () => {
         navigate("/citizen/");
       }
     } catch (err) {
-      console.error("Google Login Failed:", err.response?.data || err.message);
+      // console.error("Google Login Failed:", err.response?.data || err.message);
       toast.error("Google Login Failed!", {position:'top-right'});
     } finally {
       setIsSpinner(false);
