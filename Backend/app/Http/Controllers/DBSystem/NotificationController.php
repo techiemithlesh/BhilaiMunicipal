@@ -207,7 +207,7 @@ class NotificationController extends Controller
             }
             DB::commit();
 
-            return responseMsg(true, $sms, $response, "", "01", ".ms", "POST", "");
+            return responseMsg(true, $sms, $response);
         } catch (CustomException $e) {
             DB::rollBack();
             return responseMsg(false, $e->getMessage(), "");

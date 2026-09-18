@@ -112,33 +112,24 @@ const CitizenAuth = () => {
         return;
       }
 
-      const browserInfo = await JSON.parse(localStorage.getItem("browserInfo"));
+      const browserInfo = JSON.parse(localStorage.getItem("browserInfo") || "null") || {};
 
       const payload = {
         mobile: mobile,
         otp: otp,
         otpType: otpType,
-        latitude: browserInfo.latitude,
-        longitude: browserInfo.longitude,
-        machine: browserInfo.machine,
-        browserName: browserInfo.browserName,
-        ip: browserInfo.ip,
+        latitude: browserInfo.latitude ?? null,
+        longitude: browserInfo.longitude ?? null,
+        machine: browserInfo.machine ?? navigator.userAgent,
+        browserName: browserInfo.browserName ?? null,
+        ip: browserInfo.ip ?? null,
       };
 
       if (otpType === "Register") {
         payload.name = name; // Include name for registration
       }
 
-      const response = await axios.post(otpApi, {
-        mobile: mobile,
-        otp: otp,
-        otpType: otpType,
-        latitude: browserInfo.latitude,
-        longitude: browserInfo.longitude,
-        machine: browserInfo.machine,
-        browserName: browserInfo.browserName,
-        ip: browserInfo.ip,
-      });
+      const response = await axios.post(otpApi, payload);
       if (response.data.status === true) {
         toastMsg("OTP verified successfully!");
         const { token, userDetails } = response.data.data;

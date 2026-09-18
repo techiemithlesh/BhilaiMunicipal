@@ -27,8 +27,14 @@ class OtpRequest extends ParamModel
      * | @param 
      */
     public function store(Request $request){
-        $request->merge(["otpDateTime"=> Carbon::now(),"expiresAt"=>$request->expiresAt ? $request->expiresAt : Carbon::now()->addMinutes(10)]);
-        $inputs = snakeCase($request);
+        
+        $now = Carbon::now();
+
+        $request->merge([
+            'otpDateTime' => $now->format('Y-m-d H:i:s'),
+            'expiresAt' => ($request->expiresAt ? Carbon::parse($request->expiresAt)->format('Y-m-d H:i:s') : $now->copy()->addMinutes(10))->format('Y-m-d H:i:s'),
+        ]);
+        $inputs = snakeCase($request);//dd($inputs->all());
         $user= self::create($inputs->all());
         return $user->id;
     }

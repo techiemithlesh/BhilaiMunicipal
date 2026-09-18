@@ -5,10 +5,15 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import axios from "axios";
 import { reviewTaxApi, safApplyApi, safEditApi } from "../../../api/endpoints";
 import toast from "react-hot-toast";
-import TaxViewTab from "../../../modules/property/component/Saf/TaxViewTab";
+import BhilaiTaxHistory, {
+  buildEntriesFromTaxDtl,
+} from "../../../modules/property/component/Saf/BhilaiTaxHistory";
 import { normalizePayload } from "../../../utils/utils";
 import SuccessModal from "../holding/SuccessModal";
+import ConfirmSubmitModal from "../../../modules/property/component/ConfirmSubmitModal";
 import { clearForm } from "../../../store/slices/assessmentSlice";
+import { clearFloorDtl } from "../../../store/slices/floorSlice";
+import { clearOwnerDtl } from "../../../store/slices/ownerSlice";
 
 const ulbId = import.meta.env.VITE_REACT_APP_ULB_ID;
 
@@ -21,6 +26,7 @@ export default function CitizenPreview() {
   const { setIsLoadingGable } = useLoading();
   const [taxDtl, setTaxDtl] = useState({});
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [data, setIsData] = useState([]);
 
   const {
@@ -124,16 +130,12 @@ export default function CitizenPreview() {
           <h2 className="font-semibold text-xl">Assessment Information</h2>
           <div className="gap-4 grid sm:grid-cols-2 md:grid-cols-4 bg-gray-50 rounded">
             <DetailCard
-              label="Assessment Type"
-              value={formData?.assessmentType || "New Assessment"}
+              label="Application Type"
+              value={formData?.applicationFrom || ""}
             />
             <DetailCard
-              label="Circle"
-              value={findName(
-                mstrData.zoneType,
-                formData?.zoneMstrId,
-                "zoneName"
-              )}
+              label="Assessment Type"
+              value={formData?.assessmentType || "New Assessment"}
             />
             <DetailCard
               label="Ward No"
@@ -159,27 +161,15 @@ export default function CitizenPreview() {
                 "propertyType"
               )}
             />
-            {[3, 4].includes(Number(formData?.propTypeMstrId)) && (
+            {formData?.propTypeMstrId === 3 && (
               <DetailCard
-                label="Date of Possession"
-                value={formData?.landOccupationDate}
+                label="Apartment Name"
+                value={findName(
+                  apartmentList,
+                  formData?.appartmentDetailsId,
+                  "apartmentName"
+                )}
               />
-            )}
-            {formData?.propTypeMstrId === 1 && (
-              <>
-                <DetailCard
-                  label="Apartment Name"
-                  value={findName(
-                    apartmentList,
-                    formData?.appartmentDetailsId,
-                    "apartmentName"
-                  )}
-                />
-                <DetailCard
-                  label="Flat Registry Date"
-                  value={formData?.flatRegistryDate}
-                />
-              </>
             )}
             <DetailCard
               label="Road Type"
@@ -189,6 +179,10 @@ export default function CitizenPreview() {
                 "roadType"
               )}
             />
+            <DetailCard
+              label="BPL Category"
+              value={formData?.isBpl ? "YES" : "NO"}
+            />
           </div>
         </section>
 
@@ -196,25 +190,6 @@ export default function CitizenPreview() {
         <OwnerTable data={ownerDtl} />
 
         {/* Electricity Details */}
-        <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-          <h2 className="font-semibold text-xl">Electricity Details</h2>
-          <div className="gap-4 grid sm:grid-cols-2 md:grid-cols-4 bg-gray-50 rounded">
-            <DetailCard
-              label="Electricity K. No"
-              value={formData?.electConsumerNo}
-            />
-            <DetailCard label="ACC No" value={formData?.electAccNo} />
-            <DetailCard
-              label="BIND/BOOK No."
-              value={formData?.electBindBookNo}
-            />
-            <DetailCard
-              label="Electricity Consumer Category"
-              value={formData?.electConsCategory}
-            />
-          </div>
-        </section>
-
         {/* Property Details */}
         <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
           <h2 className="font-semibold text-xl">Property Details</h2>
@@ -226,30 +201,8 @@ export default function CitizenPreview() {
               value={formData?.villageMaujaName}
             />
             <DetailCard
-              label="Area of Plot (in Decimal)"
+              label="Area of Plot (in Sqft)"
               value={formData?.areaOfPlot}
-            />
-            <DetailCard
-              label="Built Up Area (in Sqft)"
-              value={formData?.builtupArea}
-            />
-            <DetailCard
-              label="Road Width (in ft)"
-              value={formData?.roadWidth}
-            />
-          </div>
-        </section>
-        {/* Water Connection Details */}
-        <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-          <h2 className="font-semibold text-xl">Water Connection Details</h2>
-          <div className="gap-4 grid sm:grid-cols-2 md:grid-cols-4 bg-gray-50 rounded">
-            <DetailCard
-              label="Water Connection No"
-              value={formData?.waterConnNo}
-            />
-            <DetailCard
-              label="Water Connection Date"
-              value={formData?.waterConnDate}
             />
           </div>
         </section>
@@ -382,54 +335,17 @@ export default function CitizenPreview() {
           </div>
         )}
 
-        {/* Water Tax Details */}
-        <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
-          <h2 className="font-semibold text-xl">Water One Time Payment</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailCard
-              label="Water Connection Facility"
-              value={findName(
-                mstrData.waterFacility,
-                formData?.waterConnectionFacilityTypeId,
-                "facilityType"
-              )}
-            />
-
-            <DetailCard
-              label="Water Tax Type"
-              value={findName(
-                mstrData.waterTax,
-                formData?.waterTaxTypeId,
-                "taxType"
-              )}
-            />
-
-            {/* NOTE */}
-            <div className="col-span-full mt-2">
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-md">
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  <span className="font-semibold">Note:</span> Water Tax is a
-                  one-time tax and is applicable only if you are doing your
-                  assessment for the first time or if you have never paid it
-                  earlier.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Additional Details */}
         <AdditionalDetails formData={formData} />
 
         {/* Tax Details */}
         <section className="flex flex-col gap-4 bg-gray-50 p-4 border rounded">
           <h2 className="font-semibold text-xl">Tax Details</h2>
-          {Object.keys(taxDtl).length > 0 && <TaxViewTab taxDtl={taxDtl} />}
+          <BhilaiTaxHistory entries={buildEntriesFromTaxDtl(taxDtl)} />
         </section>
 
         {/* Navigation Buttons */}
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-center gap-4">
           <button
             className="bg-gray-300 hover:bg-gray-400 px-5 py-2 rounded-full leading-4"
             onClick={() => navigate(-1)}
@@ -438,12 +354,21 @@ export default function CitizenPreview() {
           </button>
           <button
             className="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-full text-white leading-4"
-            onClick={handleSubmitForm}
+            onClick={() => setConfirmOpen(true)}
           >
             {state?.formType === "edit" ? "Update" : "Submit"}
           </button>
         </div>
       </div>
+
+      <ConfirmSubmitModal
+        isOpen={isConfirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleSubmitForm();
+        }}
+      />
 
       {isModalOpen && (
         <SuccessModal
@@ -481,29 +406,19 @@ const OwnerTable = ({ data }) =>
         "SL",
         "Name",
         "Gender",
-        "DOB",
         "Guardian Name",
         "Relation",
-        "Aadhar No.",
         "Mobile No.",
-        "Email",
-        "Pan No.",
-        "Is Armed Force?",
-        "Is Specially Abled?",
+        "Address",
       ]}
       rows={data.map((o, i) => [
         i + 1,
         o.ownerName,
         o.gender,
-        o.dob,
         o.guardianName,
         o.relationType,
-        o.adharNo,
         o.mobileNo,
-        o.email,
-        o.panNo,
-        o.isArmedForce === 1 ? "YES" : "NO",
-        o.isSpeciallyAbled === 1 ? "YES" : "NO",
+        o.address,
       ])}
     />
   ) : (
@@ -581,30 +496,32 @@ const AdditionalDetails = ({ formData }) => (
     <Detail
       label="Have Mobile Tower(s)?"
       value={formData?.isMobileTower}
-      area={formData?.towerArea}
       date={formData?.towerInstallationDate}
     />
     <Detail
-      label="Have Hoarding Board(s)?"
-      value={formData?.isHoardingBoard}
-      area={formData?.hoardingArea}
-      date={formData?.hoardingInstallationDate}
+      label="Widow/Abandoned/Mentally Disable/Visually Impaired?"
+      value={formData?.isWidow}
     />
-    {formData?.propTypeMstrId !== 4 && (
-      <>
-        <Detail
-          label="Have Petrol Pump?"
-          value={formData?.isPetrolPump}
-          area={formData?.underGroundArea}
-          date={formData?.petrolPumpCompletionDate}
-        />
-        <Detail
-          label="Have Rainwater Harvesting?"
-          value={formData?.isWaterHarvesting}
-          date={formData?.waterHarvestingDate}
-        />
-      </>
-    )}
+    <Detail
+      label="Ex-Army (Income Tax Exempted)?"
+      value={formData?.isExArmy}
+    />
+    <Detail
+      label="Physically Disable?"
+      value={formData?.isDisabledPerson}
+    />
+    <Detail
+      label="Old Property waived Off"
+      value={formData?.isOldProperty}
+    />
+    <Detail label="Belongs to IHSDP?" value={formData?.isDp} />
+    <Detail label="Is School?" value={formData?.isSchool} />
+    <Detail label="Is Complex?" value={formData?.isComplex} />
+    <Detail label="Is Chabutra?" value={formData?.isChabutra} />
+    <Detail
+      label="Holding Belongs To Shop?"
+      value={formData?.isShopHolding}
+    />
   </section>
 );
 
