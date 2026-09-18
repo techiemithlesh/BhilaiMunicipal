@@ -139,35 +139,49 @@ class BhiliaTaxCalculator
         $this->_fromDate = Carbon::parse($this->_fromDate)->format("Y-m-01");
     }
 
-    public function setRuleSet(string $dateFrom, ?string $dateUpto,bool $isBuilding=true) :Collection {
+    public function setRuleSet(string $dateFrom, ?string $dateUpto = null, bool $isBuilding = true): Collection
+    {
+        // Handle date formatting with safe defaults
         $dateFrom = Carbon::parse($dateFrom)->format("Y-m-d");
-        $dateUpto = Carbon::parse($dateUpto)->format("Y-m-d");
+        $dateUpto = $dateUpto ? Carbon::parse($dateUpto)->format("Y-m-d") : '2027-03-31';
+
         $dateFromFyear = getFY($dateFrom);
-        if($dateFromFyear < $this->_acctOfLimitation){
-            $dateFromFyear =   $this->_acctOfLimitation;
+
+        if (isset($this->_acctOfLimitation) && $dateFromFyear < $this->_acctOfLimitation) {
+            $dateFromFyear = $this->_acctOfLimitation;
         }
+
         $dateUptoFyear = getFY($dateUpto);
         $rules = [];
-        while($dateFromFyear<=$dateUptoFyear){
-            $testRule = $this->_ruleSets->where("effective_upto_fyear","<=",$dateFromFyear)->where("is_building",$isBuilding);
-            
-            if($testRule->isEmpty()){
-                $testRule = $this->_ruleSets->where("effective_from_fyear","<=",$dateFromFyear)->where("is_building",$isBuilding);
-            }
-            // dd($dateFromFyear,$dateUptoFyear,$testRule,$this->_ruleSets);
-            foreach($testRule as $key=>$item){
-                $rulesFromFYear = getFY($item["effective_from"]);
-                $rulesUptoFYear = getFY($item["effective_upto"]);
-                if($dateFromFyear>=$rulesFromFYear){
-                    $rules[$key] = $item;
+
+        // Ensure _ruleSets is a Collection
+        $ruleSets = $this->_ruleSets;
+
+        while ($dateFromFyear <= $dateUptoFyear) {
+            // Filter rules matching type AND covering the current financial year ($dateFromFyear)
+            $testRule = $ruleSets->filter(function ($item) use ($dateFromFyear, $isBuilding) {
+                if ($item["is_building"] !== $isBuilding) {
+                    return false;
                 }
+
+                // A rule covers $dateFromFyear if effective_from_fyear <= FY AND effective_upto_fyear >= FY
+                return ($item["effective_from_fyear"] <= $dateFromFyear) 
+                    && ($item["effective_upto_fyear"] >= $dateFromFyear);
+            });
+
+            foreach ($testRule as $key => $item) {
+                $rules[$key] = $item;
             }
-            list($fromFyear,$uptoFYear) = explode("-",$dateFromFyear);
-            $dateFromFyear = $uptoFYear."-".($uptoFYear+1);
+
+            // Increment Financial Year (e.g., "2012-2013" -> "2013-2014")
+            list($fromYear, $toYear) = explode("-", $dateFromFyear);
+            $nextFrom = (int)$fromYear + 1;
+            $nextTo = (int)$toYear + 1;
+            $dateFromFyear = $nextFrom . "-" . $nextTo;
         }
+
         return collect($rules)->unique();
     }
-
     
     public function initFloorWiseTax(): void
     {
@@ -569,6 +583,7 @@ class BhiliaTaxCalculator
             "usageTypeFactorId"     => $usageTypeFactorId,            
             "isEducationCessFromHoldingTax"=>$isEducationCessFromHoldingTax,
         ];
+        
 
         $floorTax = array_merge($floorTax, $tax);
         $floorTax["taxIncludeYear"] = $this->generateTaxIncludeYear($floorTax);
