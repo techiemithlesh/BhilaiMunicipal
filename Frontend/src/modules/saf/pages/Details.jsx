@@ -254,11 +254,7 @@ const Details = () => {
     { label: "Ownership Type", value: safDetails?.ownershipType },
     { label: "Road Type", value: safDetails?.roadType },
     { label: "BPL Category", value: safDetails?.isBpl ? "Yes" : "No" },
-    { label: "Plot No", value: safDetails?.plotNo },
-    { label: "Area of Plot (In Sqft)", value: safDetails?.areaOfPlot },
-    { label: "Built Up Area (In Sqft)", value: safDetails?.builtupArea },
     { label: "Address", value: safDetails?.propAddress },
-    { label: "Circle", value: safDetails?.zone },
     // Only add this field if propertyType matches
     ...(safDetails?.propertyType?.toLowerCase().includes("flat")
       ? [{ label: "Apartment Name", value: safDetails?.apartmentName }]
@@ -323,7 +319,7 @@ const Details = () => {
                   <td className="px-3 py-2 border">{owner.relationType}</td>
                   <td className="px-3 py-2 border">{owner.mobileNo}</td>
                   <td className="px-3 py-2 border">
-                    {owner?.ownerAddress ?? "NA"}
+                    {owner?.address ?? "NA"}
                   </td>
                 </tr>
               )}

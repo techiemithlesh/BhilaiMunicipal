@@ -599,13 +599,14 @@ class SafController extends Controller
                 "ownerDtl.*.guardianName"=>"nullable",
                 "ownerDtl.*.relationType"=>"nullable|required_with:ownerDtl.*.guardianName|in:S/O,D/O,W/O,C/O",
                 "ownerDtl.*.mobileNo"=>"required|digits:10|regex:/[0-9]{10}/",
-                "ownerDtl.*.email"=>"nullable|email",
-                "ownerDtl.*.panNo"=>"nullable|string|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/",
-                "ownerDtl.*.aadharNo"=>"nullable|digits:12|regex:/[0-9]{12}/",
+                // "ownerDtl.*.email"=>"nullable|email",
+                // "ownerDtl.*.panNo"=>"nullable|string|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/",
+                // "ownerDtl.*.aadharNo"=>"nullable|digits:12|regex:/[0-9]{12}/",
                 "ownerDtl.*.gender"=>"required|in:Male,Female,Other",
-                "ownerDtl.*.dob"=>"required|date|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
-                "ownerDtl.*.isArmedForce"=>"required|bool",
-                "ownerDtl.*.isSpeciallyAbled"=>"required|bool",  
+                // "ownerDtl.*.dob"=>"required|date|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
+                // "ownerDtl.*.isArmedForce"=>"required|bool",
+                // "ownerDtl.*.isSpeciallyAbled"=>"required|bool", 
+                "ownerDtl.*.address"=>"required", 
             ];
             $validator = Validator::make($request->all(),$rules);
             if($validator->fails()){

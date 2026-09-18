@@ -161,8 +161,8 @@ export const validateOwnerDtl = (owner, index) => {
     errors.ownerName = `Name is required`;
   }
 
-  if (isEmptyOrWhitespace(owner.ownerAddress)) {
-    errors.ownerAddress = `Address is required`;
+  if (isEmptyOrWhitespace(owner.address)) {
+    errors.address = `Address is required`;
   }
 
   if (isEmptyOrWhitespace(owner.guardianName)) {

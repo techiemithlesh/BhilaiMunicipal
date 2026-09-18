@@ -20,6 +20,7 @@ const TAX_COLUMNS = [
 
 const ARV_COLUMNS = [
   { key: "code", label: "Code" },
+  { key: "floorName", label: "Floor Name" },
   { key: "constructionDate", label: "Construction Date" },
   { key: "effectFrom", label: "Effect From" },
   { key: "buildupArea", label: "Buildup Area", align: "right" },
@@ -108,42 +109,29 @@ const AnnualRentalValueSection = ({ label, rows }) => (
   </div>
 );
 
-/**
- * Builds the `entries` prop for BhilaiTaxHistory from the real API response
- * of reviewTaxApi/safApplyApi (the `taxDtl` state in Preview.jsx), which is
- * `camelCase(BhiliaTaxCalculator::$_GRID)` from the backend. Reads
- * `taxDtl.ruleSetVersionTax` — the same array TaxViewTab's "Rulesetwise Tax"
- * tab renders — one entry per rate era, each carrying:
- *   - `dTL`: one row per floor active in that era (feeds the ARV table)
- *   - `fyearlytax`: one row per financial year in that era, summed across
- *     every floor active that year (feeds the Tax Details table)
- *
- * The backend doesn't compute widow/old-house/disabled-discount amounts, or
- * a per-financial-year ARV/rate split when more than one floor is active in
- * a year, so those are filled in as best-effort (0, or reconstructed from
- * the floors' own era-level ARV where unambiguous).
- */
+
 export const buildEntriesFromTaxDtl = (taxDtl) => {
   const eras = taxDtl?.ruleSetVersionTax;
   if (!Array.isArray(eras) || !eras.length) return [];
 
   const sortedEras = [...eras].sort((a, b) =>
-    String(a?.effectiveFromFYear).localeCompare(String(b?.effectiveFromFYear)),
+    String(a?.effectiveFromFyear).localeCompare(String(b?.effectiveFromFyear)),
   );
 
   const entries = [];
 
   sortedEras.forEach((era) => {
-    const floors = Array.isArray(era?.dTL) ? era.dTL : [];
+    const floors = Array.isArray(era?.floors) ? era.floors : [];
 
     entries.push({
       type: "arv",
-      label: era?.effectiveFromFYear || "-",
+      label: era?.effectiveFromFyear || "-",
       rows: floors.map((floor) => ({
-        code: floor?.floorDtl?.floorName || floor?.floorName || "-",
-        constructionDate: floor?.floorDtl?.dateFrom || floor?.dateFrom || "-",
-        effectFrom: floor?.fromFYear || era?.effectiveFromFYear || "-",
-        buildupArea: floor?.floorDtl?.builtupArea ?? floor?.taxableArea ?? "-",
+        code: floor?.code || "-",
+        floorName: floor?.floorName || "-",
+        constructionDate: floor?.dateFrom || "-",
+        effectFrom: floor?.fromFYear || era?.effectiveFromFyear || "-",
+        buildupArea: floor?.builtupArea ?? "-",
         rate: floor?.arvRate ?? "-",
         totalARV: floor?.yearlyARV,
         widowRebate: 0,
@@ -154,81 +142,28 @@ export const buildEntriesFromTaxDtl = (taxDtl) => {
       })),
     });
 
-    const activeFloorsInYear = (fyear) =>
-      floors.filter(
-        (floor) =>
-          floor?.fromFYear <= fyear &&
-          (!floor?.uptoFYear || floor.uptoFYear >= fyear),
-      );
+    const years = Array.isArray(era?.taxDiff) ? era.taxDiff : [];
 
-    const years = Array.isArray(era?.fyearlytax) ? era.fyearlytax : [];
-
-    const yearRows = years.map((year) => {
-      const activeFloors = activeFloorsInYear(year?.fyear);
-      const arv = activeFloors.reduce(
-        (sum, floor) => sum + (Number(floor?.aRV) || 0),
-        0,
-      );
-      const ratePercent =
-        activeFloors.length === 1 ? activeFloors[0]?.ratePercent : "-";
-
-      return {
-        effectFrom: year?.fyear ? `FY:${year.fyear}` : "-",
-        arv: activeFloors.length ? arv : "-",
-        ratePercent,
+    entries.push({
+      type: "tax",
+      rows: years.map((year) => ({
+        effectFrom: year?.year ? `FY:${year.year}` : "-",
+        arv: year?.aRV,
+        ratePercent: year?.ratePercent,
         propertyTax: year?.holdingTax,
         compositeTax: year?.compositeTax,
         commonWaterTax: year?.waterTax,
         personalWaterTax: 0,
         educationCess: year?.educationCessTax,
         yearlyTax: year?.totalTax,
-      };
+      })),
     });
-
-    // Collapse a run of consecutive years whose tax figures are identical
-    // (i.e. nothing about the taxed floors changed) into a single row,
-    // keeping only the first year's label — a demand memo shows one line
-    // per rate/composition change, not one line per financial year.
-    const AMOUNT_KEYS = [
-      "arv",
-      "ratePercent",
-      "propertyTax",
-      "compositeTax",
-      "commonWaterTax",
-      "personalWaterTax",
-      "educationCess",
-      "yearlyTax",
-    ];
-    const sameAmounts = (a, b) =>
-      AMOUNT_KEYS.every((key) => String(a[key]) === String(b[key]));
-
-    const collapsedRows = yearRows.reduce((acc, row) => {
-      const previous = acc[acc.length - 1];
-      if (previous && sameAmounts(previous, row)) return acc;
-      acc.push(row);
-      return acc;
-    }, []);
-
-    entries.push({ type: "tax", rows: collapsedRows });
   });
 
   return entries.filter((entry) => entry.rows?.length);
 };
 
-/**
- * Renders a property's ARV/tax rate-change history as an alternating sequence
- * of "Tax Details" (collapsible) and "Annual Rental Value As per the Rate of
- * ..." blocks, mirroring how the demand history is presented on a printed SAF
- * assessment memo. Each block's table can hold one row (a single floor / a
- * single financial year) or several (multiple floors sharing a rate era,
- * multiple years sharing the same composite-tax rate) — whichever the data
- * calls for.
- *
- * `entries`: [
- *   { type: "tax", rows: [{...TAX_COLUMNS keys}, ...] } |
- *   { type: "arv", label, rows: [{...ARV_COLUMNS keys}, ...] }
- * ]
- */
+
 const BhilaiTaxHistory = ({ entries }) => {
   const list = Array.isArray(entries) ? entries : [];
 
