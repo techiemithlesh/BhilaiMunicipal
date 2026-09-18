@@ -343,22 +343,18 @@ trait PropertyTrait{
         $docList = [];
         $commonClass = new Common;
         $user = Auth()->user();
-        if($saf->prop_type_mstr_id==1)	// super structure
+        if($saf->assessment_type!="New Assessment")	// super structure
 		{
-			$docList[]='flat_doc';
+			$docList[]='latest_tax_receipt';
 		}
 
-		if($saf->no_electric_connection) // if electric conn N/A
-		{
-			$docList[]='no_elect_connection';
-		}
-
+        $docList[]='address_proof';
 		if($saf->assessment_type=="Mutation")
 		{
-			$docList[]='transfer_mode';
+			$docList[]='deed';
 		}
-        if(!$user || $commonClass->checkUsersWithtocken("citizens")){
-            $docList[]='saf_form';
+        if(!$commonClass->checkUsersWithtocken("citizens")){
+            $docList[]='self_assesment_form';
         }        
         $docList[]='other';
         $lists = DocTypeMaster::whereIn("doc_type",$docList)->where("lock_status",false)->get();
@@ -379,19 +375,7 @@ trait PropertyTrait{
         $owners = $saf->getOwners();
         $lists = $owners->map(function($item){
             $docList=[];
-            $docList[] = "applicant_image";
-            if($item->is_armed_force){
-                // $docList[] = "armed_force_document";
-            } 
-            if($item->is_specially_abled){
-                // $docList[] = "handicaped_document";
-            }
-            if($item->gender=="Other"){
-                // $docList[] = "gender_document";
-            }
-            if($item->dob && Carbon::parse($item->dob)->diffInYears(Carbon::now())>=60){
-                // $docList[] = "dob_document";
-            }
+            $docList[] = "id_proof"; 
             $list = DocTypeMaster::whereIn("doc_type",$docList)->where("lock_status",false)->get();
             $uploadedDoc = $item->getDocList()->get();
             $item->doc_list = $list->map(function($item)use($uploadedDoc){

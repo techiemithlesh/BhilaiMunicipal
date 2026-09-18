@@ -326,7 +326,7 @@ function DocUploadModal({
                   <div key={`owner-${idx}`}>
                     {renderDocs(
                       owner.docList,
-                      `${owner.ownerName} Documents`,
+                      `Documents Of ${owner.ownerName}`,
                       `owner-${idx}`,
                       owner
                     )}
