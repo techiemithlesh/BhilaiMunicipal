@@ -374,7 +374,7 @@ const Details = () => {
             {/* FLOOR DETAILS */}
             <SectionCard
               title="Floor Details"
-              note="Built Up :<span> It refers to the entire carpet area along with the thickness of the external walls of the apartment. It includes the thickness of the internal walls and the columns."
+              note=""
               headers={[
                 "SL",
                 "Zone",
