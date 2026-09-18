@@ -33,6 +33,7 @@ class BhiliaTaxCalculator
     public Collection $_ruleSets;
 
     public string $_TaxFromYear;
+    public string $_ThousandPenaltyFromYear;
     public int $_ACT_LIMIT;
     public string $_fromDate;
     public string $_acctOfLimitation;
@@ -70,6 +71,7 @@ class BhiliaTaxCalculator
         $this->_TaxFromYear = Config::get("PropertyConstant.BHILIA_TAX_FROM_DATE", "1999-04-01");
         $this->_acctOfLimitation = getFY($this->_TaxFromYear);
         $this->_ACT_LIMIT = Carbon::now()->year - Carbon::parse($this->_TaxFromYear)->year;
+        $this->_ThousandPenaltyFromYear = Config::get("PropertyConstant.THOUSAND_PENALTY_EFFECTIVE_YEAR", "2016-2017");
 
         $this->setPropertyType();
         $this->setUlb();
@@ -254,6 +256,25 @@ class BhiliaTaxCalculator
         $this->_GRID["FloorWiseTax"] = $this->_FloorWiseTax;
     }
 
+    public function addPenalties($allYearlyTax)
+    {
+        $allTaxes = collect($allYearlyTax)->map(function($item){
+            $penal = 0;
+            $arrayPenalty=0;
+            if($item["year"]<getFY()){
+                $penal = $item["TotalTax"] * 0.18; // 18%;                
+            }
+            if($item["year"]<getFY() && $item["year"]>=$this->_ThousandPenaltyFromYear){
+                $arrayPenalty = 1000; // 1000;                
+            }
+            $item["penal"] = $penal;
+            $item["arrayPenalty"] = $arrayPenalty;
+            $item["netTotalTax"] = round(($item["TotalTax"] + $penal + $arrayPenalty),2);
+            return $item;
+        });
+        $this->_GRID["FyearWiseTax"] = $allTaxes;
+    }
+
     public function FYearTaxCalculator(): void
     {
         $allTaxes = collect(); 
@@ -402,8 +423,8 @@ class BhiliaTaxCalculator
             $this->_GRID["RuleSetVersionTax"][]=$rules;
             
         }
-
-        $this->_GRID["FyearWiseTax"] = $allTaxes;
+        $this->addPenalties($allTaxes);
+        
     }
 
     public function RuleSetTaxCalculator(): void
