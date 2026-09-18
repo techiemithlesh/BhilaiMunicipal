@@ -450,24 +450,27 @@ class SafController extends Controller
             
             $this->begin();
             $safId = $this->_ActiveSafDetail->store($request);
-            
             foreach($tax["RuleSetVersionTax"] as $key=>$safTax){  
-                if($safTax["Fyearlytax"]) {
-                    $taxRequest = new Request($safTax);  
-                    $taxRequest->merge(["safDetailId"=>$safId]);
-                    $minFyear = collect($safTax["Fyearlytax"]??[])->min("fyear");
-                    $minYearTax = collect($safTax["Fyearlytax"]??[])->where("fyear",$minFyear)->first();
-                    $minQtr = collect($minYearTax["quarterly"]??[])->min("qtr");
-                    $taxRequest->merge(["Fyear"=>$minFyear,"Qtr"=>$minQtr]);
-                    $taxId = $this->_SafTax->store($taxRequest);
-                    // foreach($safTax["Fyearlytax"] as $yearTax){
-                    //     foreach($yearTax["quarterly"] as $quarterlyTax){
-                    //         $newDemandRequest = new Request($quarterlyTax);
-                    //         $newDemandRequest->merge(["safDetailId"=>$safId,"safTaxId"=>$taxId,"wardMstrId"=>$request->wardMstrId]);                        
-                    //         $demandId = $this->_SafDemand->store($newDemandRequest);
-                            
-                    //     }    
-                    // }
+                if($safTax["taxDiff"]) {
+                    foreach($safTax["taxDiff"] as $diffTax){
+                        $taxRequest = new Request($diffTax);  
+                        $taxRequest->merge(["safDetailId"=>$safId]);
+                        $taxRequest->merge([
+                            "Fyear"=>$diffTax["year"],
+                            "Qtr"=>$diffTax["qrt"],
+                            "propertyTax"=>$diffTax["TotalTax"],
+                        ]);
+                        $taxId = $this->_SafTax->store($taxRequest);
+                        // foreach($safTax["Fyearlytax"] as $yearTax){
+                        //     foreach($yearTax["quarterly"] as $quarterlyTax){
+                        //         $newDemandRequest = new Request($quarterlyTax);
+                        //         $newDemandRequest->merge(["safDetailId"=>$safId,"safTaxId"=>$taxId,"wardMstrId"=>$request->wardMstrId]);                        
+                        //         $demandId = $this->_SafDemand->store($newDemandRequest);
+                                
+                        //     }    
+                        // }
+                    }
+                    
                 }          
                 
             }
@@ -554,7 +557,7 @@ class SafController extends Controller
             $this->rollBack();
             return responseMsg(false,$e->getMessage(),"");
         }
-        catch(Exception $e){ 
+        catch(Exception $e){ dd($e);
             $this->rollBack();
             return responseMsg(false,"Internal Server Error","");
         }

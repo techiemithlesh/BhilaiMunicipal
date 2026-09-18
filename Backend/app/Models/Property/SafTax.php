@@ -22,6 +22,7 @@ class SafTax extends ParamModel
             "health_cess"=>$request->HealthCessTax,
             "latrine_tax"=>$request->LatrineTax,
             "rwh_tax"=>$request->RWH,
+            "composite_tax"=> $request->CompositeTax,
             "quarterly_tax"=>$request->TotalTaxQuarterly,
             "tax_json"=>json_encode($request->all(),JSON_UNESCAPED_UNICODE)
         ];
