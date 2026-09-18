@@ -313,7 +313,10 @@ class BhiliaTaxCalculator
                 $HoldingTax = round(($sumARV * ($ratePercent / 100) * $usageFactor), 2);
                 
                 // Fetch composite tax if present in rules or set default
-                $compositeTax = round($allArv->first()['compositeTax'] ?? 0, 2);
+                $compositeTaxDtl = $this->_mCompositeTaxRates
+                                ->where("ulb_id",$this->_ulbId)
+                                ->first(fn($item) => $item->from_date <= $startDateOfYear && ($item->upto_date === null || $item->upto_date >= $startDateOfYear));
+                $compositeTax = round($compositeTaxDtl->tax ?? 0, 2);
 
                 // Calculate Education Cess
                 $EducationCessTax = $isEducationCessFromHoldingTax 
