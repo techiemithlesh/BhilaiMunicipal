@@ -74,6 +74,7 @@ export default function Preview() {
   };
 
   console.log("formData", formData);
+  console.log("TaxDtl", taxDtl);
 
   if (!formData)
     return (
@@ -403,7 +404,7 @@ const OwnerTable = ({ data }) =>
         o.guardianName,
         o.relationType,
         o.mobileNo,
-        o.ownerAddress
+        o.address
       ])}
     />
   ) : (

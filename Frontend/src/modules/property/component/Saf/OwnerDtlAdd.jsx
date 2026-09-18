@@ -231,19 +231,19 @@ const OwnerDtlAdd = ({
             <input
               type="text"
               id={`ownerAddress-${index}`}
-              name="ownerAddress"
+              name="address"
               placeholder="Enter Owner Address"
-              value={owner.ownerAddress || ""}
+              value={owner.address || ""}
               required
               onChange={(e) =>
-                handleOwnerDtlChange(index, "ownerAddress", e.target.value)
+                handleOwnerDtlChange(index, "address", e.target.value)
               }
               className="block bg-white shadow-sm px-3 py-2 border border-gray-300 focus:border-indigo-500 rounded-md focus:outline-none focus:ring-indigo-500 w-full sm:text-xs"
-              disabled={isDisabled && disabledFields[index]?.ownerAddress}
+              disabled={isDisabled && disabledFields[index]?.address}
             />
-            {error?.ownerErrors && error.ownerErrors[index]?.ownerAddress && (
+            {error?.ownerErrors && error.ownerErrors[index]?.address && (
               <span className="text-red-500">
-                {error.ownerErrors[index].ownerAddress}
+                {error.ownerErrors[index].address}
               </span>
             )}
           </div>

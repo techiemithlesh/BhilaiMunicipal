@@ -324,6 +324,45 @@ const AssessmentForm = ({
     // eslint-disable-next-line
   }, [propDetails]);
 
+  useEffect(() => {
+    if (!isEdit) {
+      setDisabledFields({});
+      return;
+    }
+
+    const lockedFloorFields = {
+      zoneMstrId: true,
+      floorMasterId: true,
+      usageTypeMasterId: true,
+      occupancyTypeMasterId: true,
+      constructionTypeMasterId: true,
+      builtupArea: true,
+      dateFrom: true,
+      dateUpto: true,
+    };
+
+    setDisabledFields({
+      applicationFrom: true,
+      wardMstrId: true,
+      ownershipTypeMstrId: true,
+      propTypeMstrId: true,
+      appartmentDetailsId: true,
+      roadTypeMstrId: true,
+      isBpl: true,
+      isMobileTower: true,
+      isWidow: true,
+      isExArmy: true,
+      isDisabledPerson: true,
+      isOldProperty: true,
+      isDp: true,
+      isSchool: true,
+      isComplex: true,
+      isChabutra: true,
+      isShopHolding: true,
+      floors: (floorDtl || []).map(() => lockedFloorFields),
+    });
+  }, [isEdit, floorDtl?.length]);
+
   if (isLoading) {
     return (
       <div className="loading">
@@ -332,8 +371,6 @@ const AssessmentForm = ({
     );
   }
 
-  console.log("formData", formData);
-  console.log("mstrData", mstrData);
 
   return (
     <div className="container-fluid">
@@ -349,9 +386,7 @@ const AssessmentForm = ({
                 required
                 value={formData.applicationFrom}
                 onChange={handleInputChange}
-                disabled={
-                  pathname.includes(formType) && disabledFields?.applicationFrom
-                }
+                disabled={disabledFields?.applicationFrom}
               >
                 <option value="">Select Application Type</option>
                 {mstrData?.applicationType.map((appType, index) => (
@@ -374,9 +409,7 @@ const AssessmentForm = ({
                 required
                 value={formData.wardMstrId}
                 onChange={handleInputChange}
-                disabled={
-                  pathname.includes(formType) && disabledFields?.wardMstrId
-                }
+                disabled={disabledFields?.wardMstrId}
               >
                 <option value="">Select Ward</option>
                 {mstrData?.wardList.map((ward, index) => (
@@ -403,10 +436,7 @@ const AssessmentForm = ({
               required
               value={formData.ownershipTypeMstrId}
               onChange={handleInputChange}
-              disabled={
-                pathname.includes(formType) &&
-                disabledFields?.ownershipTypeMstrId
-              }
+              disabled={disabledFields?.ownershipTypeMstrId}
             >
               <option>Select Ownership Type</option>
               {mstrData?.ownershipType.map((ownershipType, index) => (
@@ -436,9 +466,7 @@ const AssessmentForm = ({
               name="propTypeMstrId"
               value={formData.propTypeMstrId}
               onChange={handleInputChange}
-              disabled={
-                pathname.includes(formType) && disabledFields?.propTypeMstrId
-              }
+              disabled={disabledFields?.propTypeMstrId}
             >
               <option value="">Select Property Type</option>
               {mstrData?.propertyType.map((propertyType, index) => (
@@ -465,10 +493,7 @@ const AssessmentForm = ({
                 value={formData.appartmentDetailsId}
                 required={formData.propTypeMstrId == 3}
                 onChange={handleInputChange}
-                disabled={
-                  pathname.includes(formType) &&
-                  disabledFields?.appartmentDetailsId
-                }
+                disabled={disabledFields?.appartmentDetailsId}
               >
                 <option value="">Select Appartment</option>
                 {apartmentList.map((item, index) => (
@@ -498,6 +523,7 @@ const AssessmentForm = ({
               name="roadTypeMstrId"
               value={formData.roadTypeMstrId}
               onChange={handleInputChange}
+              disabled={disabledFields?.roadTypeMstrId}
             >
               <option value="">Select Road Type</option>
               {mstrData?.roadType.map((item, index) => (
@@ -534,6 +560,7 @@ const AssessmentForm = ({
                   });
                 }}
                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={disabledFields?.isBpl}
               />
             </div>
 
@@ -617,7 +644,7 @@ const AssessmentForm = ({
           setErrors={setErrors}
           ownerDtl={ownerDtl || []}
           setOwnerDtl={handleOwnerDtlUpdate}
-          isDisabled={pathname.includes("Reassessment")}
+          isDisabled={isEdit}
           disabledFields={disabledFields?.owners || []}
           isSingleOwner={formData.ownershipTypeMstrId == 1}
         />
@@ -629,7 +656,7 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isDisabled={pathname.includes(formType)}
+          isDisabled={isEdit}
           disabledFields={disabledFields || {}}
         />
         {/* PROPERTY DETAILS END HERE HERE */}
@@ -639,7 +666,7 @@ const AssessmentForm = ({
           formData={formData}
           error={error}
           handleInputChange={handleInputChange}
-          isDisabled={pathname.includes(formType)}
+          isDisabled={isEdit}
           disabledFields={disabledFields}
         />
         {/* PROPERTY ADDRESS END HERE */}
@@ -653,7 +680,7 @@ const AssessmentForm = ({
             setErrors={setErrors}
             floorDtl={floorDtl}
             setFloorDtl={handleFloorDtlUpdate}
-            isDisabled={pathname.includes("mutation")}
+            isDisabled={isEdit}
             disabledFields={disabledFields?.floors}
           />
         )}
@@ -684,6 +711,7 @@ const AssessmentForm = ({
                     },
                   })
                 }
+                disabled={disabledFields?.isMobileTower}
               >
                 <option value={false}>No</option>
                 <option value={true}>Yes</option>
@@ -750,6 +778,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isWidow}
                   />
                 </div>
 
@@ -787,6 +816,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isExArmy}
                   />
                 </div>
 
@@ -823,6 +853,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isDisabledPerson}
                   />
                 </div>
 
@@ -858,6 +889,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isOldProperty}
                   />
                 </div>
 
@@ -893,6 +925,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isDp}
                   />
                 </div>
 
@@ -928,6 +961,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isSchool}
                   />
                 </div>
 
@@ -963,6 +997,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isComplex}
                   />
                 </div>
 
@@ -998,6 +1033,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isChabutra}
                   />
                 </div>
 
@@ -1033,6 +1069,7 @@ const AssessmentForm = ({
                       });
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    disabled={disabledFields?.isShopHolding}
                   />
                 </div>
 
