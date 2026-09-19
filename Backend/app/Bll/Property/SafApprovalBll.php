@@ -6,6 +6,7 @@ use App\Models\Property\ActiveSafDetail;
 use App\Models\Property\ActiveSafFloorDetail;
 use App\Models\Property\AdditionalTax;
 use App\Models\Property\PenaltyDetail;
+use App\Models\Property\PropertyCollection;
 use App\Models\Property\PropertyDemand;
 use App\Models\Property\PropertyDetail;
 use App\Models\Property\PropertyFloorDetail;
@@ -124,33 +125,41 @@ class SafApprovalBll
         $saf["floorDtl"] = camelCase($this->_ReplicateFloor);
         $request = camelCase($saf)->toArray();
         $this->_REQUEST->merge($request);
-        $calCulator = new BiharTaxCalculator($this->_REQUEST);
+        $calCulator = new BhiliaTaxCalculator($this->_REQUEST);
         $calCulator->calculateTax();
         $this->_TAX = $calCulator->_GRID;
     }
 
     public function calculateDiffDemand(){
-        foreach($this->_TAX["RuleSetVersionTax"] as $Rkey=>$safTax){  
-            foreach($safTax["Fyearlytax"] as $Fkey=>$yearTax){
-                foreach($yearTax["quarterly"] as $Qkey=>$quarterlyTax){                    
-                    $safDemand = SafDemand::where("lock_status",false)->where("saf_detail_id",$this->_SAF->id)->where("fyear",$quarterlyTax["fyear"])->where("qtr",$quarterlyTax["qtr"])->get();                    
+        
+        foreach($this->_TAX["RuleSetVersionTax"] as $Rkey=>$safTax){ 
+            $effectiveUptoFyear =  $safTax["effective_upto_fyear"];
+            foreach($safTax["taxDiff"] as $Fkey=>$yearTax){
+                $fromYear=$yearTax["year"];
+                $uptoYear = $effectiveUptoFyear;
+                if(isset($safTax["taxDiff"][$Fkey+1])){
+                    $nexFromYear = $safTax["taxDiff"][$Fkey+1]["year"];
+                    list($from,$upto)=explode("-",$nexFromYear);
+                    $uptoYear = ($from-1)."-".($upto-1);
+                } 
+                $yearlyTax = collect($this->_TAX["FyearWiseTax"])
+                            ->where("year",">=",$fromYear)
+                            ->where("year","<=",$uptoYear)
+                            ->sortBy("year");
+
+                foreach($yearlyTax as $index=>$tax){                    
+                    $safDemand = SafDemand::where("lock_status",false)->where("saf_detail_id",$this->_SAF->id)->where("fyear",$tax["year"])->get();                    
                     $safCollection = SafCollection::whereIn("saf_demand_id",$safDemand->pluck("id"))->get();
 
-                    // $adjust_amt = $safDemand->sum("adjust_amt") ;
-                    // $total_tax = $safDemand->sum("total_tax") + $adjust_amt;
-
                     $paid_total_tax = $safCollection->sum("total_tax") + $safCollection->sum("adjust_amt");
-                    // $due_total_tax = $quarterlyTax["TotalTax"] - $total_tax;
 
-                    $dueTax = $quarterlyTax;
-                    $dueTax["AdjustAmt"] = $paid_total_tax + $safCollection->sum("adjust_amt") ;  
-                    if($dueTax["AdjustAmt"] > $quarterlyTax["TotalTax"] ) {
-                        $dueTax["AdjustAmt"]  = $quarterlyTax["TotalTax"] ;
-                    }               
-                    $this->_TAX["RuleSetVersionTax"][$Rkey]["Fyearlytax"][$Fkey]["quarterly"][$Qkey] = $dueTax;                    
+                    $dueTax = $tax; 
+                    $dueTax["AdjustAmt"] = $paid_total_tax ;  
+                    if($dueTax["AdjustAmt"] > $tax["netTotalTax"] ) {
+                        $dueTax["AdjustAmt"]  = $tax["netTotalTax"] ;
+                    }            
+                    $this->_TAX["RuleSetVersionTax"][$Rkey]["taxDiff"][$Fkey]["yearlyTax"][$index] = $dueTax;                    
                 }
-                $this->_TAX["RuleSetVersionTax"][$Rkey]["Fyearlytax"][$Fkey]["AdjustAmt"] = collect($this->_TAX["RuleSetVersionTax"][$Rkey]["Fyearlytax"][$Fkey]["quarterly"])->sum("AdjustAmt");
-
             }
             
         }
@@ -184,6 +193,7 @@ class SafApprovalBll
             $property->setTable($this->_PropertyDetail->getTable());
             $property->new_holding_no = $this->_HoldingNo;
             $property->saf_detail_id = $this->_SAF->id;
+            $property->prive_saf_detail_ids = $this->_SAF->id;
             $property->save();
             $this->_PropId = $property->id;
             foreach($this->_ReplicateFloor->where("lock_status",false) as $val){
@@ -204,13 +214,15 @@ class SafApprovalBll
     }
 
     public function FinalUpdateProperty(){
+        $isCreateNewProperty=false;
         $property = $this->_PropertyDetail->find($this->_SAF->prop_dtl_id??$this->_SAF->previous_holding_id);
         if((!$property) || ($this->_SAF->assessment_type=="Mutation" && (!$this->_SAF->prop_dtl_id))){
+            $isCreateNewProperty=true;
            $this->createNewProperty(); 
            $property = $this->_PropertyDetail->find($this->_PropId);
         }        
         $this->_PropId = $property->id;
-        $this->getLateAssesPenalty();
+        $this->addFormFee();
         $this->calculateWaterSingleTimePayment();
         
         if(!$property->new_holding_no){
@@ -221,108 +233,121 @@ class SafApprovalBll
         }
 
         $this->_HoldingNo = $property->new_holding_no;
-        $property->update($this->_ReplicateSaf->toArray());
+        $updateHoldingData = $this->_ReplicateSaf->toArray();
+        if(!$isCreateNewProperty){
+            $updateHoldingData["prive_saf_detail_ids"] = trim(($property->prive_saf_detail_ids.','.$this->_SAF->id),",");
+        }
+        $property->update($updateHoldingData);
 
-        $this->_PropertyFloorDetail->where("property_detail_id",$property->id)
-            ->where("property_detail_id",$property->id)
-            ->where("lock_status",false)
-            ->whereNull("date_upto")
-            ->update(["date_upto"=>Carbon::now()->format("Y-m-d")]);
-        foreach($this->_ReplicateFloor as $floor){
-            if($floor->id??false){
-                $propFloor = $this->_PropertyFloorDetail->where("saf_floor_detail_id",$floor->id)->first();
+        //deactivate floor;
+
+        if(!$isCreateNewProperty){
+            $this->_PropertyFloorDetail->where("property_detail_id",$property->id)
+                ->where("property_detail_id",$property->id)
+                ->where("lock_status",false)
+                ->whereNotIn("id",$this->_ReplicateFloor->pluck("prop_floor_detail_id"))
+                ->update(["lock_status"=>true]);
+    
+            foreach($this->_ReplicateFloor as $floor){
+                if($floor->id??false){
+                    $propFloor = $this->_PropertyFloorDetail->where("saf_floor_detail_id",$floor->id)->first();
+                }
+                elseif($floor->verification_id??false){
+                    $propFloor = $this->_PropertyFloorDetail->where("verification_id",$floor->verification_id)->first();
+                }elseif($floor->prop_floor_detail_id??false){
+                    $propFloor = $this->_PropertyFloorDetail->where("id",$floor->prop_floor_detail_id)->first();
+                }
+                else{
+                    $propFloor = new PropertyFloorDetail();
+                }
+                if(!$propFloor){
+                    $propFloor = new PropertyFloorDetail();
+                }
+                $propFloor->property_detail_id = $property->id;
+                $propFloor->floor_master_id = $floor->floor_master_id;
+                $propFloor->usage_type_master_id = $floor->usage_type_master_id;
+                $propFloor->construction_type_master_id = $floor->construction_type_master_id;
+                $propFloor->occupancy_type_master_id = $floor->occupancy_type_master_id;
+                $propFloor->builtup_area = $floor->builtup_area;
+                $propFloor->carpet_area = $floor->carpet_area;
+                $propFloor->date_from = $floor->date_from;
+                $propFloor->date_upto = $floor->date_upto;
+                $propFloor->user_id = $floor->user_id;
+                $propFloor->saf_floor_detail_id = $floor->saf_floor_detail_id;
+                $propFloor->verification_id = $floor->verification_id;
+                $propFloor->save();
             }
-            elseif($floor->verification_id??false){
-                $propFloor = $this->_PropertyFloorDetail->where("verification_id",$floor->verification_id)->first();
-            }elseif($floor->prop_floor_detail_id??false){
-                $propFloor = $this->_PropertyFloorDetail->where("id",$floor->prop_floor_detail_id)->first();
+    
+            $this->_PropertyOwnerDetail
+                    ->where("property_detail_id",$property->id)
+                    ->forceDelete();
+    
+            foreach($this->_Owner->where("lock_status",false) as $val){
+                $owner = $val->propertyReplicateOwner();
+                $owner->property_detail_id = $this->_PropId;
+                $owner->setTable($this->_PropertyOwnerDetail->getTable());
+                $owner->save();
             }
-            else{
-                $propFloor = new PropertyFloorDetail();
-            }
-            if(!$propFloor){
-                $propFloor = new PropertyFloorDetail();
-            }
-            $propFloor->property_detail_id = $property->id;
-            $propFloor->floor_master_id = $floor->floor_master_id;
-            $propFloor->usage_type_master_id = $floor->usage_type_master_id;
-            $propFloor->construction_type_master_id = $floor->construction_type_master_id;
-            $propFloor->occupancy_type_master_id = $floor->occupancy_type_master_id;
-            $propFloor->builtup_area = $floor->builtup_area;
-            $propFloor->carpet_area = $floor->carpet_area;
-            $propFloor->date_from = $floor->date_from;
-            $propFloor->date_upto = $floor->date_upto;
-            $propFloor->user_id = $floor->user_id;
-            $propFloor->saf_floor_detail_id = $floor->saf_floor_detail_id;
-            $propFloor->verification_id = $floor->verification_id;
-            $propFloor->save();
         }
     }
 
     public function generateDemand(){
         // deactivate all update demand after the first rule apply            
-        $firstFyear = null;
-        $fromQtr=null;
-        foreach($this->_TAX["RuleSetVersionTax"] as $Tax){
-            if(!$Tax["Fyearlytax"]) {
-                continue;
-            }               
-            $taxRequest = new Request($Tax);
-            $taxRequest->merge(["propertyDetailId"=>$this->_PropId]);            
-            $firstFyear = collect($Tax["Fyearlytax"])->min("fyear");
-            $minYearTax = collect($Tax["Fyearlytax"])->where("fyear",$firstFyear)->first();
-            $fromQtr = collect($minYearTax["quarterly"])->min("qtr");
-        }
-        // deactivate demand first
+        $firstFyear = collect($this->_TAX["FyearWiseTax"])->min("year");
+        
+        // deactivate unpaid demand first
         $this->_PropertyDemand
             ->where("property_detail_id",$this->_PropId)
             ->where("paid_status",false)
-            ->where("fyear","=",$firstFyear)
-            ->where("qtr",">=",$fromQtr)
-            ->update(["lock_status"=>true]);
-        // deactivate demand upto last
-        $this->_PropertyDemand
-            ->where("property_detail_id",$this->_PropId)
-            ->where("paid_status",false)
-            ->where("fyear",">",$firstFyear)
+            ->where("fyear",">=",$firstFyear)
             ->update(["lock_status"=>true]);
 
-        $lastPaidUpto = $this->_PropertyDetail->find($this->_PropId)?->demand_paid_upto;
-        $paidFy = $paidQtr = null;
-
-        if($lastPaidUpto){
-            $paidFy  = getFy($lastPaidUpto);
-            $paidQtr = getQtr($lastPaidUpto);
-        }
         // generate new demand
-        foreach($this->_TAX["RuleSetVersionTax"] as $Tax){ 
-            if(!$Tax["Fyearlytax"]) {
+        foreach($this->_TAX["RuleSetVersionTax"] as $rulSet){ 
+            if(!$rulSet["taxDiff"]) {
                 continue;
-            }                
-            $taxRequest = new Request($Tax);
-            $taxRequest->merge(["propertyDetailId"=>$this->_PropId]);            
-            $minFyear = collect($Tax["Fyearlytax"])->min("fyear");
-            $minYearTax = collect($Tax["Fyearlytax"])->where("fyear",$minFyear)->first();
-            $minQtr = collect($minYearTax["quarterly"])->min("qtr");
-            $taxRequest->merge(["Fyear"=>$minFyear,"Qtr"=>$minQtr]);
-            $taxId = $this->_PropertyTax->store($taxRequest);
-            foreach($Tax["Fyearlytax"] as $yearTax){
-                $qtrTax = $yearTax["quarterly"];
-                if ($paidFy) {
-                    $qtrTax = collect($yearTax['quarterly'])
-                        ->filter(function ($item) use ($paidFy, $paidQtr) {
-                            return $item['fyear'] > $paidFy || ($item['fyear'] == $paidFy && $item['qtr'] > $paidQtr);
-                        })
-                        ->values()   
-                        ->toArray();
-                }
-                foreach($qtrTax as $quarterlyTax){
-                    $newDemandRequest = new Request($quarterlyTax);
-                    $newDemandRequest->merge(["propertyDetailId"=>$this->_PropId,"propertyTaxId"=>$taxId,"wardMstrId"=>$this->_REQUEST->wardMstrId]);                        
-                    $demandId = $this->_PropertyDemand->store($newDemandRequest);                    
-                }
+            }    
+            foreach($rulSet["taxDiff"] as $Tax){
+                $taxRequest = new Request($Tax);
+                $taxRequest->merge(["propertyDetailId"=>$this->_PropId]);          
+                $minFyear = collect($Tax["yearlyTax"])->min("year");
+                $minYearTax = collect($Tax["yearlyTax"])->where("year",$minFyear)->first();
+                $minQtr = $minYearTax["qtr"];
+                $taxRequest->merge(["Fyear"=>$minFyear,"Qtr"=>$minQtr]);
 
-            }
+                $taxId = $this->_PropertyTax->store($taxRequest);
+
+                foreach($Tax["yearlyTax"] as $yearTax){
+                    list($from_date,$upto_date) = FyearFromUptoDate($yearTax["year"]);
+                    $newDemandRequest = new Request($yearTax);
+                    $newDemandRequest->merge([
+                        "propertyDetailId"=>$this->_PropId,
+                        "propertyTaxId"=>$taxId,
+                        "wardMstrId"=>$this->_REQUEST->wardMstrId,
+                        "fyear"=>$yearTax["year"],
+                        "dueDate"=>$upto_date,
+                        "TotalTax"=>$yearTax["netTotalTax"],
+                        "demandDmount"=>$yearTax["TotalTax"],
+                        "FineTax"=>$yearTax["penal"],
+                        "otheramt"=>$yearTax["arrayPenalty"],
+                    ]);  
+                    
+                    $paidTotalYearlyOnPast = PropertyCollection::where("property_detail_id",$this->_PropId)
+                                            ->where("fyear",$newDemandRequest->fyear)
+                                            ->where("lock_status",false)
+                                            ->sum("total_tax");
+                    if($paidTotalYearlyOnPast){
+                        $totalAdjustAmt = ($newDemandRequest->AdjustAmt??0) + $paidTotalYearlyOnPast;
+                        $newDemandRequest->merge(["AdjustAmt"=>$totalAdjustAmt]);
+                        if($totalAdjustAmt>$newDemandRequest->netTotalTax){
+                            $newDemandRequest->merge(["AdjustAmt"=>$newDemandRequest->netTotalTax]);
+                        }
+                    }                    
+                    $demandId = $this->_PropertyDemand->store($newDemandRequest);  
+
+                }
+            }            
+            
             
         }
     }
@@ -362,48 +387,17 @@ class SafApprovalBll
         }
     }
 
-    public function getLateAssesPenalty(){
-        $before90Days = Carbon::parse($this->_SAF->apply_date)->copy()->subDays("90")->format("Y-m-d");
-        if($this->_isVacantLand && $this->_ReplicateSaf->land_occupation_date < $before90Days){
-            if($this->_ReplicateSaf->is_mobile_tower || $this->_ReplicateSaf->is_hoarding_board){
-                $this->_lateAssessmentPenalty = 5000;
-            }
-            else{
-                $this->_lateAssessmentPenalty = 2000;
-            }
-        }
-        else{
-            $newFloors = collect($this->_ReplicateFloor)->where("date_from","<",$before90Days);
-            if(!in_array($this->_SAF->assessment_type,["New Assessment"])){
-                $newFloors = $newFloors->whereNull("prop_floor_detail_id");
-            }
-            $commercialFloor = collect($newFloors)->whereNotIn("usage_type_master_id",[1]);
-            if($newFloors->isNotEmpty()){
-                $this->_lateAssessmentPenalty = 2000;
-                if($commercialFloor->isNotEmpty()){
-                    $this->_lateAssessmentPenalty = 5000;
-                }
-            }
-        }
+    public function addFormFee(){
+        $objAdditionalTax = new AdditionalTax();
+        $newRequest = new Request(); 
+        $newRequest->merge([
+            "saf_detail_id"=>$this->_SAF->id,
+            "property_detail_id"=>$this->_PropId,
+            "amount"=>10,
+            "tax_type"=>"Form Fee",
+        ]);
 
-        if($this->_lateAssessmentPenalty>0){
-            $objPenalty = new PenaltyDetail();
-            $newRequest = new Request(); 
-            $newRequest->merge([
-                "saf_detail_id"=>$this->_SAF->id,
-                "property_detail_id"=>$this->_PropId,
-                "penalty_amt"=>$this->_lateAssessmentPenalty,
-                "penalty_type"=>"Late Assessment Fine",
-            ]);
-            $test = $objPenalty
-                    ->where("saf_detail_id",$newRequest->saf_detail_id)
-                    ->where("property_detail_id",$newRequest->property_detail_id)
-                    ->where("lock_status",false)
-                    ->count();
-            if(!$test){
-                $id = $objPenalty->store($newRequest);
-            }
-        }
+        $objAdditionalTax->store($newRequest);
 
     }
 

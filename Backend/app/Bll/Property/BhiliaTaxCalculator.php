@@ -363,7 +363,7 @@ class BhiliaTaxCalculator
                 $yearlyTax=[
                     "ruleSet"                   =>$key,
                     "year"                      => $year,
-                    "qrt"                       => getQtr($startDateOfYear),
+                    "qtr"                       => getQtr($startDateOfYear),
                     "ARV"                       => $sumARV, 
                     "ratePercent"               => $ratePercent,
                     "usageFactor"               => $usageFactor,

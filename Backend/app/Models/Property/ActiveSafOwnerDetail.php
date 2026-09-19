@@ -44,7 +44,7 @@ class ActiveSafOwnerDetail extends ParamModel
     public function propertyReplicateOwner(){
         $allowFields= $this->only(["id","owner_name","guardian_name","relation_type",
                             "mobile_no","email","pan_no","aadhar_no","gender","dob","is_armed_force",
-                        "is_specially_abled","user_id","lock_status","created_at","updated_at"]);
+                        "is_specially_abled","user_id","lock_status","created_at","updated_at",'address']);
         $owner = new ActiveSafOwnerDetail();
         $owner->fill($allowFields);
         // $owner->saf_owner_dtl_id = $this->id;

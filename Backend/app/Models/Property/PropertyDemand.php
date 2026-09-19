@@ -27,6 +27,11 @@ class PropertyDemand extends ParamModel
             "adjust_amt"=>$request->AdjustAmt??0,
             "adjust_type"=>$request->AdjustType??null,
 
+            "composite_tax"=>$request->CompositeTax??0,
+            "common_wtr_tax"=>$request->CommonWtrTax??0,
+            "otheramt"=>$request->otheramt??0,
+            "demand_amount"=>$request->demandDmount??0,
+
             "balance_tax" => $request->TotalTax??0 ,
             "due_holding_tax"=>$request->HoldingTax??0,
             "due_water_tax" => $request->WaterTax??0,
@@ -35,6 +40,11 @@ class PropertyDemand extends ParamModel
             "due_latrine_tax"=>$request->LatrineTax??0,
             "due_rwh_tax"=>$request->RWH??0,
             "due_fine_tax"=>$request->FineTax??0,
+
+            "due_composite_tax"=>$request->CompositeTax??0,
+            "due_common_wtr_tax"=>$request->CommonWtrTax??0,
+            "due_otheramt"=>$request->otheramt??0,
+            "due_demand_amount"=>$request->demandDmount??0,
         ];
         if($adjustAmount = $this->adjustTheAdvance($request)){
             $inputs = array_merge($inputs,$adjustAmount);
@@ -47,12 +57,21 @@ class PropertyDemand extends ParamModel
             $TotalTax = $request->TotalTax;
             $balance = roundFigure($TotalTax - $request->AdjustAmt);
             $AdjustAmtPercent = $request->AdjustAmt / ($TotalTax==0 ? 1 : $TotalTax);
+
             $dueHoldingTax = roundFigure($request->HoldingTax - ($request->HoldingTax  * $AdjustAmtPercent)) ;
             $dueWaterTax = roundFigure($request->WaterTax - ($request->WaterTax * $AdjustAmtPercent)) ;
             $dueEducationCessTax = roundFigure($request->EducationCessTax - ($request->EducationCessTax * $AdjustAmtPercent)) ;
             $dueHealthCessTax = roundFigure($request->HealthCessTax - ($request->HealthCessTax * $AdjustAmtPercent)) ;
             $dueLatrineTax = roundFigure($request->LatrineTax - ($request->LatrineTax  * $AdjustAmtPercent))  ;
             $dueRWH = roundFigure($request->RWH - ($request->RWH  * $AdjustAmtPercent));
+            $dueFineTax = roundFigure($request->FineTax - ($request->FineTax  * $AdjustAmtPercent));
+
+            $dueCompositeTax = roundFigure($request->CompositeTax - ($request->CompositeTax  * $AdjustAmtPercent));
+            $dueCommonWtrTax = roundFigure($request->CommonWtrTax - ($request->CommonWtrTax  * $AdjustAmtPercent));
+            $dueotheramt = roundFigure($request->otheramt - ($request->otheramt  * $AdjustAmtPercent));
+            $duedemandDmount = roundFigure($request->demandDmount - ($request->demandDmount  * $AdjustAmtPercent));
+
+            
 
             
             $returnData =  [
@@ -63,8 +82,18 @@ class PropertyDemand extends ParamModel
                 "due_health_cess_tax"=>$dueHealthCessTax,
                 "due_latrine_tax"=>$dueLatrineTax,
                 "due_rwh_tax"=>$dueRWH,
-                "adjust_type"=>"Advance"
+                "due_fine_tax"=>$dueFineTax,
+                "adjust_type"=>"Advance",
+
+                "due_composite_tax"=>$dueCompositeTax,
+                "due_common_wtr_tax"=>$dueCommonWtrTax,
+                "due_otheramt"=>$dueotheramt,
+                "due_demand_amount"=>$duedemandDmount,
             ];
+            if($balance<=0){
+                $returnData["paid_status"]=true;
+                $returnData["is_full_paid"]=true;
+            }
             return $returnData;
         }
     }

@@ -41,7 +41,7 @@ class ActiveSafFloorDetail extends ParamModel
     public function propertyReplicateFloor(){
         $allowFields= $this->only(["id","floor_master_id","usage_type_master_id","construction_type_master_id",
                             "occupancy_type_master_id","builtup_area","carpet_area","date_from","date_upto","user_id","prop_floor_detail_id",
-                        "lock_status","created_at","updated_at"]);
+                        "lock_status","created_at","updated_at","zone_mstr_id"]);
         $floor = new ActiveSafFloorDetail();
         $floor->fill($allowFields);
         $floor->saf_floor_detail_id = $this->id;

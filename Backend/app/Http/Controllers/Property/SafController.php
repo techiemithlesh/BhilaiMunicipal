@@ -457,7 +457,7 @@ class SafController extends Controller
                         $taxRequest->merge(["safDetailId"=>$safId]);
                         $taxRequest->merge([
                             "Fyear"=>$diffTax["year"],
-                            "Qtr"=>$diffTax["qrt"],
+                            "Qtr"=>$diffTax["qtr"],
                             "propertyTax"=>$diffTax["TotalTax"],
                         ]);
                         $taxId = $this->_SafTax->store($taxRequest);
