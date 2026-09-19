@@ -2,6 +2,7 @@
 
 namespace App\Observers\Property;
 
+use App\Models\DBSystem\UlbMaster;
 use App\Models\Property\ActiveSafDetail;
 use App\Models\Property\WardSafAssessmentTypeCounter;
 use Illuminate\Support\Facades\DB;
@@ -14,13 +15,13 @@ class ActiveSafDetailObserver
     public function created(ActiveSafDetail $activeSafDetail): void
     {
         if(!$activeSafDetail->saf_no && $activeSafDetail->getTable()==(new ActiveSafDetail())->getTable()){
-            $prifix = "SAF";
-            if($activeSafDetail->is_gb_saf){
-                $prifix = "GBSAF";
-                if($activeSafDetail->colony_mstr_id){
-                    $prifix = "CSAF";
-                }
-            }
+            $prifix = UlbMaster::find($activeSafDetail->ulb_id)->short_name ??"SAF";
+            // if($activeSafDetail->is_gb_saf){
+            //     $prifix = "GBSAF";
+            //     if($activeSafDetail->colony_mstr_id){
+            //         $prifix = "CSAF";
+            //     }
+            // }
             $oldWard = $activeSafDetail->getWardOldWardNo();
             $wardNo = $oldWard ? $oldWard->ward_no : "00";            
             $WardCount=WardSafAssessmentTypeCounter::where("ward_mstr_id",$activeSafDetail->ward_mstr_id)->first();

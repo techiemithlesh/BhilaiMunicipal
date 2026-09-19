@@ -31,6 +31,7 @@ import TradeRoutes from './routes/TradeRoutes';
 import LicenseCertificateReceipt from "./modules/trade/pages/LicenseCertificateReceipt";
 import TradePaymentReceipt from "./modules/trade/pages/TradePaymentReceipt";
 import MaintenancePage from "./Maintenance.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 
 const isMaintenance = false; 
 
@@ -117,7 +118,7 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <ReportDashboard />
+                  <Dashboard />
                 </ProtectedRoute>
               }
             />
