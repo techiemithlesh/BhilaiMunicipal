@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Events\ExcelExportReady;
 use App\Jobs\DeleteExportFileJob;
+use App\Jobs\Middleware\DeferIfServerBusy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\URL;
 class ExportExcelJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $tries = 10;
 
     protected $userId;
     protected $token;
@@ -37,6 +40,12 @@ class ExportExcelJob implements ShouldQueue
         $this->title     = $title;
         $this->fileName  = $fileName;
         $this->requestId = $requestId;
+    }
+
+    public function middleware(): array
+    {
+        // Defer job if CPU > 70%, retry after 180 seconds (3 mins)
+        return [new DeferIfServerBusy(70.0, 180)];
     }
 
     public function handle()
