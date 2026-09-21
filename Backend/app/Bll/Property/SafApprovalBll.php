@@ -397,6 +397,11 @@ class SafApprovalBll
             "tax_type"=>"Form Fee",
         ]);
 
+        $objAdditionalTax->where("property_detail_id",$this->_PropId)
+            ->where("tax_type","Form Fee")
+            ->where("paid_status",false)
+            ->update(["lock_status"=>true]);
+
         $objAdditionalTax->store($newRequest);
 
     }
