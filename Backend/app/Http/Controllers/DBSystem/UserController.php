@@ -73,9 +73,10 @@ class UserController extends Controller
     public function index(Request $request)
     {
 
-        try{
+        try{ 
             $user = Auth()->user();
-            $ulbId = $request->ulbId??$user->ulb_id;            
+            $ulbId = $request->ulbId??$user->ulb_id;  
+            $role = $user->getRoleDetailsByUserId()->first();          
             $data = $this->_modelUser->select("users.*",DB::raw("user_role.role_name,user_role.role_id"))
                     ->leftJoin(DB::raw("(
                         select user_role_maps.user_id,role_type_mstrs.role_name,user_role_maps.role_id
@@ -85,6 +86,9 @@ class UserController extends Controller
                     )as user_role"),"user_role.user_id","users.id");
             if($request->userFor){
                 $data = $data->where("users.user_for",Str::upper($request->userFor));
+            }
+            if($role?->id!=1){
+               $data =  $data->where("user_role.id","<>",1);
             }
             if($request->onlyMobileRole){
                 $data->whereIn("user_role.role_id",$this->_mobileRoleArray);
