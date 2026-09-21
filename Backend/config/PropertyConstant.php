@@ -7,6 +7,7 @@ return [
         "1"=>"SUPER STRUCTURE"
     ],
     "THOUSAND_PENALTY_EFFECTIVE_YEAR" => "2016-2017",
+    "PHYSICAL_DISABLE_CESS_APPLY_FROM"=>"2016-2017",
     "BHILIA_TAX_FROM_DATE"=>"1999-04-01",
     "BHILIA_RULE_SETS"=>[
         "BuildingRules1"=>[

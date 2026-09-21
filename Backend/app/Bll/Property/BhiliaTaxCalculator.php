@@ -34,6 +34,7 @@ class BhiliaTaxCalculator
 
     public string $_TaxFromYear;
     public string $_ThousandPenaltyFromYear;
+    public string $_PhysicalDisableCessFromYear;
     public int $_ACT_LIMIT;
     public string $_fromDate;
     public string $_acctOfLimitation;
@@ -43,6 +44,13 @@ class BhiliaTaxCalculator
     public mixed $_ulbTypeId;
     public bool $_hasRWH = false;
     public bool $_isVacantLand = false;
+    public bool $_IsWidow = false;
+    public bool $_IsExArmy = false;
+    public bool $_IsPhysicalDisable = false;
+    public bool $_IsIHSDP=false;
+    public bool $_IsChabutra = false;
+    public bool $_IsShop = false;
+    public bool $_IsComplex=false;
     public $_REQUEST;
 
     // Direct Cached Collections
@@ -72,6 +80,7 @@ class BhiliaTaxCalculator
         $this->_acctOfLimitation = getFY($this->_TaxFromYear);
         $this->_ACT_LIMIT = Carbon::now()->year - Carbon::parse($this->_TaxFromYear)->year;
         $this->_ThousandPenaltyFromYear = Config::get("PropertyConstant.THOUSAND_PENALTY_EFFECTIVE_YEAR", "2016-2017");
+        $this->_PhysicalDisableCessFromYear = Config::get("PropertyConstant.PHYSICAL_DISABLE_CESS_APPLY_FROM", "2016-2017");
 
         $this->setPropertyType();
         $this->setUlb();
@@ -81,6 +90,14 @@ class BhiliaTaxCalculator
         $this->hasRwh();
         $this->setFromDate();
         $this->initFloorWiseTax();
+        $this->setIsWidow();
+        $this->setExArmy();
+        $this->setPhysicalDisable();
+        $this->setChabutra();
+        $this->setShop();
+        $this->setIHSDP();
+        $this->setComplex();
+
     }
 
     public function setPropertyType(): void
@@ -97,6 +114,40 @@ class BhiliaTaxCalculator
     public function setRoadType(): void
     {
         $this->_RoadTypeId = $this->_REQUEST->roadTypeMstrId;
+    }
+
+    public function setIsWidow(): void
+    {
+        $this->_IsWidow = $this->_REQUEST->isWidow ? true : false;
+    }
+
+    public function setExArmy(): void
+    {
+        $this->_IsExArmy = $this->_REQUEST->isExArmy ? true : false;
+    }
+
+    public function setPhysicalDisable(): void
+    {
+        $this->_IsPhysicalDisable = $this->_REQUEST->isDisabledPerson ? true : false;
+    }
+
+    public function setChabutra(): void
+    {
+        $this->_IsChabutra = $this->_REQUEST->isChabutra ? true : false;
+    }
+    public function setComplex(): void
+    {
+        $this->_IsComplex = $this->_REQUEST->isComplex ? true : false;
+    }
+
+    public function setShop(): void
+    {
+        $this->_IsShop = $this->_REQUEST->isShopHolding ? true : false;
+    }
+
+    public function setIHSDP(): void
+    {
+        $this->_IsIHSDP = $this->_REQUEST->isDp ? true : false;
     }
 
     public function loadParam(): void
@@ -330,6 +381,9 @@ class BhiliaTaxCalculator
                     );
 
                 $ratePercent = $ratePercentDtl->rate_percent ?? 0;
+                if($this->_IsComplex){
+                    $ratePercent = $ratePercentDtl->complex_rate_percent;
+                }
 
                 if (($sumTaxableArea <= 500 && $isResident && $isKacha) || ($this->_REQUEST->isDp ?? false)) {
                     $ratePercent = 0;
@@ -352,13 +406,28 @@ class BhiliaTaxCalculator
                                 ->where("ulb_id",$this->_ulbId)
                                 ->first(fn($item) => $item->from_date <= $startDateOfYear && ($item->upto_date === null || $item->upto_date >= $startDateOfYear));
                 $compositeTax = round($compositeTaxDtl->tax ?? 0, 2);
+                if($this->_IsIHSDP){
+                    $compositeTax = round($compositeTaxDtl->ihsdp_tax ?? 0, 2);
+                }
 
-                // Calculate Education Cess
+                // Calculate Education Cess 2 %
                 $EducationCessTax = $isEducationCessFromHoldingTax 
                     ? round(($HoldingTax * 0.02), 2) 
                     : round(($sumARV * 0.02), 2);
 
-                $TotalTax = round($HoldingTax + $compositeTax + $EducationCessTax, 2);
+                $exArmyRebate = 0;
+                $chabootraRebate = 0;
+                $shopRebate = 0;
+
+                if($this->_IsExArmy){
+                    $exArmyRebate = $HoldingTax;
+                }elseif($this->_IsChabutra){
+                    $chabootraRebate = $HoldingTax;
+                }elseif($this->_IsShop){
+                    $shopRebate = $HoldingTax;
+                }
+
+                $TotalTax = round((($HoldingTax + $compositeTax + $EducationCessTax)-($exArmyRebate + $chabootraRebate + $shopRebate)), 2);
 
                 $yearlyTax=[
                     "ruleSet"                   =>$key,
@@ -367,6 +436,8 @@ class BhiliaTaxCalculator
                     "ARV"                       => $sumARV, 
                     "ratePercent"               => $ratePercent,
                     "usageFactor"               => $usageFactor,
+                    "exArmyRebate"              =>$exArmyRebate,
+                    "chabootraRebate"           =>$chabootraRebate,
                     "HoldingTax"                => $HoldingTax,
                     "HoldingTaxQuarterly"       => round($HoldingTax / 4, 2),
                     "CompositeTax"              => $compositeTax,
@@ -568,9 +639,25 @@ class BhiliaTaxCalculator
 
         $arvRate = $arvRateDtl->rate ?? 0;
 
-        $yearlyARV = $buildupArea * $arvRate;
-        $arv10Percent = $yearlyARV * 0.1;
-        $taxableARV = $yearlyARV - $arv10Percent;
+        $taxableARV = $yearlyARV = $buildupArea * $arvRate;
+        $widowCess = $this->_IsWidow ? 12000 : 0 ;
+
+        if($yearlyARV<$widowCess){
+            $widowCess=0;
+        }        
+
+        $afterWidowCess = $taxableARV - $widowCess;
+        $taxableARV = $afterWidowCess;        
+
+        $arv10Percent = $taxableARV * 0.1;
+        $taxableARV = $taxableARV - $arv10Percent;
+
+        $physicalDisableCess = 0;
+        if($this->_IsPhysicalDisable && $rules["effective_from_fyear"]>=$this->_PhysicalDisableCessFromYear){
+            $physicalDisableCess = $taxableARV - ($taxableARV * 0.25); // 25 %
+        } 
+        $afterPhysicalDisableCess = $taxableARV - $physicalDisableCess ;
+        $taxableARV = $afterPhysicalDisableCess;
 
         $taxMinFYear = getFY(subtractYear(null, $this->_ACT_LIMIT));
         $floorFYear = getFY($floor["dateFrom"]);
@@ -594,12 +681,16 @@ class BhiliaTaxCalculator
             "fromQtr"               => $qtr,
             "uptoFYear"             => $uptoFYear,
             "uptoQtr"               => $uptoQtr,
-            "yearlyARV"             => $yearlyARV,
-            "ARV_10_percent_rebate" => $arv10Percent,
             "arvRate"               => $arvRate,
             "taxableArea"           => $buildupArea,
-            "usageType"             => $this->floorResCommOtherUsage($usageTypeMasterId),
+            "yearlyARV"             => $yearlyARV,
+            "widowCess"             => $widowCess,
+            "afterWidowCess"        => $afterWidowCess,
+            "ARV_10_percent_rebate" => $arv10Percent,
+            "physicalDisableCess"   => $physicalDisableCess,
+            "afterPhysicalDisableCess" => $afterPhysicalDisableCess,
             "ARV"                   => $taxableARV,
+            "usageType"             => $this->floorResCommOtherUsage($usageTypeMasterId),
             "constructionType"       => $constructionTypeMasterId,
             "usageTypeFactorId"     => $usageTypeFactorId,            
             "isEducationCessFromHoldingTax"=>$isEducationCessFromHoldingTax,
