@@ -10,12 +10,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\Process\Process;
 
 class DbBackupJob implements ShouldQueue
 {
@@ -45,65 +45,95 @@ class DbBackupJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // 1. Configure database connection target
-            config(['backup.backup.source.databases' => [$this->conn]]);
-            Config::set('database.default', $this->conn);
+            // 1. Fetch database name and credentials from config connection
+            $dbConfig = Config::get("database.connections.{$this->conn}");
 
-            DB::purge($this->conn);
-            // 2. Run Spatie Backup command
-            $exitCode = Artisan::call('backup:run', ['--only-db' => true]);
-
-            $output = Artisan::output();
-            $fatalKeywords = ['backup failed', 'dump failed', 'exception', 'fatal error'];
-            foreach ($fatalKeywords as $keyword) {
-                if (str_contains(strtolower($output), $keyword)) {
-                    throw new Exception("Backup process output error: " . $output);
-                }
+            if (!$dbConfig) {
+                throw new Exception("Database connection '{$this->conn}' is not defined in config/database.php.");
             }
 
-            // 3. Scan default app folder for generated files
+            $dbName     = $dbConfig['database'] ?? $this->conn;
+            $dbUser     = $dbConfig['username'] ?? 'postgres';
+            $dbPass     = $dbConfig['password'] ?? '';
+            $remotePort = (string)($dbConfig['port'] ?? 5432);
+            $host       = $dbConfig['host'] ?? '127.0.0.1';
+
+            // 2. Setup Backup Directory & Filename
+            $folderName = config('app.name', 'backups');
+            $timestamp  = Carbon::now()->format('Ymd_His');
+
+            $fileName     = "{$dbName}_{$timestamp}.bak";
+            $relativePath = "{$folderName}/{$fileName}";
+
             $disk = Storage::disk('local');
-            $folderName = config('app.name');
-            $files = $disk->allFiles($folderName);
+            $fullDirPath = $disk->path("{$folderName}");
 
-            if (empty($files)) {
-                throw new Exception("No files found in '{$folderName}' directory after running backup.");
+            if (!file_exists($fullDirPath)) {
+                mkdir($fullDirPath, 0755, true);
             }
 
-            // 4. Get the most recently created ZIP archive
-            $latestFilePath = collect($files)
-                ->filter(fn($file) => pathinfo($file, PATHINFO_EXTENSION) === 'zip')
-                ->sortByDesc(fn($file) => $disk->lastModified($file))
-                ->first();
+            $absoluteFilePath = $disk->path($relativePath);
 
-            if (!$latestFilePath || !$disk->exists($latestFilePath)) {
-                throw new Exception('Generated backup file could not be accessed.');
+            // 3. Configure dump binary path (fallback to raw binary if path isn't defined)
+            // Get binary path from config, or default to system env
+            $dumpBinaryFolder = $dbConfig['dump']['dump_binary_path'] ?? env('DB_DUMP_BINARY_PATH', '');
+
+            // Handle trailing slash / backslash properly across OS platforms
+            if (!empty($dumpBinaryFolder)) {
+                $dumpBinaryFolder = rtrim($dumpBinaryFolder, '/\\') . DIRECTORY_SEPARATOR;
             }
 
-            // 5. Optionally rename file to include connection & timestamp
-            $fileName = basename($latestFilePath);
-            
-            // 6. Generate temporary download URL (30 min expiration)
+            $pgDumpBinary = $dumpBinaryFolder . 'pg_dump';
+
+            $dumpCommand = [
+                $pgDumpBinary,
+                '-h', $host,
+                '-p', $remotePort,
+                '-U', $dbUser,
+                '-F', 'c',   // Custom format (.bak)
+                '-b',        // Include large objects
+                '-v',        // Verbose output
+                '-f', $absoluteFilePath,
+                $dbName
+            ];
+
+            // 4. Run Process
+            $dumpProcess = new Process($dumpCommand);
+            $dumpProcess->setEnv(['PGPASSWORD' => $dbPass]);
+            $dumpProcess->setTimeout(1800); // 30 minutes timeout
+            $dumpProcess->run();
+
+            // 5. Verify export success
+            if (!$dumpProcess->isSuccessful()) {
+                throw new Exception("pg_dump failed: " . $dumpProcess->getErrorOutput());
+            }
+
+            if (!file_exists($absoluteFilePath) || filesize($absoluteFilePath) === 0) {
+                throw new Exception("pg_dump executed, but generated an empty file.");
+            }
+
+            // 6. Create Temporary Signed Download URL (30 min expiration)
             $downloadUrl = URL::temporarySignedRoute(
                 'database.backups.download',
                 now()->addMinutes(30),
-                ['fileName' => $fileName]
+                ['fileName' => urlencode($fileName)]
             );
+            Log::info("downloadUrl= {$downloadUrl}");
 
-            // 7. Dispatch cleanup job delayed by 30 minutes
-            DeleteExportFileJob::dispatch($latestFilePath)->delay(now()->addMinutes(30));
+            // Schedule delayed cleanup job
+            DeleteExportFileJob::dispatch($relativePath)->delay(now()->addMinutes(30));
 
-            // 8. Fire WebSocket event
+            // 7. Fire WebSocket completion event
             event(new DbBackupReady(
                 $this->userId,
                 $this->token,
                 true,
-                'File Ready: ' . $fileName,
+                'Backup completed: ' . $fileName,
                 $fileName,
                 $downloadUrl
             ));
 
-            Log::info("DB BACKUP SUCCESS: connection = {$this->conn} fileName = {$fileName}, Path = {$latestFilePath}");
+            Log::info("DB BACKUP SUCCESS: connection = {$this->conn}, path = {$relativePath}");
 
         } catch (Exception $e) {
             event(new DbBackupReady(
@@ -116,6 +146,6 @@ class DbBackupJob implements ShouldQueue
             ));
 
             Log::error("DB BACKUP ERROR: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}");
-        }
+        } 
     }
 }

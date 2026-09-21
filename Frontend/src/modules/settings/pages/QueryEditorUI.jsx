@@ -3,12 +3,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { getToken, getUserDetails } from "../../../utils/auth";
 import { toastMsg } from "../../../utils/utils";
+import { createEchoInstance } from "../../../utils/echo";
 import {
   bdBackupApi,
   dbListApi,
   executeQueryApi,
   exportExcelQueryApi,
-  QueryBroadcastAuthApi,
   tableListApi,
 } from "../../../api/endpoints";
 
@@ -16,56 +16,7 @@ import DatabaseSidebar from "../queryComponents/DatabaseSidebar";
 import SqlWorkspace from "../queryComponents/SqlWorkspace";
 import ExportConfigModal from "../queryComponents/ExportConfigModal";
 
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
-
-window.Pusher = Pusher;
-
-// Fixed Laravel Echo configuration with dynamic Bearer Token authorization
-export const echo = new Echo({
-  broadcaster: "reverb",
-  key: import.meta.env.VITE_REVERB_APP_KEY ,
-  wsHost: import.meta.env.VITE_REVERB_HOST,
-  wsPort: Number(import.meta.env.VITE_REVERB_PORT),
-  wssPort: Number(import.meta.env.VITE_REVERB_PORT),
-  forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-  enabledTransports: ["ws", "wss"],
-  authorizer: (channel, options) => {
-    return {
-      authorize: (socketId, callback) => {
-        const token = getToken() || localStorage.getItem("token");
-
-        fetch(QueryBroadcastAuthApi, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            socket_id: socketId,
-            channel_name: channel.name,
-          }),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Auth failed with status ${response.status}`);
-            }
-            return response.json();
-          })
-          .then((data) => {
-            callback(false, data);
-          })
-          .catch((error) => {
-            callback(true, error);
-          });
-      },
-    };
-  },
-});
-
 export default function QueryEditorUI() {
-  console.log("test",(import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https');
   const [selectedDb, setSelectedDb] = useState("");
   const [query, setQuery] = useState("");
   const textareaRef = useRef(null);
@@ -99,108 +50,82 @@ export default function QueryEditorUI() {
   const token = getToken();
   const navigator = useNavigate();
 
-  // Helper to trigger direct browser file download from standard Base64 string
-  const triggerFileDownload = (fileBlob, fileName, mimeType) => {
-    try {
-      const byteCharacters = atob(fileBlob);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], {
-        type: mimeType || "application/vnd.ms-excel",
-      });
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (err) {
-      console.error("Error blob converting:", err);
-      toastMsg("Failed to construct downloaded file payload.", "error");
-    }
+  // Helper to trigger direct browser file download
+  const triggerDownload = (url, fileName) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
-  // WebSocket Listener: Listen strictly on the private user broadcast channel
+  // -------------------------------------------------------------
+  // WebSocket Lifecycle: Connects on Mount & Disconnects on Unmount
+  // -------------------------------------------------------------
   useEffect(() => {
-    if (!profile?.id) {
-      console.warn("WebSocket setup skipped: User profile ID is missing.");
+    // Re-evaluate user info directly inside effect
+    const currentUser = getUserDetails();
+    const userId = currentUser?.id || profile?.id;
+
+    if (!userId) {
+      console.warn("[WebSocket] Setup skipped: User profile ID missing.", currentUser);
       return;
     }
 
-    const channelName = `user.${profile.id}`;
-    console.log(`[WebSocket] Subscribing to private channel: ${channelName}`);
+    console.log("[WebSocket] Mounting: Creating Echo instance...");
+    const echoInstance = createEchoInstance();
 
-    const channel = echo.private(channelName);
+    const channelName = `user.${userId}`;
+    console.log(`[WebSocket] Subscribing to channel: ${channelName}`);
 
-    // Debug: Log successful connection/subscription to channel
+    const channel = echoInstance.private(channelName);
+
     channel.subscribed(() => {
-      console.log(`[WebSocket] Successfully subscribed to channel: ${channelName}`);
+      console.log(`[WebSocket] Successfully subscribed to: ${channelName}`);
     });
 
-    const triggerDownload = (url, fileName) => {
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    };
-
-    // Listen for the custom event sent from Laravel
+    // Event Listener: Excel Export
     channel.listen(".ExcelExportReady", (eventData) => {
-      console.log("[WebSocket] Event received: .ExcelExportReady");
-      console.log("[WebSocket] Full Payload Data:", eventData);
-
+      console.log("[WebSocket] Event received: .ExcelExportReady", eventData);
       setIsExporting(false);
 
       if (eventData.status) {
-        console.log("token",token)
-        if(token!=eventData?.token){
-          return;
-        }
-        console.log("[WebSocket] Export status is true. Downloading Excel file...");
-        const downloadUrl = eventData.download_url;
-        const fileName    =  eventData.file_name;
+        const currentToken = getToken();
+        if (currentToken && currentToken !== eventData?.token) return;
 
-        triggerDownload(downloadUrl, fileName);
+        triggerDownload(eventData.download_url, eventData.file_name);
         toastMsg("Excel export completed successfully!", "success");
         setIsExportModalOpen(false);
       } else {
-        console.error("[WebSocket] Export payload returned an error status:", eventData.message);
         toastMsg(eventData.message || "Failed to process export.", "error");
       }
     });
 
+    // Event Listener: DB Backup
     channel.listen(".DbBackupReady", (eventData) => {
       console.log("[WebSocket] Event received: .DbBackupReady", eventData);
-
-      setIsExporting(false); // or setIsBackingUp(false)
+      setIsExporting(false);
 
       if (eventData.status) {
-        if (token !== eventData?.token) return;
+        const currentToken = getToken();
+        if (currentToken && currentToken !== eventData?.token) return;
 
-        // Handle properties according to your event payload
-        const downloadUrl = eventData.download_url;
-        const fileName = eventData.file_name;
-
-        triggerDownload(downloadUrl, fileName);
+        triggerDownload(eventData.download_url, eventData.file_name);
         toastMsg("Database backup downloaded successfully!", "success");
         setIsExportModalOpen(false);
       } else {
-        console.error("[WebSocket] Backup error:", eventData.message);
         toastMsg(eventData.message || "Failed to process backup.", "error");
       }
     });
 
+    // Cleanup on Component Unmount
     return () => {
-      console.log(`[WebSocket] Unsubscribing from channel: ${channelName}`);
-      echo.leave(`user.${profile.id}`);
+      console.log("[WebSocket] Unmounting: Disconnecting Echo connection...");
+      channel.stopListening(".ExcelExportReady");
+      channel.stopListening(".DbBackupReady");
+      echoInstance.leave(channelName);
+      echoInstance.disconnect();
     };
   }, [profile?.id]);
 
@@ -475,7 +400,6 @@ export default function QueryEditorUI() {
     return flatCols;
   };
 
-  // Triggers backend queued job & waits for WebSocket event
   const handleExportExcel = async () => {
     let exportQuery = modalSql || query;
     setIsExporting(true);

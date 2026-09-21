@@ -244,7 +244,7 @@ Route::get('/bd-backup-download/{fileName}', function ($fileName) {
     $fileName = basename($fileName);
 
     // 2. Build storage path
-    $folderName = config('app.name');
+    $folderName = config('app.name',"backups");
     $filePath = "{$folderName}/{$fileName}";
 
     // 3. Check file existence
@@ -259,7 +259,7 @@ Route::get('/bd-backup-download/{fileName}', function ($fileName) {
 
     // 4. Return binary download and delete file after streaming completes
     return response()->download($fullPath, $fileName, [
-        'Content-Type' => 'application/zip',
+        'Content-Type' => 'octet-stream',
     ])->deleteFileAfterSend(true);
 
 })->name('database.backups.download')->middleware('signed');
