@@ -238,3 +238,28 @@ Route::get('/excel-download/{fileName}', function ($fileName) {
         'Content-Type' => 'application/vnd.ms-excel',
     ])->deleteFileAfterSend(true);
 })->name('excel.download')->middleware('signed');
+
+Route::get('/bd-backup-download/{fileName}', function ($fileName) {
+    // 1. Sanitize file name to prevent path traversal
+    $fileName = basename($fileName);
+
+    // 2. Build storage path
+    $folderName = config('app.name');
+    $filePath = "{$folderName}/{$fileName}";
+
+    // 3. Check file existence
+    if (!Storage::disk('local')->exists($filePath)) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'File not found or expired.'
+        ], 404);
+    }
+
+    $fullPath = Storage::disk('local')->path($filePath);
+
+    // 4. Return binary download and delete file after streaming completes
+    return response()->download($fullPath, $fileName, [
+        'Content-Type' => 'application/zip',
+    ])->deleteFileAfterSend(true);
+
+})->name('database.backups.download')->middleware('signed');

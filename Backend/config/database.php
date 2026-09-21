@@ -120,6 +120,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
         ],
 
         #default db_property
@@ -148,6 +151,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
         ],
         'pgsql_water' => [
             'driver' => 'pgsql',
@@ -174,6 +180,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
         ],
         'pgsql_trade' => [
             'driver' => 'pgsql',
@@ -200,6 +209,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
         ],
         // DMC 
         'pgsql_dmc_property' => [

@@ -65,6 +65,7 @@ export const echo = new Echo({
 });
 
 export default function QueryEditorUI() {
+  console.log("test",(import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https');
   const [selectedDb, setSelectedDb] = useState("");
   const [query, setQuery] = useState("");
   const textareaRef = useRef(null);
@@ -142,6 +143,15 @@ export default function QueryEditorUI() {
       console.log(`[WebSocket] Successfully subscribed to channel: ${channelName}`);
     });
 
+    const triggerDownload = (url, fileName) => {
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+
     // Listen for the custom event sent from Laravel
     channel.listen(".ExcelExportReady", (eventData) => {
       console.log("[WebSocket] Event received: .ExcelExportReady");
@@ -155,18 +165,36 @@ export default function QueryEditorUI() {
           return;
         }
         console.log("[WebSocket] Export status is true. Downloading Excel file...");
+        const downloadUrl = eventData.download_url;
+        const fileName    =  eventData.file_name;
 
-        const link = document.createElement("a");
-        link.href = eventData.download_url;
-        link.setAttribute("download", eventData.file_name);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        triggerDownload(downloadUrl, fileName);
         toastMsg("Excel export completed successfully!", "success");
         setIsExportModalOpen(false);
       } else {
         console.error("[WebSocket] Export payload returned an error status:", eventData.message);
         toastMsg(eventData.message || "Failed to process export.", "error");
+      }
+    });
+
+    channel.listen(".DbBackupReady", (eventData) => {
+      console.log("[WebSocket] Event received: .DbBackupReady", eventData);
+
+      setIsExporting(false); // or setIsBackingUp(false)
+
+      if (eventData.status) {
+        if (token !== eventData?.token) return;
+
+        // Handle properties according to your event payload
+        const downloadUrl = eventData.download_url;
+        const fileName = eventData.file_name;
+
+        triggerDownload(downloadUrl, fileName);
+        toastMsg("Database backup downloaded successfully!", "success");
+        setIsExportModalOpen(false);
+      } else {
+        console.error("[WebSocket] Backup error:", eventData.message);
+        toastMsg(eventData.message || "Failed to process backup.", "error");
       }
     });
 
@@ -420,8 +448,6 @@ export default function QueryEditorUI() {
       );
 
       if (response.data.status) {
-        const { file_name, file_blob } = response.data.data;
-        triggerFileDownload(file_blob, file_name, "application/zip");
         toastMsg(response.data.message, "success");
       } else {
         toastMsg("Backup compilation issue encountered.", "error");

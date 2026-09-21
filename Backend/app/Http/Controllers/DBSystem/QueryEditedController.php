@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DBSystem;
 
 use App\Exceptions\CustomException;
 use App\Http\Controllers\Controller;
+use App\Jobs\DbBackupJob;
 use App\Models\DBSystem\ParamModel;
 use Exception;
 use Illuminate\Http\Request;
@@ -188,57 +189,24 @@ class QueryEditedController extends Controller
             // 2. Resolve target connection
             $this->resolveDynamicConnection($request->conn);
 
-            // 3. Inform Spatie Backup of the *resolved configuration name*, not the input label
-            config(['backup.backup.source.databases' => [$this->conn]]);
+            $dbName = $request->conn ? $request->conn : "DB_Default";
+            $userId = auth()->id();
 
-            // 4. Run backup execution framework context
-            Artisan::call('backup:run', ['--only-db' => true]);
-            // ADD THIS TEMPORARILY TO DEBUG:
-            $output = Artisan::output();
-            if (str_contains(strtolower($output), 'failed') || str_contains(strtolower($output), 'error')) {
-                throw new CustomException("Backup binary failed: " . $output);
-            }
+            // Dispatch background queue job
+            DbBackupJob::dispatch(
+                $userId,
+                $request->bearerToken(),
+                $this->conn,
+            );
+            $this->startQueueWorkerInBackground();
 
-            // 5. Track down the storage target folder
-            $disk = Storage::disk('local');
-            $backupFolder = "database-backups"; 
-            $files = $disk->allFiles($backupFolder);
-
-            if (empty($files)) {
-                throw new CustomException('Backup file was generated but could not be located on disk.');
-            }
-
-            // Filter down to locate the newest generated file wrapper
-            $latestFile = collect($files)
-                ->filter(fn($file) => pathinfo($file, PATHINFO_EXTENSION) === 'zip')
-                ->last();
-
-            $absolutePath = $disk->path($latestFile);
-
-            // // 6. Push down binary stream to React and auto-delete file off system after push
-            // return response()->download($absolutePath)->deleteFileAfterSend(true);
-
-            // 6. Convert the file to a base64 string blob
-            if (!file_exists($absolutePath)) {
-                throw new CustomException('Target backup file could not be accessed.');
-            }
-
-            $fileContents = file_get_contents($absolutePath);
-            $base64Blob = base64_encode($fileContents);
-            $fileName = basename($absolutePath);
-
-            // 7. Delete the file off the server immediately since it's safely stored in memory
-            unlink($absolutePath);
-
-            // 8. Return JSON payload containing the encoded base64 blob string
-            return responseMsg(true, 
-                    "Backup generated and removed from storage folder successfully.", 
-                    [
-                        "file_name" => $fileName,
-                        "file_blob" => $base64Blob, // This is your raw base64 string data stream
-                        "mime_type" => "application/zip"
-                    ]
-                );
+            return responseMsg(
+                true, 
+                "Backup start generate in background", 
+                [
+                    'status' => 'queued'
+                ]
+            );
 
         } catch (CustomException $e) {
             return responseMsg(false, $e->getMessage(), ""); 
