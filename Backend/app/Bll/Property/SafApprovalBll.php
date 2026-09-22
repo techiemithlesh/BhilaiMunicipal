@@ -302,6 +302,13 @@ class SafApprovalBll
             ->where("fyear",">=",$firstFyear)
             ->update(["lock_status"=>true]);
 
+        // deactivate old tax
+        $this->_PropertyTax
+            ->where("property_detail_id",$this->_PropId)
+            ->where("fyear",">=",$firstFyear)
+            ->where("lock_status",false)
+            ->update(["lock_status"=>true]);
+            
         // generate new demand
         foreach($this->_TAX["RuleSetVersionTax"] as $rulSet){ 
             if(!$rulSet["taxDiff"]) {
