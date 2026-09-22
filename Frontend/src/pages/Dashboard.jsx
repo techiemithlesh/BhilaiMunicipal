@@ -30,7 +30,7 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="flex justify-evenly gap-10 bg-white shadow-md p-4 border rounded-lg">
+      <div className="flex gap-[10px] bg-white shadow-md p-4 border rounded-lg">
         <ProfileCard user={profile} />
         <WardList wardMapped={wardMapped} />
       </div>
