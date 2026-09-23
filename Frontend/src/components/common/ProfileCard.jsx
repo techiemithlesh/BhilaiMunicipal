@@ -12,7 +12,7 @@ const ProfileCard = ({ user }) => {
   const openModal = () => setIsModelOpen(true);
 
   return (
-    <div className="bg-white shadow-md p-4 sm:p-6 border border-gray-200 rounded-lg max-w-full sm:max-w-sm h-fit">
+    <div className="flex-1 bg-white shadow-md p-4 sm:p-6 border border-gray-200 rounded-lg">
       <h2 className="font-bold text-gray-700 text-lg">Profile Section</h2>
 
       {/* Profile Info Section */}

@@ -14,6 +14,9 @@ export const editLoginUserApi = `${BASE_URL}/api/edit-login-user`;
 export const userLockUnlockByIdApi = `${BASE_URL}/api/user-lock-unlock`;
 export const userResetPassword = `${BASE_URL}/api/user-reset-password`;
 export const usrProfileApi = `${BASE_URL}/api/user-profile`;
+export const tlListApi = `${BASE_URL}/api/get-tl-list`;
+export const tlTcListApi = `${BASE_URL}/api/get-tl-tc-list`;
+export const tcListApi = `${BASE_URL}/api/get-tc-list`;
 export const roleApi = `${BASE_URL}/api/role`;
 export const roleUserApi = `${BASE_URL}/api/role-user-list`;
 export const getWardMapApi = `${BASE_URL}/api/get-user-ward-map`;
@@ -202,7 +205,6 @@ export const propertyDetailsApi = `${BASE_URL}/api/property/get-prop-dtl`;
 export const propDueApi = `${BASE_URL}/api/property/get-prop-demand`;
 export const propBasicEditApi = `${BASE_URL}/api/property/prop-edit-basic`;
 export const propOwnerEditApi = `${BASE_URL}/api/property/prop-edit-owner`;
-export const validateHoldingNoApi = `${BASE_URL}/api/property/validate-holding`;
 export const validateSafNoApi = `${BASE_URL}/api/property/validate-saf`;
 export const propertyGenerateNoticeApi = `${BASE_URL}/api/property/prop-generate-notice`;
 export const propertyNoticeListApi = `${BASE_URL}/api/property/prop-notice-list`;
@@ -314,6 +316,67 @@ export const waterWardWiseConsumerApi = `${BASE_URL}/api/water/report/ward-wise-
 export const waterWardWiseDCBApi = `${BASE_URL}/api/water/report/ward-wise-dcb`;
 export const waterConsumerWiseDCBApi = `${BASE_URL}/api/water/report/consumer-dcb`;
 // export const propPaymentApi = `${BASE_URL}/api/property/pay-prop-demand`;
+
+//swm master
+export const swmCategoryListApi = `${BASE_URL}/api/swm/master/category-list`;
+export const swmCategoryDtlApi = `${BASE_URL}/api/swm/master/category-dtl`;
+export const swmCategoryAddApi = `${BASE_URL}/api/swm/master/category-add`;
+export const swmCategoryEditApi = `${BASE_URL}/api/swm/master/category-edit`;
+export const swmCategoryLockUnlockApi = `${BASE_URL}/api/swm/master/category-lock-unlock`;
+
+export const swmSubCategoryListApi = `${BASE_URL}/api/swm/master/sub-category-list`;
+export const swmSubCategoryDtlApi = `${BASE_URL}/api/swm/master/sub-category-dtl`;
+export const swmSubCategoryAddApi = `${BASE_URL}/api/swm/master/sub-category-add`;
+export const swmSubCategoryEditApi = `${BASE_URL}/api/swm/master/sub-category-edit`;
+export const swmSubCategoryLockUnlockApi = `${BASE_URL}/api/swm/master/sub-category-lock-unlock`;
+
+export const swmFeedbackListApi = `${BASE_URL}/api/swm/feedback/mstr-list`;
+export const swmFeedbackDtlApi = `${BASE_URL}/api/swm/feedback/mstr-dtl`;
+export const swmFeedbackAddApi = `${BASE_URL}/api/swm/feedback/mstr-add`;
+export const swmFeedbackEditApi = `${BASE_URL}/api/swm/feedback/mstr-edit`;
+export const swmFeedbackLockUnlockApi = `${BASE_URL}/api/swm/feedback/mstr-lock-unlock`;
+
+// swm
+export const swmMasterDataApi = `${BASE_URL}/api/swm/get-master-data`;
+export const validateHoldingNoApi = `${BASE_URL}/api/swm/validate-holding`;
+export const swmAddConsumerTestRequestApi=`${BASE_URL}/api/swm/test-request`;
+export const swmAddConsumerApi=`${BASE_URL}/api/swm/consumer-add`;
+export const swmEditBasicConsumerApi=`${BASE_URL}/api/swm/consumer-edit-basic`;
+export const swmEditOwnerApi=`${BASE_URL}/api/swm/consumer-edit-owner`;
+export const swmEditConsumerRangeApi=`${BASE_URL}/api/swm/consumer-edit-range`;
+export const swmReviewTaxApi = `${BASE_URL}/api/swm/review-tax`;
+export const swmSearchConsumerApi = `${BASE_URL}/api/swm/consumer-search`;
+export const swmConsumerDtlApi = `${BASE_URL}/api/swm/consumer-dtl`;
+export const swmConsumerDeactivateApi = `${BASE_URL}/api/swm/consumer-deactivate`;
+export const swmConsumerDemandHistoryApi = `${BASE_URL}/api/swm/demand-history`;
+export const swmConsumerDueApi = `${BASE_URL}/api/swm/consumer-due`;
+export const swmConsumerDemandReceiptApi = `${BASE_URL}/api/swm/demand-receipt`;
+export const swmConsumerPaymentApi = `${BASE_URL}/api/swm/pay-due`;
+export const swmConsumerPaymentReceiptApi = `${BASE_URL}/api/swm/payment-receipt`;
+export const swmConsumerBulkPaymentReceiptApi = `${BASE_URL}/api/swm/bulk-payment-receipt`;
+export const swmConsumerDemandGenerateApi = `${BASE_URL}/api/swm/generate-demand`;
+export const swmConsumerDailyVisitingLogApi = `${BASE_URL}/api/swm/daily-visiting-log`;
+
+// swm report
+
+export const swmPaymentModeListApi = `${BASE_URL}/api/swm/report/payment-mode`;
+export const swmCollectionApi = `${BASE_URL}/api/swm/report/collection`;
+export const swmDateWiseCollectionApi = `${BASE_URL}/api/swm/report/date-wise-collection`;
+export const swmCollectionSummaryApi = `${BASE_URL}/api/swm/report/collection-summary`;
+export const swmWardWiseConsumerApi = `${BASE_URL}/api/swm/report/ward-wise-consumer`;
+export const swmWardWiseDCBApi = `${BASE_URL}/api/swm/report/ward-wise-dcb`;
+export const swmConsumerWiseDCBApi = `${BASE_URL}/api/swm/report/consumer-dcb`;
+export const swmTeamSummaryApi = `${BASE_URL}/api/swm/report/team-summary`;
+export const swmDueConsumerApi = `${BASE_URL}/api/swm/report/due-consumer`;
+export const swmConsumerCategoryTypeApi = `${BASE_URL}/api/swm/report/consumer-type-list`;
+export const swmDateWiseVisitingApi = `${BASE_URL}/api/swm/report/date-wise-visiting`;
+export const swmConsumerVisitingApi = `${BASE_URL}/api/swm/report/visiting`;
+export const swmRfidListApi = `${BASE_URL}/api/swm/report/rfid-map-not-map`;
+export const swmConsumerLocationListApi = `${BASE_URL}/api/swm/report/consumer-location`;
+export const swmWastCollationApi = `${BASE_URL}/api/swm/report/consumer-wast-collection`;
+export const swmWardWiseWastCollationApi = `${BASE_URL}/api/swm/report/ward-wise-wast-collection`;
+export const swmTodayWastCollationApi = `${BASE_URL}/api/swm/report/today-wast-collection`;
+export const swmDateWiseAddConsumersApi = `${BASE_URL}/api/swm/report/date-wise-consumer-add`;
 
 // Accounts
 export const cashUserListApi = `${BASE_URL}/api/account/cash-user/list`;

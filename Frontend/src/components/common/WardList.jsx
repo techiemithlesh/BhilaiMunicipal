@@ -1,6 +1,6 @@
 const WardList = ({ wardMapped }) => {
   return (
-    <div className="bg-white shadow-md p-2 border border-gray-200 rounded-lg">
+    <div className="flex-1 bg-white shadow-md p-2 border border-gray-200 rounded-lg">
       <h2 className="mb-2 font-bold text-gray-700 text-sm">Ward List</h2>
       <div className="gap-2 grid grid-cols-10">
         {wardMapped.map((ward) => (

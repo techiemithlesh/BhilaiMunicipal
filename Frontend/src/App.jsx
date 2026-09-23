@@ -32,6 +32,9 @@ import LicenseCertificateReceipt from "./modules/trade/pages/LicenseCertificateR
 import TradePaymentReceipt from "./modules/trade/pages/TradePaymentReceipt";
 import MaintenancePage from "./Maintenance.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import SWMRoute from "./modules/swm/index";
+import SwmPaymentReceipt from "./modules/swm/pages/SwmPaymentReceipt";
+import SwmDemandReceipt from "./modules/swm/pages/SwmDemandReceipt";
 
 const isMaintenance = false; 
 
@@ -73,10 +76,10 @@ function App() {
             <Route path="/saf/*" element={<SafRoutes />} />
             <Route path="/property/*" element={<PropertyRoutes />} />
             <Route path="/trade/*" element={<TradeRoutes />} />
-            {/* <Route path="/trade/*" element={<TradeRoutes />} />*/}
             <Route path="/water/consumer/*" element={<WaterConsumerRoute />} />
             <Route path="/water/*" element={<WaterRoute />} />
             <Route path="/accounts/*" element={<AccountsRoute />} />
+            <Route path="/swm/*" element={<SWMRoute />} />
             <Route
               path="/water-app/payment-receipt/:id"
               element={<WaterAppPaymentReceipt />}
@@ -114,6 +117,7 @@ function App() {
               path="/trade/payment-receipt/:id"
               element={<TradePaymentReceipt />}
             />
+
             <Route
               path="/dashboard"
               element={
@@ -121,6 +125,14 @@ function App() {
                   <Dashboard />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/swm/payment-receipt/:id"
+              element={<SwmPaymentReceipt />}
+            />
+            <Route
+              path="/swm/demand-receipt/:id"
+              element={<SwmDemandReceipt />}
             />
             <Route
               path="/reporting/dashboard"
