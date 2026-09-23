@@ -137,12 +137,17 @@ class PropertyPaymentBll{
         $dueTotalMonthlyPenaltyPercent = $totalMonthlyPenalty /($totalTax== 0 ? 1 : $totalTax);
         
         $dueHoldingTaxPercent = $currentDemand->sum("due_holding_tax")/($totalBalance == 0 ? 1 : $totalBalance);
+        $dueCompositeTaxPercent = $currentDemand->sum("due_composite_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueLatrineTaxPercent = $currentDemand->sum("due_latrine_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueWaterTaxPercent = $currentDemand->sum("due_water_tax")/($totalBalance == 0 ? 1 : $totalBalance);
+        $dueCommonWtrTaxPercent = $currentDemand->sum("due_common_wtr_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueHealthCessTaxPercent = $currentDemand->sum("due_health_cess_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueEducationCessTaxPercent = $currentDemand->sum("due_education_cess_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueRWHPercent = $currentDemand->sum("due_rwh_tax")/($totalBalance == 0 ? 1 : $totalBalance);
         $dueFineTaxPercent = $currentDemand->sum("due_fine_tax")/($totalBalance == 0 ? 1 : $totalBalance);
+        $duePenalChargePercent = $currentDemand->sum("due_penal_charge")/($totalBalance == 0 ? 1 : $totalBalance);
+        $dueOtheramtPercent = $currentDemand->sum("due_otheramt")/($totalBalance == 0 ? 1 : $totalBalance);
+        $dueDemandAmountPercent = $currentDemand->sum("due_demand_amount")/($totalBalance == 0 ? 1 : $totalBalance);
         
         $paidTotalBalance = $paidAmount;
 
@@ -151,14 +156,25 @@ class PropertyPaymentBll{
         $paidTotalMonthlyPenaltyTax = $paidAmount * $dueTotalMonthlyPenaltyPercent;
 
         $paidHoldingTax = ($paidTotalBalanceTax * $dueHoldingTaxPercent);
+        $paidCompositeTax = ($paidTotalBalanceTax * $dueCompositeTaxPercent);
         $paidLatrineTax = $paidTotalBalanceTax * $dueLatrineTaxPercent ;
         $paidWaterTax = $paidTotalBalanceTax * $dueWaterTaxPercent ;
+        $paidCommonWtrTax = $paidTotalBalanceTax * $dueCommonWtrTaxPercent ;
         $paidHealthCessTax = $paidTotalBalanceTax * $dueHealthCessTaxPercent ;
         $paidEducationCessTax = $paidTotalBalanceTax * $dueEducationCessTaxPercent ;
         $paidRWH = $paidTotalBalanceTax * $dueRWHPercent ;
         $paidFineTax = $paidTotalBalanceTax * $dueFineTaxPercent ;
+        $paidPenalChargePercent = $paidTotalBalanceTax * $duePenalChargePercent ;
+        $paidOtheramt = $paidTotalBalanceTax * $dueOtheramtPercent ;
+        $paidDemandAmount = $paidTotalBalanceTax * $dueDemandAmountPercent ;
 
-        $total = $paidHoldingTax + $paidLatrineTax + $paidWaterTax + $paidHealthCessTax + $paidEducationCessTax + $paidRWH + $paidFineTax ;
+        $total = ($paidHoldingTax + $paidCompositeTax + $paidLatrineTax + $paidWaterTax + $paidCommonWtrTax 
+                    + $paidHealthCessTax + $paidEducationCessTax + $paidRWH + $paidFineTax + $paidPenalChargePercent
+                    + $paidOtheramt
+                ) ;
+        $totalDemand = ($paidHoldingTax + $paidCompositeTax + $paidLatrineTax + $paidWaterTax + $paidCommonWtrTax 
+                    + $paidHealthCessTax + $paidEducationCessTax + $paidRWH  + $paidOtheramt
+                );
             
         $returnData =  [
             "demandList" => $currentDemand,
@@ -169,13 +185,19 @@ class PropertyPaymentBll{
             "paid_monthly_penalty"=>roundFigure($paidTotalMonthlyPenaltyTax),
             "paid_balance_tax" => roundFigure($paidTotalBalanceTax),
             "paid_due_holding_tax"=> roundFigure($paidHoldingTax),
+            "paid_due_composite_tax"=> roundFigure($paidCompositeTax),
             "paid_due_water_tax" => roundFigure($paidWaterTax),
+            "paid_due_common_wtr_tax" => roundFigure($paidCommonWtrTax),
             "paid_due_education_cess_tax"=> roundFigure($paidEducationCessTax),
             "paid_due_health_cess_tax"=> roundFigure($paidHealthCessTax),
             "paid_due_latrine_tax"  => roundFigure($paidLatrineTax),
             "paid_due_rwh_tax" => roundFigure($paidRWH),
             "paid_due_fine_tax" => roundFigure($paidFineTax),
+            "paid_due_penal_charge" => roundFigure($paidPenalChargePercent),
+            "paid_due_otheramt" => roundFigure($paidOtheramt),
+            "paid_due_demand_amount" => roundFigure($paidDemandAmount),
             "totalTax"=> roundFigure($total),
+            "totalDemand"=>roundFigure($totalDemand),
             "apidAmount"=>$paidAmount
         ];
         return $returnData;
@@ -210,14 +232,18 @@ class PropertyPaymentBll{
         $penalty = collect();
         $rebates = collect();
         $paidTotalMonthlyPenalty = collect($paidDemand)->sum("paid_monthly_penalty");
+        $paidTotalFineTax = collect($paidDemand)->sum("paid_due_fine_tax");
+        $paidTotalPenalCharge = collect($paidDemand)->sum("paid_due_penal_charge");
         $fromYear = collect($paidDemand)->min("fyear");
         $uptoYear = collect($paidDemand)->max("fyear");
         $fromQtr = collect($paidDemand)->where("fyear",$fromYear)->min("qtr");
         $uptoQtr = collect($paidDemand)->where("fyear",$uptoYear)->max("qtr");
+        $fromFee = collect($additionalTaxList)->where("tax_type",'Form Fee')->sum("amount");
         $metaData=[
-            "penaltyAmt" => roundFigure($paidTotalMonthlyPenalty  + $OtherPenalty),
-            "demandAmt" =>  roundFigure(collect($paidDemand)->sum("paid_balance_tax")),
+            "penaltyAmt" => roundFigure($paidTotalMonthlyPenalty + $paidTotalFineTax + $paidTotalPenalCharge + $OtherPenalty),
+            "demandAmt" =>  roundFigure(collect($paidDemand)->sum("paid_due_demand_amount")),
             "discountAmt" =>  roundFigure($advanceAmount + $rebateAmount + $specialRebate),
+            "formFee"=>$fromFee,
             "fromFyear"=>$fromYear,
             "fromQtr" => $fromQtr,
             "uptoFyear" => $uptoYear,
@@ -230,7 +256,7 @@ class PropertyPaymentBll{
         
         if($rebateAmount>0){
             if($this->_Demand["firstQuatreRebate"]>0 && $this->_REQUEST->amount >= $this->_Demand["payableAmount"]){
-                $rebates->push(["amount"=>roundFigure($this->_Demand["firstQuatreRebate"]),"head_name"=>"First Qtr Rebate"]);
+                $rebates->push(["amount"=>roundFigure($this->_Demand["firstQuatreRebate"]),"head_name"=>"Current Year Rebate"]);
             }
             if($this->_Demand["onlineRebate"]>0){
                 $rebates->push(["amount"=>roundFigure($this->_Demand["onlineRebate"]),"head_name"=>"Online Rebate"]);

@@ -77,6 +77,7 @@ class PropDemandBll{
         }
         $this->setDemandList();
         $this->testLastTran();
+        $this->updatePenalPenalty();
     }
 
     private function updatePenalPenalty(){
@@ -177,35 +178,6 @@ class PropDemandBll{
         }
 
         $this->_quarterlyRebate = roundFigure($this->_firstQtrRebate + $this->_jskRebate + $this->_onlineRebate);
-    }
-
-    public function getSpecialRebate(){
-        // if(in_array($this->_PROPERTY->holding_type,['PURE_RESIDENTIAL', 'VACANT_LAND'])){
-        //     $currentDate = $this->_tranDate->copy()->format("Y-m-d");
-        //     list($fromYear,$uptoYear) = explode("-",$this->_tranDateFyear);
-        //     $firstQuarterLastDate = calculateQuaterDueDate($fromYear."-04-01");
-        //     $owners = $this->_PROPERTY->getOwners();
-        //     if($owners->count() == 1){
-        //         $owners = $owners->first();
-        //         #5% when female Or transgender
-        //         if(in_array($owners->gender, ['Female','Other'])){
-        //             $this->_specialRebate = $this->_demandAmount * 0.0;
-        //         }
-        //         #5% when armed force
-        //         if($owners->is_armed_force){
-        //             $this->_specialRebate = $this->_demandAmount * 0.0;
-        //         }
-        //         #5% when specially able
-        //         if($owners->is_specially_abled){
-        //             $this->_specialRebate = $this->_demandAmount * 0.0;
-        //         }
-        //         #5% when Senior Citizen
-        //         if($owners->dob && Carbon::parse($owners->dob)->diffInYears($firstQuarterLastDate)>=60){
-        //             $this->_specialRebate = $this->_demandAmount * 0.0;
-        //         }
-        //     }
-        //     $this->_specialRebate = roundFigure($this->_specialRebate);
-        // }
     }
 
     public function getAdvanceAmount(){
@@ -321,12 +293,10 @@ class PropDemandBll{
 
     public function getPropDue(){
         $this->getQtrRebate();
-        $this->getSpecialRebate();
         $this->getAdvanceAmount();
         $this->getOtherPenalty();
         $this->getAdditionalTax();
         $this->noticePenalty();
-        // $this->getConsumersDue();
         $this->generateDemand();
     }
 

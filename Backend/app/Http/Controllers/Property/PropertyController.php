@@ -377,7 +377,8 @@ class PropertyController extends Controller
                 return validationError($validator);
             }
             
-            $property = $this->_PropertyDetail->find($request->id);
+            $this->begin();  
+            $property = $this->_PropertyDetail->lockForUpdate()->find($request->id);
             if(!$property){
                throw new CustomException("Property Not Found"); 
             }
@@ -398,9 +399,8 @@ class PropertyController extends Controller
             if($propertyDemandBLL->_GRID["notice"]??false && $request->paymentType=="PART"){
                 throw new CustomException("If Notice Generated Then Not Pay Part Payment");
             }
-            $propertyPaymentBll = new PropertyPaymentBll($request);
-            $this->begin();           
-            $responseData = ($propertyPaymentBll->payNow());           
+            $propertyPaymentBll = new PropertyPaymentBll($request);         
+            $responseData = ($propertyPaymentBll->payNow());          
             $this->commit();
             return responseMsg(true,"Payment Successfully Done",$responseData);
         }catch(CustomException $e){
