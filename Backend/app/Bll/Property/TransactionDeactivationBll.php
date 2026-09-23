@@ -142,15 +142,6 @@ class TransactionDeactivationBll
         $this->_Transaction->lock_status =  true;        
         $this->_Transaction->update();
         
-        $this->deactivateSwmTransaction();
-    }
-
-    public function deactivateSwmTransaction(){
-        $swmTran = $this->_Transaction->getSwmTrans();
-        foreach($swmTran as $tran){
-            $obj = new SwmTransactionDeactivationBll($tran->id);
-            $obj->deactivateTransaction();
-        }
     }
 
     public function chequeBounce(){
@@ -167,7 +158,5 @@ class TransactionDeactivationBll
         $this->deactivateAdjustment();
         $this->deactivateOtherPenaltyPaid();
         $this->deactivateAdditionalTaxPaid();
-
-        $this->deactivateSwmTransaction();
     }
 }

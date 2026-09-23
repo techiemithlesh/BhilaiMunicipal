@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Property;
 
 use App\Bll\Common;
 use App\Bll\Payment\NttData;
-use App\Bll\Property\BiharSwmTaxCalculator;
 use App\Bll\Property\BiharTaxCalculator;
 use App\Bll\Property\NoticeReceiptBll;
 use App\Bll\Property\PaymentReceiptBll;
@@ -33,11 +32,6 @@ use App\Models\Property\PropertyOwnerDetail;
 use App\Models\Property\PropertyTax;
 use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\PropTransaction;
-use App\Models\Property\SwmActiveConsumer;
-use App\Models\Property\SwmActiveConsumerOwner;
-use App\Models\Property\SwmConsumer;
-use App\Models\Property\SwmConsumerDemand;
-use App\Models\Property\SwmConsumerOwner;
 use App\Models\User;
 use App\Trait\Property\PropertyTrait;
 use Carbon\Carbon;
@@ -72,8 +66,6 @@ class PropertyController extends Controller
     private $_AppBasicUpdate;
     private $_AppOwnerUpdate;
     private $_PropertyNotice;
-    private $_SwmConsumer;
-    private $_SwmConsumerOwner;
     private $_SYSTEM_CONST;
     private $_UlbWardMaster;
     private $_UlbMaster;
@@ -81,9 +73,6 @@ class PropertyController extends Controller
     private $_RoleTypeMstr;
     private $_MODULE_ID;
     private $_CommonClass ;
-    private $_SwmActiveConsumer;
-    private $_SwmActiveConsumerOwner;
-    private $_SwmConsumerDemand;
     private $_NttPaymentRequest;
     function __construct()
     {
@@ -100,12 +89,6 @@ class PropertyController extends Controller
         $this->_PropertyNotice = new PropertyNotice();
         $this->_NttPaymentRequest = new NttPaymentRequest();
         $this->_PropertyAdditionalDocument = new PropertyAdditionalDocument();
-
-        $this->_SwmActiveConsumer = new SwmActiveConsumer();
-        $this->_SwmActiveConsumerOwner = new SwmActiveConsumerOwner();
-        $this->_SwmConsumer = new SwmConsumer();
-        $this->_SwmConsumerOwner = new SwmConsumerOwner();
-        $this->_SwmConsumerDemand = new SwmConsumerDemand();
         
         $this->_UlbWardMaster = new UlbWardMaster();
         $this->_UlbMaster = new UlbMaster();
@@ -209,13 +192,7 @@ class PropertyController extends Controller
                 $item->docPath = $item->doc_path ? url("/documents")."/".$item->doc_path:"";
                 return $item;
             });
-            $property->swm_consumer = $property->getSwmConsumer()->map(function($val){
-                $val=$this->adjustSWMConsumer($val);
-                $val->owners = $val->getOwners();
-                $val->tran_dtls = $val->getTrans();
-                return $val;
-            });
-            
+
             $user = Auth()->user();
             if($user){
                 $currentToken = $user->currentAccessToken();
@@ -353,7 +330,7 @@ class PropertyController extends Controller
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
         }
-        catch(Exception $e){
+        catch(Exception $e){dd($e);
             return responseMsg(false,"Internal Server Error","");
         }
     }
@@ -1027,46 +1004,6 @@ class PropertyController extends Controller
                 }
             }
 
-            if($request->swmConsumer && $request->propTypeMstrId!=($vacantLand->id??"")){
-                foreach($request->swmConsumer as $swm){
-                    //new Entry
-                    $swmNewRequest = new Request($swm);
-                    $swmNewRequest->merge(["propertyDetailId"=>$propertyId,"dateOfEffective"=>$swmNewRequest->dateOfEffective."-01"]);
-                    $consumerId = $this->_SwmActiveConsumer->store($swmNewRequest);
-
-                    $swmNewRequest->merge(["consumerId"=>$consumerId]);
-                    $this->_SwmActiveConsumerOwner->store($swmNewRequest);
-
-                    //transfer
-                    $activeConsumer = $this->_SwmActiveConsumer->find($consumerId);
-                    $swmConsumer = $activeConsumer->replicate();
-                    $swmConsumer->setTable((new SwmConsumer())->getTable());
-                    $swmConsumer->id = $activeConsumer->id;
-                    $swmConsumer->property_detail_id = $propertyId;
-                    $swmConsumer->save();
-
-                    foreach($activeConsumer->getOwners() as $val){
-                        $approveOwner = $val->replicate();
-                        $approveOwner->setTable((new SwmConsumerOwner())->getTable());
-                        $approveOwner->id = $val->id;
-                        $approveOwner->save();
-                        $val->forceDelete();
-                    }
-                    $activeConsumer->forceDelete();
-
-                    //tax calculate
-                    $newRequest = new Request(camelCase($activeConsumer)->toArray());
-                    $objTaxCalculator = new BiharSwmTaxCalculator($newRequest);
-                    $objTaxCalculator->calculateTax();
-                    $tax = collect($objTaxCalculator->_GRID)->sortBy("demandFrom");
-                    foreach($tax as $demand){
-                        $newDemand = new Request($demand);
-                        $newDemand->merge(["consumer_id"=>$activeConsumer->id,"balance"=>$newDemand->amount]);
-                        $this->_SwmConsumerDemand->store($newDemand);
-
-                    }
-                }
-            }
             $property = $this->_PropertyDetail->find($propertyId);
             $holdingNo = $property->holding_no;
             if(!$request->hasOldHoldingNo){

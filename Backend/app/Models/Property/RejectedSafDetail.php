@@ -17,7 +17,4 @@ class RejectedSafDetail extends SafDetail
         return $this->hasMany(RejectedSafFloorDetail::class,"saf_detail_id","id")->where("lock_status",false)->get();
     }
 
-    public function getSwmConsumer(){
-        return $this->hasMany(SwmRejectedConsumer::class,"saf_detail_id","id")->where("lock_status",false)->get();
-    }
 }

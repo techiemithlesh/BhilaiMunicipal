@@ -49,8 +49,4 @@ class PropTransaction extends ParamModel
     public function getChequeDtl(){
         return $this->belongsTo(ChequeDetail::class,"id","transaction_id")->where("lock_status",false)->orderBy("id","DESC")->first();
     }
-
-    public function getSwmTrans(){
-        return $this->hasMany(SwmConsumerTransaction::class,"prop_transaction_id","id")->where("lock_status",false)->orderBy("id","DESC")->get();
-    }
 }

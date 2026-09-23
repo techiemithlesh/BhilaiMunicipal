@@ -67,8 +67,6 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         Route::post("get-saf-master-data","getSafMasterData");
         Route::post("get-new-ward-by-old","getNewWardByOldWard");
         Route::post("get-apartment-by-old-ward","getApartmentListByOldWard");
-        Route::post("get-swm-subCategory","getSwmSubCategoryList");
-        Route::post("get-swm-rate","getSwmRate");
         Route::post("test-request","testAddRequest");
         Route::post("review-tax","reviewTax")->withoutMiddleware(["auth:sanctum","setUlb"]);
         Route::post("saf-apply","AddSaf");

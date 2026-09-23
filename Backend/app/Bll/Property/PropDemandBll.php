@@ -16,6 +16,7 @@ use App\Models\Property\SafDetail;
 use App\Trait\Property\PropertyTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 class PropDemandBll{
@@ -26,8 +27,6 @@ class PropDemandBll{
     public $_PROPId;
     public $_PROPERTY;
     public $_owners;
-    public $_SwmConsumers;
-    public $_SwmGRID;
     public $_tranDate;
     public $_tranDateFyear ;
     public $_isVacantLand = false ;
@@ -66,20 +65,44 @@ class PropDemandBll{
 
     function __construct($propId,$tranDate=null)
     {
-        $this->_SwmGRID = collect();
         $this->_PROPId = $propId;
         $this->_tranDate = Carbon::parse($tranDate);
         $this->_tranDateFyear = getFY($this->_tranDate->copy()->format("Y-m-d"));
         $this->_PROPERTY = PropertyDetail::find($this->_PROPId);
         $this->_PROPERTY = $this->adjustSafValue($this->_PROPERTY);
          $this->_owners = collect($this->_PROPERTY->getOwners())->sortBy("id");
-        $this->_SwmConsumers = $this->_PROPERTY->getSwmConsumer();
         $this->_UlbDetail = UlbMaster::find($this->_PROPERTY->ulb_id);
         if($this->_UlbDetail){
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/'.$this->_UlbDetail->logo_img) : "";
         }
         $this->setDemandList();
         $this->testLastTran();
+    }
+
+    private function updatePenalPenalty(){
+        list($from,$upto) = explode("-",$this->_tranDateFyear);
+        $privLastFyear = ($from-1)."-".($upto-1);
+        $privLastDemand = PropertyDemand::where("property_detail_id",$this->_PROPId)
+                            ->where("fyear","=",$privLastFyear)
+                            ->where("lock_status",false)
+                            ->where("paid_status",false)
+                            ->first();
+        if($privLastDemand && $privLastDemand->fine_tax==0){
+            $penal =0;
+            $latePenalty = 0;
+            $penal = $privLastDemand->holding_tax * 0.18;
+            if($privLastFyear>=Config::get("PropertyConstant.THOUSAND_PENALTY_EFFECTIVE_YEAR", "2016-2017")){
+                $latePenalty = 1000;
+            }
+            $privLastDemand->total_tax = ($privLastDemand->demand_amount + $penal + $latePenalty );
+            $privLastDemand->fine_tax = ($penal );
+            $privLastDemand->otheramt = ($latePenalty );
+
+            $privLastDemand->balance_tax = $privLastDemand->total_tax;
+            $privLastDemand->due_fine_tax = $privLastDemand->fine_tax;
+            $privLastDemand->due_otheramt = $privLastDemand->otheramt;
+            $privLastDemand->save();
+        }
     }
 
     public function testLastTran(){
@@ -92,10 +115,6 @@ class PropDemandBll{
         $currentFyear = getFY($this->_tranDate->copy()->format("Y-m-d"));
         $propDemand = new PropertyDemand();
         $this->_DemandList = collect($propDemand->getDueDemand($this->_PROPId))->where("fyear","<=",$this->_tranDateFyear);
-        $this->_DemandList = $this->_DemandList->map(function($item){                                
-                                $item = $this->getOnePercentPenalty($item);
-                                return $item;
-                            });
         $this->_monthlyPenalty = roundFigure($this->_DemandList->sum("monthlyPenalty"));
         $this->_demandAmount = roundFigure($this->_DemandList->sum("balance_tax"));
         $this->_rwhAmount = roundFigure($this->_DemandList->sum("due_rwh_tax"));
@@ -139,114 +158,59 @@ class PropDemandBll{
                         ->first();
         $day_diff = floor(Carbon::parse($this->_notice?->served_at)->diffInDays($this->_tranDate));
         $month_diff = ceil(($day_diff * 1.00)/30);
-        // if($month_diff>1 && $this->_notice?->served_at){
-        //     $day_diff = $day_diff - 30;
-		// 	$weak_diff = ceil(($day_diff * 1.00) /7);
-		// 	$month_diff = ceil(($day_diff * 1.00)/30);
-        //     $PrevDemandAmount = $this->_previousDemandList->sum("balance_tax");
-        //     $priveDemandPenalty = $this->_previousDemandList->sum("monthlyPenalty");
-        //     $arrearDemand = $PrevDemandAmount + $priveDemandPenalty;
-        //     if($weak_diff <= 1) 
-		// 		$this->_noticePenalty = roundFigure(($arrearDemand) * 0.01);
-		// 	elseif($weak_diff <= 2) 
-		// 		$this->_noticePenalty = roundFigure(($arrearDemand) * 0.02);
-		// 	elseif($month_diff <= 1) 
-		// 		$this->_noticePenalty = roundFigure(($arrearDemand) * 0.03);
-		// 	elseif($month_diff <= 2) 
-		// 		$this->_noticePenalty = roundFigure(($arrearDemand) * 0.05);
-		// 	elseif($month_diff > 2){
-		// 		$this->_noticePenalty = roundFigure(($arrearDemand) * (0.05)) ;
-		// 		$this->_noticeAdditionPenalty = roundFigure(($arrearDemand + $this->_noticePenalty ) * (($month_diff -2)*0.02));
-
-        //     }
-        // }
-
+        
     }
 
     public function getQtrRebate(){
-        $user = Auth()->user();
-        $currentDate = $this->_tranDate->copy()->format("Y-m-d");
-        list($fromYear,$uptoYear) = explode("-",$this->_tranDateFyear);
-        $firstQuarterLastDate = calculateQuaterDueDate($fromYear."-04-01");
-        $firstQuarterStartDate = calculateQuarterStartDate($firstQuarterLastDate);
-        # 5% online Rebate
-        if(!$user || $user->getTable()!="users"){ 
-            $this->_onlineRebate = ($this->_currentDemandAmount * 0.0);
-        }# 2.5% JSK Rebate
-        elseif($user->getTable()=="users"){
-            $role = $user->getRoleDetailsByUserId()->first();
-            $roleId = $role->id??0;
-            if(in_array($roleId,[1,8])){
-                $this->_jskRebate = ($this->_currentDemandAmount * 0.0);
-            }
-            
+        $currentMonth = $this->_tranDate->copy()->format("m");
+
+        $currentYearPropertyTax = $this->_currentDemandList->sum("due_holding_tax");
+
+        if(is_between($currentMonth,4,5)){
+            $this->_firstQtrRebate = ($currentYearPropertyTax * 6.25 / 100);
+        }elseif(is_between($currentMonth,6,7)){
+            $this->_firstQtrRebate = ($currentYearPropertyTax * 5 / 100);
+        }elseif(is_between($currentMonth,8,9)){
+            $this->_firstQtrRebate = ($currentYearPropertyTax * 4 / 100);
+        }elseif(is_between($currentMonth,10,11)){
+            $this->_firstQtrRebate = ($currentYearPropertyTax  * 2 / 100);
         }
-        # 5% first quarter rebate
-        if($currentDate >= $firstQuarterStartDate && $currentDate <= $firstQuarterLastDate){
-            $this->_firstQtrRebate = ($this->_currentDemandAmount * 0.05);
-        }
+
         $this->_quarterlyRebate = roundFigure($this->_firstQtrRebate + $this->_jskRebate + $this->_onlineRebate);
     }
 
     public function getSpecialRebate(){
-        if(in_array($this->_PROPERTY->holding_type,['PURE_RESIDENTIAL', 'VACANT_LAND'])){
-            $currentDate = $this->_tranDate->copy()->format("Y-m-d");
-            list($fromYear,$uptoYear) = explode("-",$this->_tranDateFyear);
-            $firstQuarterLastDate = calculateQuaterDueDate($fromYear."-04-01");
-            $owners = $this->_PROPERTY->getOwners();
-            if($owners->count() == 1){
-                $owners = $owners->first();
-                #5% when female Or transgender
-                if(in_array($owners->gender, ['Female','Other'])){
-                    $this->_specialRebate = $this->_demandAmount * 0.0;
-                }
-                #5% when armed force
-                if($owners->is_armed_force){
-                    $this->_specialRebate = $this->_demandAmount * 0.0;
-                }
-                #5% when specially able
-                if($owners->is_specially_abled){
-                    $this->_specialRebate = $this->_demandAmount * 0.0;
-                }
-                #5% when Senior Citizen
-                if($owners->dob && Carbon::parse($owners->dob)->diffInYears($firstQuarterLastDate)>=60){
-                    $this->_specialRebate = $this->_demandAmount * 0.0;
-                }
-            }
-            $this->_specialRebate = roundFigure($this->_specialRebate);
-        }
+        // if(in_array($this->_PROPERTY->holding_type,['PURE_RESIDENTIAL', 'VACANT_LAND'])){
+        //     $currentDate = $this->_tranDate->copy()->format("Y-m-d");
+        //     list($fromYear,$uptoYear) = explode("-",$this->_tranDateFyear);
+        //     $firstQuarterLastDate = calculateQuaterDueDate($fromYear."-04-01");
+        //     $owners = $this->_PROPERTY->getOwners();
+        //     if($owners->count() == 1){
+        //         $owners = $owners->first();
+        //         #5% when female Or transgender
+        //         if(in_array($owners->gender, ['Female','Other'])){
+        //             $this->_specialRebate = $this->_demandAmount * 0.0;
+        //         }
+        //         #5% when armed force
+        //         if($owners->is_armed_force){
+        //             $this->_specialRebate = $this->_demandAmount * 0.0;
+        //         }
+        //         #5% when specially able
+        //         if($owners->is_specially_abled){
+        //             $this->_specialRebate = $this->_demandAmount * 0.0;
+        //         }
+        //         #5% when Senior Citizen
+        //         if($owners->dob && Carbon::parse($owners->dob)->diffInYears($firstQuarterLastDate)>=60){
+        //             $this->_specialRebate = $this->_demandAmount * 0.0;
+        //         }
+        //     }
+        //     $this->_specialRebate = roundFigure($this->_specialRebate);
+        // }
     }
 
     public function getAdvanceAmount(){
         $AdvanceDetail = new AdvanceDetail();
         $this->_advanceAmount = $AdvanceDetail->getPropAdvanceAmount($this->_PROPId)->advance_amount??0;
-    }
-
-    public function getOnePercentPenalty($demandList){
-        $penalty = 0 ;
-        $monthDiff = 0;
-        # one percent penalty applicable
-        // if($demandList->due_date >='2017-06-30' && $demandList->due_date < $this->_tranDate->copy()->format("Y-m-d")){
-        //     $monthDiff = floor(Carbon::parse($demandList->due_date)->diffInMonths($this->_tranDate));
-        //     $penalty = roundFigure(($demandList->balance_tax * $monthDiff)/100);
-        // }
-        if(getFY($demandList->due_date)<getFY())
-        {
-            $monthDiff = floor(Carbon::parse($demandList->due_date)->diffInMonths($this->_tranDate));
-            $penalty = roundFigure(($demandList->balance_tax * $monthDiff * 1.5)/100);
-        }
-        if(getFY($demandList->due_date)==getFY()  && $this->_tranDate->copy()->format("Y-m-d")>=FyearQutFromDate(getFY(),3) ){
-            $monthDiff = floor(Carbon::parse(FyearQutUptoDate(getFY(),2))->diffInMonths($this->_tranDate));
-            $penalty = roundFigure(($demandList->balance_tax * $monthDiff * 1.5)/100);
-        }
-
-        if(in_array(getFY(),["2025-2026"])){
-            $penalty = 0 ;
-            $monthDiff = 0;
-        }
-        $demandList->monthDiff = $monthDiff;
-        $demandList->monthlyPenalty = $penalty;
-        return $demandList;
     }
 
     public function generateDemand(){
@@ -301,11 +265,7 @@ class PropDemandBll{
         ];
         $this->_GRID["payableAmountInWord"] = getIndianCurrency($this->_GRID["payableAmount"]); 
         
-        $this->_GRID["swmConsumerIds"] = $this->_SwmConsumers->pluck("id")->implode(",");
-        $this->_GRID["swmConsumers"] = $this->_SwmGRID;
-        $totalPaybleAmount = $this->_SwmGRID->sum("payableAmount");
-        $this->_GRID["totalPayableAmount"] = roundFigure($this->_GRID["payableAmount"] + $totalPaybleAmount);
-        $this->_GRID["swmPayableAmount"] = roundFigure($totalPaybleAmount);
+        $this->_GRID["totalPayableAmount"] = roundFigure($this->_GRID["payableAmount"]);
         $this->_GRID["totalPayableAmountInWord"] = getIndianCurrency($this->_GRID["totalPayableAmount"]);
     }
 
@@ -366,17 +326,8 @@ class PropDemandBll{
         $this->getOtherPenalty();
         $this->getAdditionalTax();
         $this->noticePenalty();
-        $this->getConsumersDue();
+        // $this->getConsumersDue();
         $this->generateDemand();
     }
 
-    private function getConsumersDue(){
-        foreach($this->_SwmConsumers as $key=> $consumer){
-            $objSwmDemandBll = new SwmDemandBll($consumer->id,$this->_tranDate); 
-            $objSwmDemandBll->generateDemand();
-            $demand = $objSwmDemandBll->_GRID;
-            $demand["consumer"]=$consumer;
-            $this->_SwmGRID->push($demand);
-        }
-    }
 }

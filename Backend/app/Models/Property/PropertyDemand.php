@@ -30,6 +30,7 @@ class PropertyDemand extends ParamModel
             "composite_tax"=>$request->CompositeTax??0,
             "common_wtr_tax"=>$request->CommonWtrTax??0,
             "otheramt"=>$request->otheramt??0,
+            "penal_charge"=>$request->penal_charge??0,
             "demand_amount"=>$request->demandDmount??0,
 
             "balance_tax" => $request->TotalTax??0 ,
@@ -44,6 +45,7 @@ class PropertyDemand extends ParamModel
             "due_composite_tax"=>$request->CompositeTax??0,
             "due_common_wtr_tax"=>$request->CommonWtrTax??0,
             "due_otheramt"=>$request->otheramt??0,
+            "due_penal_charge"=>$request->penal_charge??0,
             "due_demand_amount"=>$request->demandDmount??0,
         ];
         if($adjustAmount = $this->adjustTheAdvance($request)){
@@ -69,6 +71,7 @@ class PropertyDemand extends ParamModel
             $dueCompositeTax = roundFigure($request->CompositeTax - ($request->CompositeTax  * $AdjustAmtPercent));
             $dueCommonWtrTax = roundFigure($request->CommonWtrTax - ($request->CommonWtrTax  * $AdjustAmtPercent));
             $dueotheramt = roundFigure($request->otheramt - ($request->otheramt  * $AdjustAmtPercent));
+            $duepenal_charge = roundFigure($request->penal_charge - ($request->penal_charge  * $AdjustAmtPercent));
             $duedemandDmount = roundFigure($request->demandDmount - ($request->demandDmount  * $AdjustAmtPercent));
 
             
@@ -88,6 +91,7 @@ class PropertyDemand extends ParamModel
                 "due_composite_tax"=>$dueCompositeTax,
                 "due_common_wtr_tax"=>$dueCommonWtrTax,
                 "due_otheramt"=>$dueotheramt,
+                "due_penal_charge"=>$duepenal_charge,
                 "due_demand_amount"=>$duedemandDmount,
             ];
             if($balance<=0){

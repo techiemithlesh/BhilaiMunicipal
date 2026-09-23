@@ -188,9 +188,5 @@ class ActiveSafDetail extends ParamModel
         return $this->hasMany(SafTax::class,"saf_detail_id","id")->where("lock_status",false);
     }
 
-    public function getSwmConsumer(){
-        return $this->hasMany(SwmActiveConsumer::class,"saf_detail_id","id")->where("lock_status",false)->get();
-    }
-
 
 }

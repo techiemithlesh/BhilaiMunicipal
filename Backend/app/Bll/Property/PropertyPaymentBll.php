@@ -45,21 +45,18 @@ class PropertyPaymentBll{
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["totalPayableAmount"],
                 "propertyPaidAmount"=>$this->_Demand["payableAmount"],
-                "swmPaidAmount"=>$this->_Demand["swmPayableAmount"],
             ]);
         }
         if($this->_REQUEST->paymentType=="FULL"){
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["totalPayableAmount"],                
                 "propertyPaidAmount"=>$this->_Demand["payableAmount"],
-                "swmPaidAmount"=>$this->_Demand["swmPayableAmount"],
         ]);
         }
         if($this->_REQUEST->paymentType=="ARREAR"){
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["arrearPayableAmount"],
                 "propertyPaidAmount"=>$this->_Demand["arrearPayableAmount"],
-                "swmPaidAmount"      => 0,
             ]);
         }
         if($this->_REQUEST->paymentType=="PART"){
@@ -69,26 +66,22 @@ class PropertyPaymentBll{
             $amount = min($amount, roundFigure($this->_Demand["totalPayableAmount"]));
 
             $proPayable = roundFigure($this->_Demand["payableAmount"]);
-            $swmPayable = roundFigure($this->_Demand["swmPayableAmount"]);
 
             if ($amount <= $proPayable) {
 
                 // Partial property payment only
                 $propertyPaid = $amount;
-                $swmPaid = 0;
 
             } else {
 
-                // Property fully paid, remaining to SWM
+                // Property fully paid, remaining to
                 $propertyPaid = $proPayable;
                 $remaining = roundFigure($amount - $proPayable);
-                $swmPaid = min($remaining, $swmPayable);
             }
 
             $this->_REQUEST->merge([
-                "amount"             => roundFigure($propertyPaid + $swmPaid),
+                "amount"             => roundFigure($propertyPaid ),
                 "propertyPaidAmount" => $propertyPaid,
-                "swmPaidAmount"      => $swmPaid,
             ]);
 
         }
@@ -364,26 +357,7 @@ class PropertyPaymentBll{
             $newPenaltyRequest->merge(["transaction_id"=>$tranId,"is_rebate"=>true]);
             $id = $objTranFineRebate->store($newPenaltyRequest);
         }
-        
-        #==========swm Payment==============
-        if($remainAmount>0){
-            foreach($this->_Demand["swmConsumers"] as $key=>$consumer){
-                $newSwmRequest = new Request(["id"=>$consumer["consumer"]["id"],"propTranId"=>$tranId,"tranDate"=>$this->_REQUEST->tranDate,"paymentMode"=>$this->_REQUEST->paymentMode]);
-                $swmPaidAmount = $consumer["payableAmount"];
-                if($remainAmount<=$consumer["payableAmount"]){
-                    $swmPaidAmount = $remainAmount;
-                    $remainAmount =0;
-                }else{
-                    $remainAmount -= $consumer["payableAmount"];
-                }
-                $newSwmRequest->merge(["amount"=>$swmPaidAmount,"paymentType"=>($consumer["payableAmount"]==$swmPaidAmount ? "FULL":"PART")]);
-                if($swmPaidAmount<0){
-                    break;
-                }
-                $objSwmPaymentBll = new SwmPaymentBll($newSwmRequest);
-                $objSwmPaymentBll->payNow();                
-            }
-        } 
+
         # Advance Adjust and new Advance Insert
         //Advance
         if($remainAmount>0){

@@ -21,8 +21,6 @@ use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\RejectedSafDetail;
 use App\Models\Property\RoadTypeMaster;
 use App\Models\Property\SafDetail;
-use App\Models\Property\SwmCategoryTypeMaster;
-use App\Models\Property\SwmSubCategoryTypeMaster;
 use App\Models\Property\TransferModeMaster;
 use App\Models\Property\UsageTypeMaster;
 use App\Models\Property\WaterConnectionFacilityType;
@@ -506,15 +504,6 @@ trait PropertyTrait{
         return $property && $property->new_holding_no && (!in_array($saf->assessment_type ,["New Assessment","Mutation"])) ? $property->new_holding_no : $generated_holding_no ;
     }
 
-    public function adjustSWMConsumer($consumer){
-        $occupancyType = OccupancyTypeMaster::find($consumer->occupancy_type_master_id);
-        $categoryType = SwmCategoryTypeMaster::find($consumer->category_type_master_id);
-        $subCategoryType = SwmSubCategoryTypeMaster::find($consumer->sub_category_type_master_id);
-        $consumer->occupancy_type = $occupancyType?->occupancy_name;
-        $consumer->category_type = $categoryType?->category_type;
-        $consumer->sub_category_type = $subCategoryType?->sub_category_type;
-        return $consumer;
-    }
 
     public function floorResCommOtherUsage($usageTypeRateId){
         return $usageTypeRateId==1 ? "Resident" : ($usageTypeRateId==2?"Commercial":"Other");

@@ -16,8 +16,6 @@ use App\Models\Property\OccupancyTypeMaster;
 use App\Models\Property\OwnershipTypeMaster;
 use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\RoadTypeMaster;
-use App\Models\Property\SwmCategoryTypeMaster;
-use App\Models\Property\SwmSubCategoryTypeMaster;
 use App\Models\Property\TransferModeMaster;
 use App\Models\Property\UsageTypeMaster;
 use App\Models\Property\WaterConnectionFacilityType;
@@ -49,8 +47,6 @@ class RequestAddSaf extends ParentRequest
     protected $_WaterConnectionFacilityType;
     protected $_WaterTaxType;
 
-    private $_SwmCategoryTypeMaster;
-    private $_SwmSubCategoryTypeMaster;
 
    function __construct(){
         parent::__construct();
@@ -74,9 +70,6 @@ class RequestAddSaf extends ParentRequest
 
         $this->_WaterConnectionFacilityType = new WaterConnectionFacilityType();
         $this->_WaterTaxType = new WaterTaxType();
-
-        $this->_SwmCategoryTypeMaster = new SwmCategoryTypeMaster();
-        $this->_SwmSubCategoryTypeMaster = new SwmSubCategoryTypeMaster();
    }
 
     /**
@@ -227,43 +220,7 @@ class RequestAddSaf extends ParentRequest
                 }),
             ],
 
-            // "swmConsumer"=>"nullable|array",//|required_unless:propTypeMstrId,4
-            // "swmConsumer.*.occupancyTypeMasterId"=>[
-            //     "required",
-            //     // "required_unless:propTypeMstrId,4",
-            //     "regex:/^[0-9]+$/",
-            //     Rule::exists($this->_OccupancyTypeMaster->getConnectionName().".".$this->_OccupancyTypeMaster->getTable(), 'id')
-            //     ->where(function ($query){
-            //         return $query->where('lock_status', false);
-            //     }),
-            // ],
-            // "swmConsumer.*.categoryTypeMasterId"=>[
-            //     "required",
-            //     // "required_unless:propTypeMstrId,4",
-            //     "regex:/^[0-9]+$/",
-            //     Rule::exists($this->_SwmCategoryTypeMaster->getConnectionName().".".$this->_SwmCategoryTypeMaster->getTable(), 'id')
-            //     ->where(function ($query){
-            //         return $query->where('lock_status', false);
-            //     }),
-            // ],
-            // "swmConsumer.*.subCategoryTypeMasterId"=>[
-            //     "required",
-            //     // "required_unless:propTypeMstrId,4",
-            //     "regex:/^[0-9]+$/",
-            //     Rule::exists($this->_SwmSubCategoryTypeMaster->getConnectionName().".".$this->_SwmSubCategoryTypeMaster->getTable(), 'id')
-            //     ->where(function ($query){
-            //         return $query->where('lock_status', false);
-            //     }),
-            // ],
-            // "swmConsumer.*.category"=>"required|in:APL,BPL",//|required_unless:propTypeMstrId,4
-            // "swmConsumer.*.dateOfEffective"=>"required|date|date_format:Y-m|before_or_equal:".Carbon::now()->format("Y-m"),//required_unless:propTypeMstrId,4|
-            // "swmConsumer.*.ownerName"=>"required",
-            // "swmConsumer.*.guardianName"=>"nullable",
-            // "swmConsumer.*.relationType"=>"nullable|required_with:swmConsumer.*.guardianName|in:S/O,D/O,W/O,C/O",
-            // "swmConsumer.*.mobileNo"=>"required|digits:10|regex:/[0-9]{10}/",
-            // "swmConsumer.*.email"=>"nullable|email",
-            // "swmConsumer.*.gender"=>"nullable|in:Male,Female,Other",
-        ];//dd($rules);
+        ];
         return $rules;
     }
 

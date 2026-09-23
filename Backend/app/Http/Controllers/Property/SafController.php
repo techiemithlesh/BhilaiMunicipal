@@ -50,11 +50,6 @@ use App\Models\Property\SafDocDetail;
 use App\Models\Property\SafFloorDetail;
 use App\Models\Property\SafOwnerDetail;
 use App\Models\Property\SafTax;
-use App\Models\Property\SwmActiveConsumer;
-use App\Models\Property\SwmActiveConsumerOwner;
-use App\Models\Property\SwmCategoryTypeMaster;
-use App\Models\Property\SwmRateMaster;
-use App\Models\Property\SwmSubCategoryTypeMaster;
 use App\Models\Property\TransferModeMaster;
 use App\Models\Property\UsageTypeMaster;
 use App\Models\Property\WaterConnectionFacilityType;
@@ -118,12 +113,6 @@ class SafController extends Controller
     private $_WaterConnectionFacilityType;
     private $_WaterTaxType;
 
-    //========== swm=================
-    private $_SwmCategoryTypeMaster;
-    private $_SwmSubCategoryTypeMaster;
-    private $_SwmRateMaster;
-    private $_SwmActiveConsumer;
-    private $_SwmActiveConsumerOwner;
 
     function __construct()
     {
@@ -168,11 +157,6 @@ class SafController extends Controller
         $this->_WaterConnectionFacilityType = new WaterConnectionFacilityType();
         $this->_WaterTaxType = new WaterTaxType();
 
-        $this->_SwmCategoryTypeMaster = new SwmCategoryTypeMaster();
-        $this->_SwmSubCategoryTypeMaster = new SwmSubCategoryTypeMaster();
-        $this->_SwmRateMaster = new SwmRateMaster();
-        $this->_SwmActiveConsumer = new SwmActiveConsumer();
-        $this->_SwmActiveConsumerOwner = new SwmActiveConsumerOwner();
     }
 
     private function begin(){
@@ -203,7 +187,6 @@ class SafController extends Controller
             $applicationType = [
                 "NIGAM","ZONE"
             ];
-            $swmConsumerType = $this->_SwmCategoryTypeMaster->getCategoryTypeList();
             $fyearList = collect(FyListdesc(null,"1986"))->map(function($item){
                 return ["fromDate"=>Carbon::parse(FyearQutFromDate($item,1))->format("Y-m"),"uptoDate"=>Carbon::parse(FyearQutUptoDate($item,4))->format("Y-m"),"fyear"=>$item];
             });
@@ -227,7 +210,6 @@ class SafController extends Controller
                 "usageType"=>$usageTypeMaster,
                 "electricityType"=>$electricityType,
                 "zoneType"=>$zoneType,
-                "swmConsumerType"=>$swmConsumerType,
                 "fyearList"=>$fyearList,
                 "waterFacility"=>$waterFacility,
                 "waterTax"=>$waterTax,
@@ -254,50 +236,6 @@ class SafController extends Controller
             $oldWard = $this->_UlbWardMaster->readConnection()->find($request->oldWardId);
             $newWards = $oldWard->getNewWardByOldWard();
             return responseMsg(true,"new Wards Of ".$oldWard->ward_no,camelCase(remove_null($newWards)));
-        }catch(CustomException $e){
-            return responseMsg(false,$e->getMessage(),"");
-        }
-        catch(Exception $e){
-            return responseMsg(false,"Internal Server Error","");
-        }
-    }
-
-    public function getSwmSubCategoryList(Request $request){
-        try{
-            $rule=[
-                "categoryTypeMasterId"=>"required|exists:".$this->_SwmCategoryTypeMaster->getConnectionName().".".$this->_SwmCategoryTypeMaster->getTable().",id",
-            ];
-            $validator = Validator::make($request->all(),$rule);
-            if($validator->fails()){
-                return validationError($validator);
-            }
-            $categoryTypeMaster = $this->_SwmCategoryTypeMaster->readConnection()->find($request->categoryTypeMasterId);
-            $subCategoryTypeMaster = $categoryTypeMaster->getSubCategoryList();
-            return responseMsg(true,"Sub Category Type List Of ".$categoryTypeMaster->category_type,camelCase(remove_null($subCategoryTypeMaster)));
-        }catch(CustomException $e){
-            return responseMsg(false,$e->getMessage(),"");
-        }
-        catch(Exception $e){
-            return responseMsg(false,"Internal Server Error","");
-        }
-    }
-
-    public function getSwmRate(Request $request){
-        try{
-            $rule=[
-                "subCategoryTypeMasterId"=>"required|exists:".$this->_SwmSubCategoryTypeMaster->getConnectionName().".".$this->_SwmSubCategoryTypeMaster->getTable().",id",
-                "category"=>"required|in:APL,BPL",
-            ];
-            $validator = Validator::make($request->all(),$rule);
-            if($validator->fails()){
-                return validationError($validator);
-            }
-            $rate = $this->_SwmRateMaster
-                    ->where("sub_category_type_master_id",$request->subCategoryTypeMasterId)
-                    ->where("category",$request->category)
-                    ->orderBy("effective_from","DESC")
-                    ->first();
-            return responseMsg(true,"Sub Category Type Rate ",camelCase(remove_null($rate)));
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
         }
@@ -493,15 +431,7 @@ class SafController extends Controller
                     
                 }
             }
-            if($request->swmConsumer && $request->propTypeMstrId!=($vacantLand->id??"")){
-                foreach($request->swmConsumer as $swm){
-                    $swmNewRequest = new Request($swm);
-                    $swmNewRequest->merge(["safDetailId"=>$safId,"dateOfEffective"=>$swmNewRequest->dateOfEffective."-01"]);
-                    $consumerId = $this->_SwmActiveConsumer->store($swmNewRequest);
-                    $swmNewRequest->merge(["consumerId"=>$consumerId]);
-                    $swmConsumerOwnerId = $this->_SwmActiveConsumerOwner->store($swmNewRequest);
-                }
-            }
+            
             $saf = $this->_ActiveSafDetail->find($safId);
             $saf->payment_status =1;
             $saf->update();
@@ -803,12 +733,6 @@ class SafController extends Controller
             $saf->appStatus = $this->getSafStatus($saf->id);
             $saf->floors = $this->adjustFloorValue($saf->getFloors());
             $saf->owners = $saf->getOwners();
-            $saf->swm_consumer = $saf->getSwmConsumer()->map(function($val){
-                $val=$this->adjustSWMConsumer($val);
-                $val->owners = $val->getOwners();
-                $val->tran_dtls = $val->getTrans();
-                return $val;
-            });
             $saf->tran_dtls = $saf->getTrans();
             $saf->memo_dtls = $saf->getMemo()->get()->map(function($item){
                 $user = User::find($item->user_id);
