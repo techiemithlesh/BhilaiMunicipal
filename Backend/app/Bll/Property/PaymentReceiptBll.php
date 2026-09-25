@@ -39,6 +39,7 @@ class PaymentReceiptBll{
     public $_tranDateFyear ;
     public $_currentDemandList;
     public $_previousDemandList;
+    public $_WatermarkBase64;
 
     function __construct($tranId)
     {
@@ -78,7 +79,10 @@ class PaymentReceiptBll{
         }
         $this->_UlbDetail = UlbMaster::find($this->_TranDetail->ulb_id);
         if($this->_UlbDetail){
+            $this->_WatermarkBase64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/'.$this->_UlbDetail->logo_img) : "";
+            $this->_UlbDetail->left_logo =  url('/'."UlbLog/swm.png") ;
+            $this->_UlbDetail->right_logo =  url('/'."UlbLogo/swachh_bharat.png") ;
         }
         $this->_propSafData = $this->adjustSafValue($this->_propSafData);
         $this->_oldWard = UlbWardMaster::find($this->_propSafData->ward_mstr_id);
@@ -88,11 +92,21 @@ class PaymentReceiptBll{
         
     }
 
+    public function getImageBase64($relativePath){
+        if(!$relativePath){
+            return null;
+        }
+        $path = public_path($relativePath);
+        if(!file_exists($path)){
+            return null;
+        }
+        $mime = mime_content_type($path) ?: 'image/png';
+        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($path));
+    }
+
     public function generateDemandReceipt($demandList){
         $fromYear = collect($demandList)->min("fyear");
         $uptoYear = collect($demandList)->max("fyear");
-        $fromQtr = collect($demandList)->where('fyear',$fromYear)->min("qtr");
-        $uptoQtr = collect($demandList)->where('fyear',$uptoYear)->max("qtr");
         $totalRwhDue = roundFigure(collect($demandList)->sum("rwh_tax"));
         $totalDue = roundFigure(collect($demandList)->sum("total_tax"));
         $totalHoldingDue = roundFigure($totalDue - $totalRwhDue);
@@ -101,13 +115,23 @@ class PaymentReceiptBll{
         $qtrRwh = roundFigure($totalRwhDue / ($totalQtr ? $totalQtr : 1));
         return[
             "fromYear"=>$fromYear,
-            "fromQtr"=>$fromQtr,
             "uptoYear"=>$uptoYear,
-            "uptoQtr"=>$uptoQtr,
             "qtrTax"=>$qtrTax,
-            "qtrRwh"=>$qtrRwh,
             "totalQtr"=>$totalQtr,
             "totalQtrTax"=>roundFigure($qtrTax + $qtrRwh) ,
+            "totalTax"=>$demandList->sum("total_tax") ,
+            "holdingTax"=>$demandList->sum("holding_tax"),
+            "compositeTax"=>$demandList->sum("composite_tax") ,
+            "latrineTax"=>$demandList->sum("latrine_tax"),
+            "waterTax"=>$demandList->sum("water_tax") ,
+            "commonWtrTax"=>$demandList->sum("common_wtr_tax") ,
+            "healthCessTax"=>$demandList->sum("health_cess_tax") ,
+            "educationCessTax"=>$demandList->sum("education_cess_tax") ,
+            "rwhTax"=>$demandList->sum("rwh_tax") ,
+            "fineAmt"=>$demandList->sum("fine_amt") ,
+            "penalCharge"=>$demandList->sum("penal_charge") ,
+            "otheramt"=>$demandList->sum("otheramt") ,
+            "demandAmount"=>$demandList->sum("demand_amount") ,
             "totalDue"=>$totalDue,
         ];
 
@@ -117,15 +141,12 @@ class PaymentReceiptBll{
     public function generateReceipt(){
         $this->loadParam();
 
-
-
         $this->_currentDemandList = $this->_CollectionDetail->where("fyear",$this->_tranDateFyear);
         $this->_previousDemandList = $this->_CollectionDetail->where("fyear","<",$this->_tranDateFyear);
 
-        
         $this->_GRID=[
             "printingDate"=>Carbon::now()->format("Y-m-d H:i:s"),
-            "description"=>"HOLDING TAX RECEIPT",
+            "description"=>"PROPERTY TAX RECEIPT",
             "tranNo"=>$this->_TranDetail->tran_no,
             "tranDate"=>$this->_TranDetail->tran_date,
             "department" => "Revenue Section",
@@ -153,17 +174,14 @@ class PaymentReceiptBll{
             "uptoFyear"=>$this->_TranDetail->upto_fyear,
             "fromQtr"=>$this->_TranDetail->from_qtr,
             "uptoQtr"=>$this->_TranDetail->upto_qtr,
-
             "holdingTax" =>roundFigure(collect($this->_CollectionDetail)->sum("holding_tax")??0),
             "waterTax" =>roundFigure(collect($this->_CollectionDetail)->sum("water_tax")??0),
             "latrineTax" =>roundFigure(collect($this->_CollectionDetail)->sum("latrine_tax")??0),
             "healthCessTax" =>roundFigure(collect($this->_CollectionDetail)->sum("health_cess_tax")??0),
             "educationCessTax" =>roundFigure(collect($this->_CollectionDetail)->sum("education_cess_tax")??0),            
             "rwhTax" =>roundFigure(collect($this->_CollectionDetail)->sum("rwh_tax")??0),
-
             "previousPaymentReceipt"=>$this->generateDemandReceipt($this->_previousDemandList),
             "currentPaymentReceipt"=>$this->generateDemandReceipt($this->_currentDemandList),
-            
             "propertyDtl"=>$this->_propSafData,
             "tranDtl" => $this->_TranDetail,
             "chequeDtl" => $this->_ChequeDtl,
@@ -172,6 +190,8 @@ class PaymentReceiptBll{
             "fineRebate" => $this->_FineRebates,
             "additionalTax"=>$this->_AdditionalTaxs,
             "userDtl"=> $this->_UserDetail,
+            "floorDtl" => $this->_floor,
+            "watermark" => $this->_WatermarkBase64,
         ];
     }
 }

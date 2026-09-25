@@ -76,7 +76,7 @@ class UlbController extends Controller
                 throw new CustomException("Invalid Id");
             }
             $data->logo_img = $data->logo_img ? url("/".$data->logo_img) : null;
-            $data->water_mark_img = $data->water_mark_img ? url("/".$data->water_mark_img) : null;            
+            $data->water_mark_img = $data->water_mark_img ? url("/".$data->water_mark_img) : null;
             return responseMsg(true,"Use Details",camelCase(remove_null($data)));
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");

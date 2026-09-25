@@ -82,7 +82,7 @@ function PaymentReceiptModal({ id, onClose }) {
               isFrozen ? "pointer-events-none filter blur-sm" : ""
             }`}
           >
-            <div className="overflow-x-auto" ref={printRef}>            
+            <div className="overflow-x-auto p-4" ref={printRef}>            
               <PaymentReceiptDtl id={id} setIsFrozen={setIsFrozen} />
             </div>
           </div>
