@@ -144,24 +144,28 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
 
       <div className="relative z-10 p-4">
         {/* ===================== HEADER ===================== */}
-        <div className="grid grid-cols-[1fr_auto] gap-4">
-          <div>
+        {/* Left spacer = QR column width, so the heading is centred on the full receipt */}
+        <div className="grid grid-cols-[110px_1fr_110px] items-start gap-2">
+          <div></div>
+
+          <div className="min-w-0">
             <div className="flex items-center justify-center gap-3 pt-3">
               {ulbDetails?.logoImg && (
-                <img src={ulbDetails.logoImg} alt="Logo" className="w-[70px] h-[70px] object-contain" />
+                <img src={ulbDetails.logoImg} alt="Logo" className="w-[50px] h-[50px] object-contain shrink-0" />
               )}
-              <h1 className="font-bold text-[20px] uppercase whitespace-nowrap">{val(ulbName)}</h1>
+              <h1 className="font-bold text-[16px] uppercase whitespace-nowrap text-center">{val(ulbName)}</h1>
               {receiptData?.ulbDtl?.rightLogo && (
-                <img src={receiptData.ulbDtl.rightLogo} alt="" className="w-[110px] h-[55px] object-contain" />
+                <img src={receiptData.ulbDtl.rightLogo} alt="" className="w-[90px] h-[35px] object-contain shrink-0" />
               )}
             </div>
             <div className="flex justify-center mt-3">
-              <span className="inline-block px-3 py-1 border-2 border-black font-bold text-[18px] uppercase">
+              <span className="inline-block px-3 py-1 border-2 border-black font-bold text-[14px] uppercase">
                 {t(receiptData?.description)}
               </span>
             </div>
           </div>
-          <div className="text-center">
+
+          <div className="justify-self-end" style={{ padding: '0' }}>
             {qurCode}
             <div className="mt-1 text-[11px]">{t("QR Code")}</div>
           </div>
@@ -325,6 +329,20 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
             <tr>
               <td className={`${td} text-right`} colSpan={2}>{t("Form Fee")}</td>
               <td className={`${td} text-right`}>{money(receiptData?.formFee)}</td>
+            </tr>
+            <tr>
+              <td className={`${td} text-right`} colSpan={2}>
+                {t("Total Penalty")}
+              </td>
+              <td className={`${td} text-right`} colSpan={2}>{receiptData?.tranDtl?.penaltyAmt}</td>
+            </tr>
+            <tr>
+              <td className={`${td} text-right`} colSpan={2}>
+                {t("Total Rebate")}
+              </td>
+              <td className={`${td} text-right`} colSpan={2}>
+                {receiptData?.tranDtl?.discountAmt}
+              </td>
             </tr>
             <tr className="font-bold">
               <td className={`${td} text-right`} colSpan={2}>{t("Total")}</td>
