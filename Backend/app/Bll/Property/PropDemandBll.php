@@ -11,6 +11,7 @@ use App\Models\Property\PropertyDemand;
 use App\Models\Property\PropertyDetail;
 use App\Models\Property\PropertyNotice;
 use App\Models\Property\PropertyTypeMaster;
+use App\Models\Property\RejectedSafDetail;
 use App\Models\Property\SafDemand;
 use App\Models\Property\SafDetail;
 use App\Trait\Property\PropertyTrait;
@@ -62,6 +63,9 @@ class PropDemandBll{
     public $_advanceAmount = 0 ;
 
     public $_lastPaymentIsClear = true;
+    public $_WatermarkBase64;
+    public $_floor;
+    public $_SafNo;
 
     function __construct($propId,$tranDate=null)
     {
@@ -73,11 +77,33 @@ class PropDemandBll{
          $this->_owners = collect($this->_PROPERTY->getOwners())->sortBy("id");
         $this->_UlbDetail = UlbMaster::find($this->_PROPERTY->ulb_id);
         if($this->_UlbDetail){
+            $this->_WatermarkBase64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/'.$this->_UlbDetail->logo_img) : "";
+            $this->_UlbDetail->right_logo = url('/'."UlbLogo/swachh_bharat.png");
         }
+        $this->_floor = $this->adjustFloorValue($this->_PROPERTY->getFloors());
+        $safRecord = null;
+        if($this->_PROPERTY->saf_detail_id){
+            $safRecord = ActiveSafDetail::find($this->_PROPERTY->saf_detail_id)
+                ?? SafDetail::find($this->_PROPERTY->saf_detail_id)
+                ?? RejectedSafDetail::find($this->_PROPERTY->saf_detail_id);
+        }
+        $this->_SafNo = $safRecord->saf_no ?? "";
         $this->setDemandList();
         $this->testLastTran();
         $this->updatePenalPenalty();
+    }
+
+    public function getImageBase64($relativePath){
+        if(!$relativePath){
+            return null;
+        }
+        $path = public_path($relativePath);
+        if(!file_exists($path)){
+            return null;
+        }
+        $mime = mime_content_type($path) ?: 'image/png';
+        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($path));
     }
 
     private function updatePenalPenalty(){
@@ -186,8 +212,14 @@ class PropDemandBll{
     }
 
     public function generateDemand(){
+        $formFee = collect($this->_additionalTaxList)->where("tax_type","Form Fee")->sum("amount");
+        $otherAdditionalTaxList = collect($this->_additionalTaxList)->where("tax_type","!=","Form Fee")->values();
+        $grossDemand = roundFigure($this->_demandAmount + $this->_lateAssessmentPenalty + $this->_otherPenalty + $this->_additionalTax + $this->_monthlyPenalty + $this->_noticePenalty + $this->_noticeAdditionPenalty);
+        $totalDiscount = roundFigure($this->_quarterlyRebate + $this->_specialRebate + $this->_advanceAmount);
+
         $this->_GRID = [
-            "description"=>"Property Tax Demand",
+            "printingDate"=>Carbon::now()->format("Y-m-d H:i:s"),
+            "description"=>"PROPERTY TAX DEMAND",
             "department" => "Revenue Section",
             "accountDescription" => "Holding Tax & Others",
             "date"=>$this->_tranDate->clone()->format("Y-m-d"),
@@ -198,21 +230,26 @@ class PropDemandBll{
             "zone" =>$this->_PROPERTY->zone??"N/A",
             "holdingNo" => $this->_PROPERTY->holding_no??"",
             "newHoldingNo" => $this->_PROPERTY->new_holding_no??"",
+            "safNo" => $this->_SafNo,
             "address" => $this->_PROPERTY->prop_address??"",
             "ownerName" =>$this->_owners->implode("owner_name",", "),
+            "relationType" =>$this->_owners->unique("relation_type")->pluck("relation_type")->implode(", "),
+            "guardianName" =>$this->_owners->implode("guardian_name",", "),
             "mobileNo"=>$this->_owners->implode("mobile_no",", "),
+            "floorDtl" => $this->_floor,
+            "watermark" => $this->_WatermarkBase64,
             "lastPaymentClear" => $this->_lastPaymentIsClear,
             "demandList"=>$this->_DemandList,
             "previousDemand"=> $this->_previousDemandList,
             "currentDemand"=> $this->_currentDemandList,
             "previousDemandReceipt"=>$this->generateDemandReceipt($this->_previousDemandList),
-            "currentDemandReceipt"=>$this->generateDemandReceipt($this->_currentDemandList),           
+            "currentDemandReceipt"=>$this->generateDemandReceipt($this->_currentDemandList),
             "notice"=>$this->_notice,
             "grantTax"=>$this->generateGrantTax($this->_DemandList),
             "otherPenaltyList"=>$this->_otherPenaltyList,
-            "additionalTaxList"=>$this->_additionalTaxList,            
+            "additionalTaxList"=>$otherAdditionalTaxList,
+            "formFee"=>roundFigure($formFee),
             "demandAmount"=>$this->_demandAmount,
-            "rwhAmount"=> $this->_rwhAmount,
             "advanceAmount" => $this->_advanceAmount,
             "lateAssessmentPenalty" => $this->_lateAssessmentPenalty,
             "OtherPenalty"=>$this->_otherPenalty,
@@ -232,10 +269,12 @@ class PropDemandBll{
             "currentDemandAmount" =>$this->_currentDemandAmount,
             "arrearDemandAmount" => $this->_arrearDemandAmount,
             "arrearDemandMonthlyPenalty"=>$this->_arrearDemandMonthlyPenalty,
+            "grossDemand" => roundFigure($grossDemand),
+            "totalDiscount" => $totalDiscount,
             "payableAmount" => roundFigure(($this->_demandAmount + $this->_lateAssessmentPenalty + $this->_otherPenalty + $this->_additionalTax + $this->_monthlyPenalty + $this->_noticePenalty + $this->_noticeAdditionPenalty) - ($this->_quarterlyRebate + $this->_specialRebate + $this->_advanceAmount) ),
             "arrearPayableAmount" => roundFigure(($this->_arrearDemandAmount + $this->_lateAssessmentPenalty + $this->_otherPenalty + $this->_additionalTax + $this->_arrearDemandMonthlyPenalty + $this->_noticePenalty + $this->_noticeAdditionPenalty) - ( $this->_specialRebate + $this->_advanceAmount) ),
         ];
-        $this->_GRID["payableAmountInWord"] = getIndianCurrency($this->_GRID["payableAmount"]); 
+        $this->_GRID["payableAmountInWord"] = getIndianCurrency($this->_GRID["payableAmount"]);
         
         $this->_GRID["totalPayableAmount"] = roundFigure($this->_GRID["payableAmount"]);
         $this->_GRID["totalPayableAmountInWord"] = getIndianCurrency($this->_GRID["totalPayableAmount"]);
@@ -250,7 +289,6 @@ class PropDemandBll{
             "water_tax"=> roundFigure($demandList->sum("water_tax")),
             "health_cess_tax"=> roundFigure($demandList->sum("health_cess_tax")),
             "education_cess_tax"=> roundFigure($demandList->sum("education_cess_tax")),
-            "rwh_tax"=> roundFigure($demandList->sum("rwh_tax")),
             "fine_tax"=> roundFigure($demandList->sum("fine_tax")),
             "adjust_amt"=> roundFigure($demandList->sum("adjust_amt")),
             "balance_tax"=> roundFigure($demandList->sum("balance_tax")),
@@ -259,34 +297,32 @@ class PropDemandBll{
             "due_water_tax"=> roundFigure($demandList->sum("due_water_tax")),
             "due_health_cess_tax"=> roundFigure($demandList->sum("due_health_cess_tax")),
             "due_education_cess_tax"=> roundFigure($demandList->sum("due_education_cess_tax")),
-            "due_rwh_tax"=> roundFigure($demandList->sum("due_rwh_tax")),
             "monthlyPenalty"=> roundFigure($demandList->sum("monthlyPenalty")),
         ];
         return collect($returnData);
     }
 
     public function generateDemandReceipt($demandList){
-        $fromYear = collect($demandList)->min("fyear");
-        $uptoYear = collect($demandList)->max("fyear");
-        $fromQtr = collect($demandList)->where('fyear',$fromYear)->min("qtr");
-        $uptoQtr = collect($demandList)->where('fyear',$uptoYear)->max("qtr");
-        $totalRwhDue = roundFigure(collect($demandList)->sum("due_rwh_tax"));
-        $totalDue = roundFigure(collect($demandList)->sum("balance_tax"));
-        $totalHoldingDue = roundFigure($totalDue - $totalRwhDue);
-        $totalQtr = collect($demandList)->count();
-        $qtrTax = roundFigure($totalHoldingDue / ($totalQtr ? $totalQtr : 1));
-        $qtrRwh = roundFigure($totalRwhDue / ($totalQtr ? $totalQtr : 1));
-        // dd($totalRwhDue,$totalHoldingDue,$totalDue,$totalQtr,$qtrTax,$qtrRwh,$demandList);
+        $demandList = collect($demandList);
+        $fromYear = $demandList->min("fyear");
+        $uptoYear = $demandList->max("fyear");
+        $fromQtr = $demandList->where('fyear',$fromYear)->min("qtr");
+        $uptoQtr = $demandList->where('fyear',$uptoYear)->max("qtr");
+        $totalDue = roundFigure($demandList->sum("balance_tax"));
+        $totalQtr = $demandList->count();
+        $qtrTax = roundFigure($totalDue / ($totalQtr ? $totalQtr : 1));
         return[
             "fromYear"=>$fromYear,
             "fromQtr"=>$fromQtr,
             "uptoYear"=>$uptoYear,
             "uptoQtr"=>$uptoQtr,
             "qtrTax"=>$qtrTax,
-            "qtrRwh"=>$qtrRwh,
             "totalQtr"=>$totalQtr,
-            "totalQtrTax"=>roundFigure($qtrTax + $qtrRwh) ,
+            "totalQtrTax"=>$qtrTax,
             "totalDue"=>$totalDue,
+            "holdingTax"=>roundFigure($demandList->sum("due_holding_tax")),
+            "compositeTax"=>roundFigure($demandList->sum("due_composite_tax")),
+            "educationCessTax"=>roundFigure($demandList->sum("due_education_cess_tax")),
         ];
 
     }
