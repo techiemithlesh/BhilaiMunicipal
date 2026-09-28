@@ -436,18 +436,6 @@ class ConsumerController extends Controller
         }
     }
 
-    public function getMeterTypeList(Request $request){
-        try{
-            $data = $this->_MeterTypeMaster->where("lock_status",false)->get();
-            return responseMsg(true,"Meter Type List",remove_null(camelCase($data)));
-        }catch(CustomException $e){
-            return responseMsg(false,$e->getMessage(),"");
-        }
-        catch(Exception $e){
-            return responseMsg(false,"Internal Server Error","");
-        }
-    }
-
     public function citizenConsumer(Request $request){
         try{
             $user = Auth::user();

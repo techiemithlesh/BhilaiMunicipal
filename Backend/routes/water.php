@@ -15,6 +15,7 @@ Route::post('water', function (Request $request) {
 Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function () {
       Route::controller(MasterController::class)->group(function(){
         Route::post('/get-prop-type-list', 'getPropertyTypeList');
+        Route::post("meter-type/list","getMeterTypeList");
       });
 
     Route::prefix("app/")->group(function(){
@@ -45,8 +46,7 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         });
     });
     Route::prefix("consumer/")->group(function(){
-        Route::controller(ConsumerController::class)->group(function(){
-            Route::post("meter-type/list","getMeterTypeList");
+            Route::controller(ConsumerController::class)->group(function(){
             Route::post("search","searchConsumer");
             Route::post("dtl","consumerDtl");
             Route::post("update-connection","updateConnectionType");
