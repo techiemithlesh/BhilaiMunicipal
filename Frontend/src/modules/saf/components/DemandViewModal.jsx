@@ -138,10 +138,10 @@ function DemandViewModal({
                     <th className="p-2 border" rowSpan={2}>
                       Due Date
                     </th>
-                    <th className="p-2 border" colSpan={7}>
+                    <th className="p-2 border" colSpan={6}>
                       Tax
                     </th>
-                    <th className="p-2 border" colSpan={7}>
+                    <th className="p-2 border" colSpan={6}>
                       Due
                     </th>
                     <th className="p-2 border" rowSpan={2}>
@@ -160,7 +160,6 @@ function DemandViewModal({
                     <th className="p-2 border">Water Tax</th>
                     <th className="p-2 border">HealthCess Tax</th>
                     <th className="p-2 border">EducationCess Tax</th>
-                    <th className="p-2 border">RWH Tax</th>
                     <th className="p-2 border">Total Tax</th>
 
                     <th className="p-2 border">Holding Tax</th>
@@ -168,7 +167,6 @@ function DemandViewModal({
                     <th className="p-2 border">Water Tax</th>
                     <th className="p-2 border">HealthCess Tax</th>
                     <th className="p-2 border">EducationCess Tax</th>
-                    <th className="p-2 border">RWH Tax</th>
                     <th className="p-2 border">Total Tax</th>
                   </tr>
                 </thead>
@@ -206,9 +204,6 @@ function DemandViewModal({
                             {item?.educationCessTax}
                           </td>
                           <td className="p-2 border text-center">
-                            {item?.rwhTax}
-                          </td>
-                          <td className="p-2 border text-center">
                             {item?.totalTax}
                           </td>
 
@@ -226,9 +221,6 @@ function DemandViewModal({
                           </td>
                           <td className="p-2 border text-center">
                             {item?.dueEducationCessTax}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {item?.dueRwhTax}
                           </td>
                           <td className="p-2 border text-center">
                             {item?.balanceTax}
@@ -250,7 +242,7 @@ function DemandViewModal({
                   ) : (
                     <tr>
                       <td
-                        colSpan="21"
+                        colSpan="18"
                         className="p-4 text-gray-500 text-center"
                       >
                         No documents found.
@@ -280,9 +272,6 @@ function DemandViewModal({
                         {demandData?.grantTax?.educationCessTax}
                       </td>
                       <td className="p-2 border text-center">
-                        {demandData?.grantTax?.rwhTax}
-                      </td>
-                      <td className="p-2 border text-center">
                         {demandData?.grantTax?.totalTax}
                       </td>
 
@@ -300,9 +289,6 @@ function DemandViewModal({
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.dueEducationCessTax}
-                      </td>
-                      <td className="p-2 border text-center">
-                        {demandData?.grantTax?.dueRwhTax}
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.balanceTax}

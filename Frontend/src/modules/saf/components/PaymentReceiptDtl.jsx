@@ -20,6 +20,12 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
   const [ulbDetails, setUlbDetails] = useState(null);
 
   useEffect(() => {
+    // Receipts default to Hindi; the English/Hindi toggle can still switch it.
+    i18n.changeLanguage("hi");
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
     if (id) fetchData();
     return () => {
       setIsFrozen(false);
@@ -130,7 +136,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
           <img
             src={receiptData.watermark}
             alt=""
-            className="w-[440px] opacity-[0.25] select-none"
+            className="w-[440px] opacity-[0.55] select-none"
           />
         </div>
       )}
