@@ -407,10 +407,10 @@ class WaterApplicationController extends Controller
             $activeApplication = $this->_WaterActiveApplication->from("water_active_applications as app")
                 ->select($select)
                 ->addSelect(DB::raw("'active' as app_type"))
-                ->join("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
-                ->join("property_type_masters as ptm", "ptm.id", "app.property_type_id")
-                ->join("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
-                ->join("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
+                ->leftJoin("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
+                ->leftJoin("property_type_masters as ptm", "ptm.id", "app.property_type_id")
+                ->leftJoin("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
+                ->leftJoin("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
                 ->join(DB::raw("(
                     SELECT application_id,
                         STRING_AGG(owner_name, ',') AS owner_name,
@@ -438,10 +438,10 @@ class WaterApplicationController extends Controller
             $application = $this->_WaterApplication->from("water_applications as app")
                 ->select($select)
                 ->addSelect(DB::raw("'approved' as app_type"))
-                ->join("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
-                ->join("property_type_masters as ptm", "ptm.id", "app.property_type_id")
-                ->join("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
-                ->join("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
+                ->leftJoin("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
+                ->leftJoin("property_type_masters as ptm", "ptm.id", "app.property_type_id")
+                ->leftJoin("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
+                ->leftJoin("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
                 ->join(DB::raw("(
                     SELECT application_id,
                         STRING_AGG(owner_name, ',') AS owner_name,

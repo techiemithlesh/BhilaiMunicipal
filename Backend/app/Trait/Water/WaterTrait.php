@@ -136,10 +136,10 @@ trait WaterTrait{
 
     public function metaDataList(){
         return WaterActiveApplication::from("water_active_applications as app")                
-                ->join("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
-                ->join("property_type_masters as ptm", "ptm.id", "app.property_type_id")
-                ->join("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
-                ->join("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
+                ->leftJoin("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
+                ->leftJoin("property_type_masters as ptm", "ptm.id", "app.property_type_id")
+                ->leftJoin("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
+                ->leftJoin("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
                 ->join(DB::raw("(
                     SELECT application_id,
                         STRING_AGG(owner_name, ',') AS owner_name,
@@ -340,11 +340,11 @@ trait WaterTrait{
 
     public function consumerMetaDataList(){
         return Consumer::from("consumers as app")                
-                ->join("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
-                ->join("property_type_masters as ptm", "ptm.id", "app.property_type_id")
-                ->join("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
-                ->join("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
-                ->join(DB::raw("(
+                ->leftJoin("connection_type_masters as ctm", "ctm.id", "app.connection_type_id")
+                ->leftJoin("property_type_masters as ptm", "ptm.id", "app.property_type_id")
+                ->leftJoin("connection_through_masters as cthm", "cthm.id", "app.connection_through_id")
+                ->leftJoin("ownership_type_masters as otm", "otm.id", "app.ownership_type_id")
+                ->leftJoin(DB::raw("(
                     SELECT consumer_id,
                         STRING_AGG(owner_name, ',') AS owner_name,
                         STRING_AGG(guardian_name, ',') AS guardian_name,
