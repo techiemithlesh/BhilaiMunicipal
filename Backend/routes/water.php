@@ -49,6 +49,8 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
             Route::controller(ConsumerController::class)->group(function(){
             Route::post("search","searchConsumer");
             Route::post("dtl","consumerDtl");
+            Route::post("test-add-existing","testAddExistingConsumer");
+            Route::post("add-existing","addExistingConsumer");
             Route::post("update-connection","updateConnectionType");
             Route::post("generate-demand","generateDemand");
             Route::post("demand-history","getAllDemands");
@@ -70,8 +72,6 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
             Route::post('ward-wise-consumer', 'wardWiseConsumer');
             Route::post('consumer-dcb', 'consumerWiseDcb');
             Route::post('ward-wise-dcb', 'wardWiseDcb');
-            // Route::post('applied-saf-list', 'appliedSafList');
-            // Route::post('ward-wise-applied-saf', 'wardWiseAppliedList');
         });
     });
 });

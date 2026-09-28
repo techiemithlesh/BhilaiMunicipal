@@ -233,8 +233,7 @@ function ConsumerDetails() {
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{owner.ownerName}</td>
                   <td className="px-3 py-2 border">{owner.guardianName}</td>
-                  {/* <td className="px-3 py-2 border">{owner.mobileNo}</td>
-                  <td className="px-3 py-2 border">{owner.email}</td> */}
+                  <td className="px-3 py-2 border">{owner.mobileNo}</td>
                 </tr>
               )}
             />

@@ -19,6 +19,7 @@ const FileUpload = ({
   server = null,
   className = "", // optional styling
   required = false,
+  maxFileSize = null, // e.g. "2MB"
 }) => {
   const mimeTypeMap = {
     '.pdf': 'application/pdf',
@@ -48,6 +49,7 @@ const FileUpload = ({
         server={server}
         labelIdle={label}
         className="filepond"
+        maxFileSize={maxFileSize}
       />
     </div>
   );

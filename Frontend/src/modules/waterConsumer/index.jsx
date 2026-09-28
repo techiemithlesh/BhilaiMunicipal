@@ -4,6 +4,8 @@ import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "../../components/common/ProtectedRoute";
 import SearchConsumer from "./pages/SearchConsumer";
 import ConsumerDetails from "./pages/ConsumerDetails";
+import AddExisting from "./pages/AddExisting";
+import AddExistingPreview from "./pages/AddExistingPreview";
 import EditApplication from "../water/pages/EditApplication";
 import { waterConsumerDetailApi } from "../../api/endpoints";
 import ReportRoute from "./ReportRoute";
@@ -26,6 +28,22 @@ function index() {
               element={
                 <ProtectedRoute>
                   <SearchConsumer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-existing"
+              element={
+                <ProtectedRoute>
+                  <AddExisting />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-existing/preview"
+              element={
+                <ProtectedRoute>
+                  <AddExistingPreview />
                 </ProtectedRoute>
               }
             />

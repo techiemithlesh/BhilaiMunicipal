@@ -386,26 +386,46 @@ trait WaterTrait{
         if(!$water){
             $water = WaterApplication::find($waterId);
         }
-        
+
         $ward_no = $water->getWardOldWardNo()->ward_no??"";
         if(!$ward_no){
             $ward_no = $water->getWardNewdWardNo()->ward_no??"";
         }
         if ($water->connection_type_id == 1) {
             $usage_type_code = 'N';
-        }else{  
-            $usage_type_code = "R"; 
+        }else{
+            $usage_type_code = "R";
         }
-        
+
+        $ulbCode = UlbMaster::find($water->ulb_id)->short_name??"";
+
         $serial_no = Consumer::where("ward_mstr_id",$water->ward_mstr_id)->where("ulb_id",$water->ulb_id)->count("id") + 1;
         $serial_no_pad = str_pad($serial_no, 6, "0", STR_PAD_LEFT);
         $ward_no = str_pad($ward_no, 3, "0", STR_PAD_LEFT);
-        $consumer_no = $ward_no . $usage_type_code . $serial_no_pad ;
+        $consumer_no = $ulbCode . $ward_no . $usage_type_code . $serial_no_pad ;
         while(Consumer::where('consumer_no', $consumer_no)->exists()){
                 $serial_no ++;
                 $serial_no_pad = str_pad($serial_no, 6, "0", STR_PAD_LEFT);
-                $consumer_no = $ward_no . $usage_type_code . $serial_no_pad ;               
+                $consumer_no = $ulbCode . $ward_no . $usage_type_code . $serial_no_pad ;
         }
         return $consumer_no ;
+    }
+
+    // Same numbering scheme as generateConsumerNo(), but for consumers created
+    public function generateConsumerNoByWard($wardMstrId, $ulbId, $connectionTypeId){
+        $ward = UlbWardMaster::find($wardMstrId);
+        $ward_no = $ward->ward_no ?? "";
+        $usage_type_code = $connectionTypeId == 1 ? 'N' : 'R';
+        $ulbCode = UlbMaster::find($ulbId)->short_name??"";
+        $serial_no = Consumer::where("ward_mstr_id",$wardMstrId)->where("ulb_id",$ulbId)->count("id") + 1;
+        $serial_no_pad = str_pad($serial_no, 6, "0", STR_PAD_LEFT);
+        $ward_no = str_pad($ward_no, 3, "0", STR_PAD_LEFT);
+        $consumer_no = $ulbCode . $ward_no . $usage_type_code . $serial_no_pad;
+        while(Consumer::where('consumer_no', $consumer_no)->exists()){
+            $serial_no++;
+            $serial_no_pad = str_pad($serial_no, 6, "0", STR_PAD_LEFT);
+            $consumer_no = $ulbCode . $ward_no . $usage_type_code . $serial_no_pad;
+        }
+        return $consumer_no;
     }
 }

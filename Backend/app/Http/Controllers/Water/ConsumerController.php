@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Water;
 
 use App\Bll\Common;
+use App\Bll\Water\BhilaiConsumerDemandGenerateBll;
 use App\Bll\Water\BiharConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDueBll;
@@ -20,6 +21,7 @@ use App\Models\Water\ConsumerDemand;
 use App\Models\Water\ConsumerOwner;
 use App\Models\Water\MeterReading;
 use App\Models\Water\MeterStatus;
+use App\Http\Requests\Water\RequestAddExistingConsumer;
 use App\Models\Water\MeterTypeMaster;
 use App\Models\Water\ParamModel;
 use App\Models\Water\PropertyTypeMaster;
@@ -257,6 +259,101 @@ class ConsumerController extends Controller
             $consumer->update();
             $this->commit();
             return responseMsg(true,"Consumer Connection Update","");
+        }catch(CustomException $e){
+            $this->rollback();
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){
+            $this->rollback();
+            return responseMsg(false,"Server Error","");
+        }
+    }
+
+    
+    public function testAddExistingConsumer(RequestAddExistingConsumer $request){
+        return responseMsg(true,"Valid Request","");
+    }
+
+    public function addExistingConsumer(RequestAddExistingConsumer $request){
+        try{
+            $user = Auth::user();
+            $additionData = [];
+            if($user && $user->getTable()=='users'){
+                $additionData["userId"]=$user->id;
+            }elseif($user){
+                $additionData["citizenId"]=$user->id;
+            }
+            if($request->holdingNo){
+                $property = (new PropertyDetail())->where("new_holding_no",$request->holdingNo)->first();
+                $additionData["propertyDetailId"] = $property->id ?? null;
+            }
+            if($request->safNo){
+                $saf = (new ActiveSafDetail())->where("saf_no",$request->safNo)->first();
+                if(!$saf){
+                    $saf = (new SafDetail())->where("saf_no",$request->safNo)->first();
+                }
+                $additionData["safDetailId"] = $saf->id ?? null;
+            }
+            if(!$request->areaSqft){
+                // area_sqft is NOT NULL in the DB
+                $additionData["areaSqft"] = 0;
+            }
+            $additionData["consumerNo"] = $this->generateConsumerNoByWard($request->wardMstrId,$request->ulbId,$request->connectionTypeId);
+
+            $request->merge($additionData);
+
+            $this->begin();
+            $consumerId = $this->_Consumer->store($request);
+
+            foreach($request->ownerDtl as $owner){
+                $ownerRequest = new Request($owner);
+                $ownerRequest->merge(["consumerId"=>$consumerId]);
+                $this->_ConsumerOwner->store($ownerRequest);
+            }
+
+            // Existing Connection Details are optional — record them now only if the
+            if($request->meterTypeId && $request->connectionDate){
+                $docPath = null;
+                if($request->document){
+                    $relativePath = "Uploads/WaterMeterConnection";
+                    $imageName = $consumerId."_".((string) Str::uuid()).".".$request->document->getClientOriginalExtension();
+                    $docPath = $request->document->storeAs($relativePath,$imageName, $this->disk);
+                }
+                $meterStatusRequest = new Request([
+                    "consumerId"=>$consumerId,
+                    "meterTypeId"=>$request->meterTypeId,
+                    "propertyTypeId"=>$request->propertyTypeId,
+                    "connectionDate"=>$request->connectionDate,
+                    "meterNo"=>$request->meterNo,
+                    "docPath"=>$docPath,
+                    "userId"=>$user?->id,
+                ]);
+                $meterId = $this->_MeterStatus->store($meterStatusRequest);
+                if($request->meterTypeId == 1){
+                    $meterReadingRequest = new Request([
+                        "meterStatusId"=>$meterId,
+                        "reading"=>$request->initialReading,
+                        "userId"=>$user?->id,
+                    ]);
+                    $this->_MeterReading->store($meterReadingRequest);
+                }
+                $consumer = $this->_Consumer->find($consumerId);
+                $consumer->meter_status_id = $meterId;
+                $consumer->update();
+
+                // Fixed (flat-rate) connections have no meter reading to wait on, so back-bill
+                // the demand now from the given Effect From date up to today.
+                if($request->meterTypeId == 2){
+                    $demandRequest = new Request([
+                        "id"=>$consumerId,
+                        "currentDate"=>Carbon::now()->format("Y-m-d"),
+                    ]);
+                    $objGenerateDemand = new BhilaiConsumerDemandGenerateBll($demandRequest);
+                    $objGenerateDemand->generateDemand();
+                }
+            }
+
+            $this->commit();
+            return responseMsg(true,"Consumer Added",remove_null(camelCase(["id"=>$consumerId,"consumerNo"=>$additionData["consumerNo"]])));
         }catch(CustomException $e){
             $this->rollback();
             return responseMsg(false,$e->getMessage(),"");
