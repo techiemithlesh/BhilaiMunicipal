@@ -298,6 +298,7 @@ export const waterConsumerDetailApi = `${BASE_URL}/api/water/consumer/dtl`;
 export const waterConsumerDueApi = `${BASE_URL}/api/water/consumer/due`;
 export const waterConsumerDuePaymentApi = `${BASE_URL}/api/water/consumer/pay-due`;
 export const waterMeterTypeListApi = `${BASE_URL}/api/water/consumer/meter-type/list`;
+export const waterPropertyTypeListApi = `${BASE_URL}/api/water/get-prop-type-list`;
 export const waterConsumerUpdateConnectionApi = `${BASE_URL}/api/water/consumer/update-connection`;
 export const waterConsumerDemandGenerateApi = `${BASE_URL}/api/water/consumer/generate-demand`;
 export const waterConsumerDemandHistoryApi = `${BASE_URL}/api/water/consumer/demand-history`;

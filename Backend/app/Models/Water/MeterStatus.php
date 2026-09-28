@@ -12,6 +12,7 @@ class MeterStatus extends ParamModel
     protected $fillable = [
         "consumer_id",
         "meter_type_id",
+        "property_type_id",
         "connection_date",
         "meter_no",
         "is_meter_working",

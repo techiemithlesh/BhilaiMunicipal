@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Water\ConsumerController;
+use App\Http\Controllers\Water\MasterController;
 use App\Http\Controllers\Water\ReportController;
 use App\Http\Controllers\Water\WaterApplicationController;
 use Illuminate\Http\Request;
@@ -12,6 +13,10 @@ Route::post('water', function (Request $request) {
 });
 
 Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function () {
+      Route::controller(MasterController::class)->group(function(){
+        Route::post('/get-prop-type-list', 'getPropertyTypeList');
+      });
+
     Route::prefix("app/")->group(function(){
         Route::controller(WaterApplicationController::class)->group(function(){
             Route::post("master-data","getMasterData");

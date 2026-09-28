@@ -22,6 +22,7 @@ use App\Models\Water\MeterReading;
 use App\Models\Water\MeterStatus;
 use App\Models\Water\MeterTypeMaster;
 use App\Models\Water\ParamModel;
+use App\Models\Water\PropertyTypeMaster;
 use App\Models\Water\WaterTransaction;
 use App\Trait\Water\WaterTrait;
 use Carbon\Carbon;
@@ -50,6 +51,7 @@ class ConsumerController extends Controller
     protected $_ConsumerOwner;
     protected $_ConsumerDemand;
     protected $_MeterTypeMaster;
+    protected $_PropertyTypeMaster;
     protected $_MeterStatus;
     protected $_MeterReading;
     protected $_WaterTransaction;
@@ -68,6 +70,7 @@ class ConsumerController extends Controller
         $this->_ConsumerOwner = new ConsumerOwner();
         $this->_ConsumerDemand = new ConsumerDemand();
         $this->_MeterTypeMaster = new MeterTypeMaster();
+        $this->_PropertyTypeMaster = new PropertyTypeMaster();
         $this->_MeterStatus = new MeterStatus();
         $this->_MeterReading = new MeterReading();
         $this->_WaterTransaction = new WaterTransaction();
@@ -194,6 +197,7 @@ class ConsumerController extends Controller
             $rule=[
                 "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Consumer->getConnectionName().".".$this->_Consumer->getTable().",id,lock_status,false",
                 "meterTypeId"=>"required|exists:".$this->_MeterTypeMaster->getConnectionName().".".$this->_MeterTypeMaster->getTable().",id",
+                "propertyTypeId"=>"required|exists:".$this->_PropertyTypeMaster->getConnectionName().".".$this->_PropertyTypeMaster->getTable().",id",
                 "connectionDate"=>"required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
                 "initialReading"=>"required_if:meterTypeId,1".($request->initialReading ? "|numeric" : ""),
                 "meterNo"=>"required_if:meterTypeId,1",

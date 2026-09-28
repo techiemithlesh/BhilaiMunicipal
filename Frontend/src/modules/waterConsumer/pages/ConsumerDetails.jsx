@@ -146,6 +146,14 @@ function ConsumerDetails() {
 
   const fields = [
     { label: "Consumer No", value: appData?.consumerNo },
+    ...(appData?.oldConsumerNO
+      ? [
+          {
+            label: "Old Consumer No.",
+            value: appData?.oldConsumerNO,
+          },
+        ]
+      : []),
     { label: "Consumer Date", value: formatLocalDate(appData?.connectionDate) },
     { label: "Ward No", value: appData?.wardNo },
     // Conditionally add SAF No.
@@ -183,10 +191,10 @@ function ConsumerDetails() {
         ]
       : []),
     { label: "Property Type", value: appData?.propertyType },
-    { label: "Ownership Type", value: appData?.ownershipType },
-    { label: "Connection Through", value: appData?.connectionThrough },
-    { label: "Pipeline Type", value: appData?.pipelineType },
-    { label: "Area in Sqft", value: appData?.areaSqft },
+    // { label: "Ownership Type", value: appData?.ownershipType },
+    // { label: "Connection Through", value: appData?.connectionThrough },
+    // { label: "Pipeline Type", value: appData?.pipelineType },
+    // { label: "Area in Sqft", value: appData?.areaSqft },
     { label: "Address", value: appData?.address },
     { label: "Landmark", value: appData?.landmark },
     { label: "Pin Code", value: appData?.pinCode },
@@ -218,19 +226,19 @@ function ConsumerDetails() {
             <ApplicationDetails fields={fields} />
             <SectionCard
               title="Owner Details"
-              headers={["SL", "Owner", "Guardian", "Mobile", "Email", "Dob"]}
+              headers={["SL", "Owner", "Guardian", "Mobile", ]} //"Email", "Dob"
               data={appData?.owners}
               renderRow={(owner, idx) => (
                 <tr key={idx}>
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{owner.ownerName}</td>
                   <td className="px-3 py-2 border">{owner.guardianName}</td>
-                  <td className="px-3 py-2 border">{owner.mobileNo}</td>
-                  <td className="px-3 py-2 border">{owner.email}</td>
+                  {/* <td className="px-3 py-2 border">{owner.mobileNo}</td>
+                  <td className="px-3 py-2 border">{owner.email}</td> */}
                 </tr>
               )}
             />
-            <DetailGrid
+            {/* <DetailGrid
               title="Electricity Details"
               note="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
               data={[
@@ -248,7 +256,7 @@ function ConsumerDetails() {
                   value: appData?.electConsCategory,
                 },
               ]}
-            />
+            /> */}
 
             {/* PAYMENT DETAILS */}
 
@@ -317,7 +325,6 @@ function ConsumerDetails() {
 
             <DetailGrid
               title="Consumer Connection Details"
-              note1="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
               data={[
                 {
                   label: "Connection Type",

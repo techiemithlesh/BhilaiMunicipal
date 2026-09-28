@@ -8,6 +8,7 @@ import FormCard from "../../../components/common/FormCard";
 import {
   waterConsumerUpdateConnectionApi,
   waterMeterTypeListApi,
+  waterPropertyTypeListApi,
 } from "../../../api/endpoints";
 import toast from "react-hot-toast";
 import FileUpload from "../../../components/common/FileUpload";
@@ -25,11 +26,13 @@ function UpdateConnectionModal({
   const [imageFiles, setImageFiles] = useState([]);
   const [validationError, setValidationError] = useState({});
   const [isFrozen, setIsFrozen] = useState(false); // Added missing state
+  const [propertyTypeList, setPropertyTypeList] = useState([]);
 
   // The fetch logic is correct for getting the meter types
   useEffect(() => {
     if (token) {
       fetchMeterTypes();
+      fetchPropertyTypes();
     }
   }, [token]);
 
@@ -51,6 +54,24 @@ function UpdateConnectionModal({
       toast.error("Failed to fetch connection types.");
     } finally {
       setIsFrozen(false);
+    }
+  };
+
+  const fetchPropertyTypes = async () => {
+    try {
+      const response = await axios.post(
+        waterPropertyTypeListApi,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (response?.data?.status) {
+        setPropertyTypeList(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching property types:", error);
+      toast.error("Failed to fetch property types.");
     }
   };
 
@@ -111,6 +132,18 @@ function UpdateConnectionModal({
   };
 
   const formFields = [
+    {
+      name: "propertyTypeId",
+      label: "Property Type",
+      type: "select",
+      error: validationError?.propertyTypeId || "",
+      value: form?.propertyTypeId || "",
+      required: true,
+      options: propertyTypeList.map((item) => ({
+        label: item.propertyType,
+        value: item.id,
+      })),
+    },
     {
       name: "meterTypeId",
       label: "Type of Connection",
