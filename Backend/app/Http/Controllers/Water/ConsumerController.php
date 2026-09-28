@@ -6,6 +6,7 @@ use App\Bll\Common;
 use App\Bll\Water\BhilaiConsumerDemandGenerateBll;
 use App\Bll\Water\BiharConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDemandGenerateBll;
+use App\Bll\Water\ConsumerDemandReceiptBll;
 use App\Bll\Water\ConsumerDueBll;
 use App\Bll\Water\ConsumerPaymentBll;
 use App\Bll\Water\PaymentReceiptBll;
@@ -189,6 +190,26 @@ class ConsumerController extends Controller
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
         }catch(Exception $e){dd($e);
+            return responseMsg(false,"Server Error","");
+        }
+    }
+
+
+    public function getDemandReceipt(Request $request){
+        try{
+            $rule=[
+                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Consumer->getConnectionName().".".$this->_Consumer->getTable().",id"
+            ];
+            $validator = Validator::make($request->all(),$rule);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $receiptBll = new ConsumerDemandReceiptBll($request->id);
+            $receiptBll->generateReceipt();
+            return responseMsg(true,"Water Demand Receipt",camelCase(remove_null($receiptBll->_GRID)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){
             return responseMsg(false,"Server Error","");
         }
     }

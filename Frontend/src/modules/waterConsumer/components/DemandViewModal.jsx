@@ -8,6 +8,7 @@ import { FaTimes } from "react-icons/fa";
 import PaymentModal from "./PaymentModal";
 import toast from "react-hot-toast";
 import PaymentReceiptModal from "./PaymentReceiptModal";
+import DemandPrintModal from "./DemandPrintModal";
 import DataTableFullData from "../../../components/common/DataTableFullData";
 import { formatLocalDate } from "../../../utils/common"; // Make sure to import this
 
@@ -26,6 +27,7 @@ function DemandViewModal({
   const [isShowPaymentReceiptModal, setIsShowPaymentReceiptModal] =
     useState(false);
   const [paymentReceiptId, setPaymentReceiptId] = useState(null);
+  const [isShowPrintModal, setIsShowPrintModal] = useState(false);
   useEffect(() => {
     if (token && id) fetchData();
   }, [id, token]);
@@ -118,12 +120,20 @@ function DemandViewModal({
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-blue-900 text-xl">View Demand</h2>
-          <button
-            className="text-gray-600 hover:text-red-600"
-            onClick={onClose}
-          >
-            <FaTimes size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsShowPrintModal(true)}
+              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
+            >
+              Print
+            </button>
+            <button
+              className="text-gray-600 hover:text-red-600"
+              onClick={onClose}
+            >
+              <FaTimes size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="relative flex-grow overflow-y-auto">
@@ -207,6 +217,13 @@ function DemandViewModal({
             <PaymentReceiptModal
               id={paymentReceiptId}
               onClose={() => setIsShowPaymentReceiptModal(false)}
+            />
+          )}
+
+          {isShowPrintModal && (
+            <DemandPrintModal
+              id={id}
+              onClose={() => setIsShowPrintModal(false)}
             />
           )}
         </div>

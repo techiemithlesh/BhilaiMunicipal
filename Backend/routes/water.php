@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
             Route::post("update-connection","updateConnectionType");
             Route::post("generate-demand","generateDemand");
             Route::post("demand-history","getAllDemands");
+            Route::post("demand-receipt","getDemandReceipt");
             Route::post("due","consumerDue");
             Route::post("pay-due","offlinePayment");
             Route::post("payment-receipt","getPaymentReceipt")->withoutMiddleware(["auth:sanctum","setUlb"]);
