@@ -261,7 +261,6 @@ const Details = () => {
               )}
             />
            
-           
             <DetailGrid
               title="Property Details"
               data={[

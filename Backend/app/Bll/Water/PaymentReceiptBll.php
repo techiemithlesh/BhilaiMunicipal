@@ -15,6 +15,7 @@ use App\Models\Water\WaterApplication;
 use App\Models\Water\WaterRejectedApplication;
 use App\Models\Water\WaterTransaction;
 use App\Trait\Water\WaterTrait;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PaymentReceiptBll
@@ -84,6 +85,8 @@ class PaymentReceiptBll
         $this->_UlbDetail = UlbMaster::find($this->_TranDetail->ulb_id);
         if($this->_UlbDetail){
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/'.$this->_UlbDetail->logo_img) : "";
+            $this->_UlbDetail->right_logo = url('/'."UlbLogo/swachh_bharat.png");
+            $this->_UlbDetail->watermark_base64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
         }
         $this->_oldWard = UlbWardMaster::find($this->_application->ward_mstr_id);
         $this->_newWard = UlbWardMaster::find($this->_application->new_ward_mstr_id);
@@ -101,9 +104,12 @@ class PaymentReceiptBll
                 "wardNo" =>$this->_oldWard->ward_no??"N/A",
                 "newWardNo" =>$this->_newWard->ward_no??"N/A",
                 "applicationNo" => $this->_application->application_no??"",
+                "newHoldingNo" => $this->_application->new_holding_no??"",
                 "consumer_no" => $this->_application->consumer_no??"",
                 "address" => $this->_application->address??"",
                 "ownerName" =>$this->_owners->implode("owner_name",", "),
+                "guardianName" =>$this->_owners->implode("guardian_name",", "),
+                "mobileNo" =>$this->_owners->implode("mobile_no",", "),
                 "amount" => $this->_TranDetail->payable_amt,
                 "amountInWords" => getIndianCurrency($this->_TranDetail->payable_amt),
                 "paymentMode" => $this->_TranDetail->payment_mode,
@@ -126,6 +132,7 @@ class PaymentReceiptBll
                 "ownerDtl" => $this->_owners,
                 "fineRebate" => $this->_FineRebates,
                 "userDtl"=> $this->_UserDetail,
+                "watermark" => $this->_UlbDetail?->watermark_base64,
             ];
         }
     }
@@ -162,6 +169,9 @@ class PaymentReceiptBll
                 // A rollover has occurred. Finalize the current range.
                 $ranges[] = [
                     "reading" => "(" . $startOfRange . "-" . $currentReading . ")",
+                    "fromReading" => $startOfRange,
+                    "toReading" => $currentReading,
+                    "units" => roundFigure($currentReading - $startOfRange),
                     "amount" => roundFigure($amount),
                     "from"=>[
                         "fromDate"=>$fromDate,
@@ -185,6 +195,9 @@ class PaymentReceiptBll
         if ($amount > 0) {
             $ranges[] = [
                 "reading" => "(" . $startOfRange . "-" . floatval($sortedCollection[$count]->current_meter_reading) . ")",
+                "fromReading" => $startOfRange,
+                "toReading" => floatval($sortedCollection[$count]->current_meter_reading),
+                "units" => roundFigure(floatval($sortedCollection[$count]->current_meter_reading) - $startOfRange),
                 "amount" => roundFigure($amount + floatval($sortedCollection[$count]->amount)),
                 "from"=>[
                         "fromDate"=>$fromDate,
@@ -198,6 +211,9 @@ class PaymentReceiptBll
         }else{
             $ranges[] = [
                 "reading" => "(" . floatval($sortedCollection[$count]->from_reading) . "-" .$startOfRange  . ")",
+                "fromReading" => floatval($sortedCollection[$count]->from_reading),
+                "toReading" => $startOfRange,
+                "units" => roundFigure($startOfRange - floatval($sortedCollection[$count]->from_reading)),
                 "amount" => $sortedCollection[$count]->amount,
                 "from"=>[
                         "fromDate"=>$fromDate,
@@ -215,17 +231,33 @@ class PaymentReceiptBll
     public function consumerReceipt(){
         if($this->_TranDetail->consumer_id){
             $ranges = $this->generateMeterRange();
+            $fromDate = $this->_TranDetail->from_date;
+            $uptoDate = $this->_TranDetail->upto_date;
+            $periodMonths = null;
+            $periodFrom = $fromDate ? Carbon::parse($fromDate)->format("M-Y") : "";
+            $periodUpto = $uptoDate ? Carbon::parse($uptoDate)->format("M-Y") : "";
+            if ($fromDate && $uptoDate) {
+                $from = Carbon::parse($fromDate);
+                $upto = Carbon::parse($uptoDate);
+                $periodMonths = (($upto->year * 12 + $upto->month) - ($from->year * 12 + $from->month)) + 1;
+            }
+
             $this->_GRID=[
                 "description"=>"WATER USES CHARGE PAYMENT RECEIPT",
-                "department" => "Water",
-                "accountDescription" => "Water User Charge",
+                "department" => "Water Supply Department",
+                "accountDescription" => "Water User Charge & Others",
+                "isMetered" => count($ranges) > 0,
                 "tranNo"=>$this->_TranDetail->tran_no,
                 "tranDate"=>$this->_TranDetail->tran_date,
+                "printingDate"=>Carbon::now()->format("d-m-Y"),
                 "wardNo" =>$this->_oldWard->ward_no??"N/A",
                 "newWardNo" =>$this->_newWard->ward_no??"N/A",
+                "newHoldingNo" => $this->_application->new_holding_no??"",
                 "consumer_no" => $this->_application->consumer_no??"",
                 "address" => $this->_application->address??"",
                 "ownerName" =>$this->_owners->implode("owner_name",", "),
+                "guardianName" =>$this->_owners->implode("guardian_name",", "),
+                "mobileNo" =>$this->_owners->implode("mobile_no",", "),
                 "amount" => $this->_TranDetail->payable_amt,
                 "amountInWords" => getIndianCurrency($this->_TranDetail->payable_amt),
                 "paymentMode" => $this->_TranDetail->payment_mode,
@@ -234,12 +266,20 @@ class PaymentReceiptBll
                 "chequeDate" => $this->_ChequeDtl->cheque_date??"",
                 "bankName" => $this->_ChequeDtl->bank_name??"",
                 "branchName" =>$this->_ChequeDtl->branch_name??"",
-                "fromDate"=>$this->_TranDetail->from_date,
-                "uptoDate"=>$this->_TranDetail->upto_date,
-    
+                "fromDate"=>$fromDate,
+                "uptoDate"=>$uptoDate,
+                "periodFrom"=>$periodFrom,
+                "periodUpto"=>$periodUpto,
+                "periodMonths" => $periodMonths,
+
                 "monthlyDemandAmount" =>roundFigure(collect($this->_CollectionDetail)->sum("amount")??0),
+                "demandAmount" => roundFigure($this->_TranDetail->demand_amt),
+                "penaltyAmt" => roundFigure($this->_TranDetail->penalty_amt),
+                "totalBillingAmount" => roundFigure($this->_TranDetail->demand_amt + $this->_TranDetail->penalty_amt),
+                "totalReceivedAmount" => roundFigure($this->_TranDetail->payable_amt),
                 "dueAmount"=>roundFigure($this->_TranDetail->request_demand_amount - $this->_TranDetail->demand_amt),
                 "meterReading"=>$ranges,
+                "watermark" => $this->_UlbDetail?->watermark_base64,
                 "consumerDtl"=>$this->_application,
                 "tranDtl" => $this->_TranDetail,
                 "collection"=>$this->_CollectionDetail,

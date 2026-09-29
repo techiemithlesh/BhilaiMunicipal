@@ -134,7 +134,7 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
         </div>
 
         {/* ===================== CONSUMER & DEMAND INFO ===================== */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 mt-4 text-[12px] leading-normal">
+        <div className="gap-x-8 gap-y-1.5 grid grid-cols-2 mt-4 text-[12px] leading-normal">
           <div className="space-y-1">
             <p>
               {t("Department / Section")} :{" "}
@@ -152,12 +152,6 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
               {t("Property Type")} :{" "}
               <strong>{val(receiptData?.propertyType)}</strong>
             </p>
-            <p>
-              {t("Name")} : <strong>{val(receiptData?.ownerName)}</strong>
-            </p>
-            <p>
-              {t("Mobile No")} : <strong>{val(receiptData?.mobileNo)}</strong>
-            </p>
           </div>
 
           <div className="space-y-1">
@@ -173,66 +167,77 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
               <strong>{val(receiptData?.propertyId)}</strong>
             </p>
             <p>
+              {t("Holding No")} :{" "}
+              <strong>{val(receiptData?.holdingNo)}</strong>
+            </p>
+            <p>
               {t("Consumer No")} :{" "}
               <strong>{val(receiptData?.consumerNo)}</strong>
             </p>
-            <p>
-              {t("Address")} : <strong>{val(receiptData?.address)}</strong>
-            </p>
           </div>
+        </div>
+
+        <div className="space-y-1 mt-3 text-[12px] leading-normal">
+          <p>
+            {t("Received By")} : <strong>{val(receiptData?.ownerName)}</strong>
+          </p>
+          <p>
+            {t("Address")} : <strong>{val(receiptData?.address)}</strong>
+          </p>
+          <p>
+            {t("Mobile No")} : <strong>{val(receiptData?.mobileNo)}</strong>
+          </p>
         </div>
 
         {/* ===================== DEMAND TABLE ===================== */}
         <table className="mt-4 w-full border-collapse border-2 border-black print:break-inside-avoid text-[12px]">
           <thead>
             <tr>
-              <th className={`${th} text-left`}>
-                {receiptData?.isMetered ? t("Meter Reading") : t("Current Demand Period")}
-              </th>
-              <th className={`${th} text-center w-4`}>:</th>
-              <th className={`${th} text-left`} colSpan={3}>{t("Details")}</th>
-              <th className={`${th} text-right w-[160px]`}>
-                {t("Amount")} ({t("in Rs")})
-              </th>
+              <th className={`${th} text-left`}>{t("Tax Description")}</th>
+              {receiptData?.isMetered ? (
+                <>
+                  <th className={`${th} text-center`}>{t("Meter Reading")}</th>
+                  <th className={`${th} text-center`}>{t("Units")}</th>
+                </>
+              ) : (
+                <>
+                  <th className={`${th} text-center`}>{t("Period")}</th>
+                  <th className={`${th} text-center`}>{t("Payable Period")}</th>
+                </>
+              )}
+              <th className={`${th} text-right w-[120px]`}>{t("Amount")}</th>
             </tr>
           </thead>
           <tbody>
             {receiptData?.isMetered ? (
               <tr>
-                <td className={`${td} font-semibold align-top`}>
-                  {t("Meter Reading")}
+                <td className={td}>{t("Water Tax (User Charge)")}</td>
+                <td className={`${td} text-center`}>
+                  {receiptData?.fromReading} (P) {t("To")} {receiptData?.currentReading} (C)
                 </td>
-                <td className={`${td} text-center align-top`}>:</td>
-                <td className={`${td} align-top`}>
-                  {receiptData?.fromReading} (P) {t("To")}{" "}
-                  {receiptData?.currentReading} (C) = {receiptData?.units}{" "}                  
-                </td>
-                <td className={`${td} font-semibold align-top`}>{t("Units")}</td>
-                <td className={`${td} align-top`}>{money(receiptData?.rate)}</td>
-                <td className={`${td} text-right align-top`}>
+                <td className={`${td} text-center`}>{receiptData?.units}</td>
+                <td className={`${td} text-right`}>
                   {money(receiptData?.demandAmount)}
                 </td>
               </tr>
             ) : (
               <tr>
-                <td className={`${td} font-semibold align-top`}>
-                  {t("Current Demand Period")}
+                <td className={td}>{t("Water Tax (User Charge)")}</td>
+                <td className={`${td} text-center`}>
+                  {receiptData?.demandFrom} {t("To")} {receiptData?.demandUpto}
                 </td>
-                <td className={`${td} text-center align-top`}>:</td>
-                <td className={`${td} align-top`}>
-                  {receiptData?.demandFrom} {t("To")} {receiptData?.demandUpto}{" "}                                    
+                <td className={`${td} text-center`}>
+                  {receiptData?.periodMonths} {t("Months")}
                 </td>
-                <td className={`${td} font-semibold align-top`}>{t("Units")}</td>
-                <td className={`${td} align-top`}>{money(receiptData?.rate)}</td>
-                <td className={`${td} text-right align-top`}>
+                <td className={`${td} text-right`}>
                   {money(receiptData?.demandAmount)}
                 </td>
               </tr>
             )}
 
             <tr>
-              <td className={`${td} font-semibold text-right italic`} colSpan={5}>
-                {t("Penalty")} :
+              <td className={`${td} text-right`} colSpan={3}>
+                {t("Penalty")}
               </td>
               <td className={`${td} text-right`}>
                 {money(receiptData?.penalty)}
@@ -240,23 +245,19 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
             </tr>
 
             <tr className="font-bold">
-              <td className={`${td} text-right italic`} colSpan={5}>
-                {t("TOTAL PAYABLE")} :
+              <td className={`${td} text-right`} colSpan={3}>
+                {t("TOTAL PAYABLE")}
               </td>
               <td className={`${td} text-right`}>
                 {money(receiptData?.payableAmount)}
               </td>
             </tr>
-
-            <tr>
-              <td className={`${td} p-3`} colSpan={6}>
-                <span className="block font-semibold text-right pr-2">
-                  {t("Authorised Signature")}
-                </span>
-              </td>
-            </tr>
           </tbody>
         </table>
+
+        <p className="mt-6 font-semibold text-[12px] text-right">
+          {t("Authorised Signature")}
+        </p>
 
         {/* ===================== NOTES & COLLABORATION FOOTER ===================== */}
         <div className="flex justify-between items-start gap-6 mt-3 border-2 border-black p-3 text-[12px] leading-snug">

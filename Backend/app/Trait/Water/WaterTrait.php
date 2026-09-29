@@ -28,6 +28,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 trait WaterTrait{
+    
+    public function getImageBase64($relativePath){
+        if(!$relativePath){
+            return null;
+        }
+        $path = public_path($relativePath);
+        if(!file_exists($path)){
+            return null;
+        }
+        $mime = mime_content_type($path) ?: 'image/png';
+        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($path));
+    }
+
     public function adjustValue($water){
         
         $ulbDtl = UlbMaster::find($water->ulb_id);

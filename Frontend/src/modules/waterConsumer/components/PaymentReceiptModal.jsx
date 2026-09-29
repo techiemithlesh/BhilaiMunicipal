@@ -1,23 +1,17 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
 import PaymentReceiptDtl from "./PaymentReceiptDtl";
 import { usePrint } from "../../../utils/common";
+import "../../../i18n";
+import { useTranslation } from "react-i18next";
 
 function PaymentReceiptModal({ id, onClose }) {
+  const { t, i18n } = useTranslation();
   const [isFrozen, setIsFrozen] = useState(false);
   const printRef = useRef();
-
-  // Print in same tab (no new window)
-    // const handlePrint = async () => {
-    //   setIsFrozen(true);
-    //   await handleGeneratePdf(printRef);
-    //   setIsFrozen(false);
-    // };
-
-    const handlePrint = usePrint(printRef,`${"Payment Receipt" || ""}`);
-    
+  const handlePrint = usePrint(printRef, "Payment Receipt");
 
   return (
     <div className="z-50 print:static fixed inset-0 flex justify-center items-center bg-black print:bg-transparent bg-opacity-50 p-4 print:p-0">
@@ -33,10 +27,28 @@ function PaymentReceiptModal({ id, onClose }) {
           <h2 className="font-semibold text-blue-900 text-xl">View Receipt</h2>
           <div className="flex gap-2">
             <button
+              className="text-red-500 hover:text-red-400"
+              onClick={() => {
+                i18n.changeLanguage("en");
+                localStorage.setItem("lang", "en");
+              }}
+            >
+              {t("English")}
+            </button>
+            <button
+              className="text-gray-500 hover:text-gray-400"
+              onClick={() => {
+                i18n.changeLanguage("hi");
+                localStorage.setItem("lang", "hi");
+              }}
+            >
+              {t("Hindi")}
+            </button>
+            <button
               onClick={handlePrint}
               className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
             >
-              Print
+              {t("Print")}
             </button>
             {onClose && (
               <button
@@ -58,7 +70,7 @@ function PaymentReceiptModal({ id, onClose }) {
               isFrozen ? "pointer-events-none filter blur-sm" : ""
             }`}
           >
-            <div className="overflow-x-auto" ref={printRef}>
+            <div className="overflow-x-auto p-4" ref={printRef}>
               <PaymentReceiptDtl id={id} setIsFrozen={setIsFrozen} />
             </div>
           </div>

@@ -34,6 +34,7 @@ class ConsumerDemandReceiptBll
         if ($this->_UlbDetail) {
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/' . $this->_UlbDetail->logo_img) : "";
             $this->_UlbDetail->right_logo = url('/' . "UlbLogo/swachh_bharat.png");
+            $this->_UlbDetail->watermark_base64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
         }
 
         $this->_Owners = collect((new ConsumerOwner())->where("consumer_id", $this->_ConsumerId)->where("lock_status", false)->get())->sortBy("id");
@@ -82,6 +83,7 @@ class ConsumerDemandReceiptBll
             "printDate" => Carbon::now()->format("d-m-Y"),
             "wardNo" => $this->_Consumer->ward_no ?? "N/A",
             "propertyId" => $propertyId,
+            "holdingNo" => $propertyId,
             "consumerNo" => $this->_Consumer->consumer_no ?? "",
             "ownerName" => $this->_Owners->implode("owner_name", ", "),
             "mobileNo" => $this->_Owners->implode("mobile_no", ", "),
@@ -91,11 +93,13 @@ class ConsumerDemandReceiptBll
             "fromReading" => $fromReading,
             "currentReading" => $currentReading,
             "units" => $units,
+            "periodMonths" => $totalMonths,
             "rate" => $totalMonths ? roundFigure(($demandGrid["demandAmount"] ?? 0) / $totalMonths) : 0,
             "demandAmount" => $demandGrid["demandAmount"] ?? 0,
             "penalty" => $demandGrid["latePenalty"] ?? 0,
             "payableAmount" => $demandGrid["payableAmount"] ?? 0,
             "lastMeterReadingDate" => $lastReading?->created_at,
+            "watermark" => $this->_UlbDetail?->watermark_base64,
             "ulbDtl" => $this->_UlbDetail,
         ];
     }
