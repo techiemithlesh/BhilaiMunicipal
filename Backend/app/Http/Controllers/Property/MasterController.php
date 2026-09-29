@@ -1011,44 +1011,9 @@ class MasterController extends Controller
                 ->orderBy("rt.zone_id", "ASC")
                 ->get();
 
-            // 2. Group records by Date/Financial Period
-            // $responseMatrix = $rawData->groupBy(function ($item) {
-            //     $from = getFy($item->effective_from);
-            //     $upto = getFy($item->effective_upto);
-            //     return "{$from} To {$upto}";
-            // })->map(function ($periodRecords, $periodTitle) {
-            //     // Extract unique zones present in this period
-            //     $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
-
-            //     // Structure rows per zone
-            //     $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
-            //         $zoneRecords = $periodRecords->where('zone_id', $zoneId);
-            //         $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
-            //         // Build dynamic categories (RCC, ACC, OTHERS, MAIN ROAD, etc.)
-            //         $categories = $zoneRecords->groupBy(function ($item) {
-            //             return strtoupper($item->construction_type ?? $item->road_type ?? 'OTHER');
-            //         })->map(function ($categoryRecords) {
-            //             return [
-            //                 'Resident' => $categoryRecords->where('usage_type', 'Resident')->first()->rate ?? null,
-            //                 'Commercial'  => $categoryRecords->where('usage_type', 'Commercial')->first()->rate ?? null,
-            //             ];
-            //         });
-            //         return [
-            //             'zone' => $zoneId,
-            //             "zone_name"=>$zoneName,
-            //             'rates' => $categories
-            //         ];
-            //     });
-
-            //     return [
-            //         'period' => $periodTitle,
-            //         'matrix' => $matrixRows
-            //     ];
-            // })->values();
-
             $responseMatrix = $rawData->groupBy(function ($item) {
-                                $from = $item->effective_from ?? $item->effectiveFrom;
-                                $upto = $item->effective_upto ?? $item->effectiveUpto;
+                                $from = getFy($item->effective_from);
+                                $upto = getFy($item->effective_upto);
                                 return "{$from} To {$upto}";
                             })->map(function ($periodRecords, $periodTitle) {
 
