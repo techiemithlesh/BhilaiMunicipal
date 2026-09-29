@@ -62,6 +62,8 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         Route::post('prop-apartment-add', 'addPropApartment');
         Route::post('prop-apartment-edit', 'editPropApartment');
         Route::post('prop-apartment-lock-unlock', 'activeDeactivatePropApartment');
+
+        Route::post('prop-arv-rate-list', 'arvBuildingRateList');
     });
     Route::controller(SafController::class)->group(function(){
         Route::post("get-saf-master-data","getSafMasterData");

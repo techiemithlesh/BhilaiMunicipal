@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DBSystem\UlbMaster;
 use App\Models\DBSystem\UlbWardMaster;
 use App\Models\Property\ApartmentDetail;
+use App\Models\Property\BuildingArvRateMaster;
 use App\Models\Property\ConstructionTypeMaster;
 use App\Models\Property\FloorMaster;
 use App\Models\Property\OccupancyTypeMaster;
@@ -41,6 +42,7 @@ class MasterController extends Controller
     private $_FloorMaster;
     private $_OwnershipTypeMaster;
     private $_ApartmentDetail;
+    private $_BuildingArvRateMaster;
     private $_UlbWardMaster;
     private $_UlbMaster;
     private $_SYSTEM_CONST;
@@ -57,7 +59,9 @@ class MasterController extends Controller
         $this->_OwnershipTypeMaster = new OwnershipTypeMaster();
         $this->_ApartmentDetail = new ApartmentDetail();
         $this->_UlbWardMaster = new UlbWardMaster();
-        $this->_UlbMaster = new UlbMaster();    
+        $this->_UlbMaster = new UlbMaster(); 
+        
+        $this->_BuildingArvRateMaster = new BuildingArvRateMaster();
         
         $this->_SYSTEM_CONST = Config::get("SystemConstant");
     }
@@ -975,6 +979,79 @@ class MasterController extends Controller
             return responseMsg(false,$e->getMessage(),"");
         }catch(Exception $e){
             return responseMsg(false,"Server Error!!",'');
+        }
+    }
+
+    public function arvBuildingRateList(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $ulbId = $request->ulbId ?? $user->ulb_id;
+
+            // 1. Fetch raw data with relevant master names
+            $rawData = $this->_BuildingArvRateMaster
+                ->select(
+                    "rt.*",
+                    "rm.road_type",
+                    "cm.construction_type",
+                    "zm.zone_name",
+                    DB::raw("
+                        CASE WHEN rt.usage_type_id = 1 THEN 'Resident'
+                        ELSE 'Commercial'
+                        END AS usage_type
+                    ")
+                )
+                ->from("building_arv_rate_masters AS rt")
+                ->leftJoin("zone_masters AS zm", "zm.id", "rt.zone_id")
+                ->leftJoin("road_type_masters AS rm", "rm.id", "rt.road_type_id")
+                ->leftJoin("construction_type_masters AS cm", "cm.id", "rt.construction_type_master_id")
+                ->where("rt.ulb_id", $ulbId)
+                ->where("rt.lock_status", false)
+                ->orderBy("rt.effective_from", "ASC")
+                ->orderBy("rt.zone_id", "ASC")
+                ->get();
+
+            // 2. Group records by Date/Financial Period
+            $responseMatrix = $rawData->groupBy(function ($item) {
+                $from = getFy($item->effective_from);
+                $upto = getFy($item->effective_upto);
+                return "{$from} To {$upto}";
+            })->map(function ($periodRecords, $periodTitle) {
+                // Extract unique zones present in this period
+                $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
+
+                // Structure rows per zone
+                $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
+                    $zoneRecords = $periodRecords->where('zone_id', $zoneId);
+                    $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
+                    // Build dynamic categories (RCC, ACC, OTHERS, MAIN ROAD, etc.)
+                    $categories = $zoneRecords->groupBy(function ($item) {
+                        return strtoupper($item->construction_type ?? $item->road_type ?? 'OTHER');
+                    })->map(function ($categoryRecords) {
+                        return [
+                            'Resident' => $categoryRecords->where('usage_type', 'Resident')->first()->rate ?? null,
+                            'Commercial'  => $categoryRecords->where('usage_type', 'Commercial')->first()->rate ?? null,
+                        ];
+                    });
+                    return [
+                        'zone' => $zoneId,
+                        "zone_name"=>$zoneName,
+                        'rates' => $categories
+                    ];
+                });
+
+                return [
+                    'period' => $periodTitle,
+                    'matrix' => $matrixRows
+                ];
+            })->values();
+
+            return responseMsg(true, "ARV Rate Matrix List", (remove_null($responseMatrix)));
+
+        } catch (CustomException $e) {
+            return responseMsg(false, $e->getMessage(), "");
+        } catch (Exception $e) {
+            return responseMsg(false, "Server Error!!", "");
         }
     }
 
