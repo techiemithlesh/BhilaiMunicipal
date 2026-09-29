@@ -140,6 +140,8 @@ export const getOwnershipTypeDtlApi = `${BASE_URL}/api/property/prop-ownership-t
 export const getOwnershipTypeAddApi = `${BASE_URL}/api/property/prop-ownership-type-add`;
 export const getOwnershipTypeEditApi = `${BASE_URL}/api/property/prop-ownership-type-edit`;
 export const getOwnershipTypeLockUnlockApi = `${BASE_URL}/api/property/prop-ownership-type-lock-unlock`;
+export const getBuildingArvListApi = `${BASE_URL}/api/property/prop-arv-rate-list`;
+//end property master
 
 export const propertyTestRequestApi = `${BASE_URL}/api/property/test-request`;
 

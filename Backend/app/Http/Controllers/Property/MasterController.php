@@ -1012,39 +1012,73 @@ class MasterController extends Controller
                 ->get();
 
             // 2. Group records by Date/Financial Period
+            // $responseMatrix = $rawData->groupBy(function ($item) {
+            //     $from = getFy($item->effective_from);
+            //     $upto = getFy($item->effective_upto);
+            //     return "{$from} To {$upto}";
+            // })->map(function ($periodRecords, $periodTitle) {
+            //     // Extract unique zones present in this period
+            //     $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
+
+            //     // Structure rows per zone
+            //     $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
+            //         $zoneRecords = $periodRecords->where('zone_id', $zoneId);
+            //         $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
+            //         // Build dynamic categories (RCC, ACC, OTHERS, MAIN ROAD, etc.)
+            //         $categories = $zoneRecords->groupBy(function ($item) {
+            //             return strtoupper($item->construction_type ?? $item->road_type ?? 'OTHER');
+            //         })->map(function ($categoryRecords) {
+            //             return [
+            //                 'Resident' => $categoryRecords->where('usage_type', 'Resident')->first()->rate ?? null,
+            //                 'Commercial'  => $categoryRecords->where('usage_type', 'Commercial')->first()->rate ?? null,
+            //             ];
+            //         });
+            //         return [
+            //             'zone' => $zoneId,
+            //             "zone_name"=>$zoneName,
+            //             'rates' => $categories
+            //         ];
+            //     });
+
+            //     return [
+            //         'period' => $periodTitle,
+            //         'matrix' => $matrixRows
+            //     ];
+            // })->values();
+
             $responseMatrix = $rawData->groupBy(function ($item) {
-                $from = getFy($item->effective_from);
-                $upto = getFy($item->effective_upto);
-                return "{$from} To {$upto}";
-            })->map(function ($periodRecords, $periodTitle) {
-                // Extract unique zones present in this period
-                $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
+                                $from = $item->effective_from ?? $item->effectiveFrom;
+                                $upto = $item->effective_upto ?? $item->effectiveUpto;
+                                return "{$from} To {$upto}";
+                            })->map(function ($periodRecords, $periodTitle) {
 
-                // Structure rows per zone
-                $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
-                    $zoneRecords = $periodRecords->where('zone_id', $zoneId);
-                    $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
-                    // Build dynamic categories (RCC, ACC, OTHERS, MAIN ROAD, etc.)
-                    $categories = $zoneRecords->groupBy(function ($item) {
-                        return strtoupper($item->construction_type ?? $item->road_type ?? 'OTHER');
-                    })->map(function ($categoryRecords) {
-                        return [
-                            'Resident' => $categoryRecords->where('usage_type', 'Resident')->first()->rate ?? null,
-                            'Commercial'  => $categoryRecords->where('usage_type', 'Commercial')->first()->rate ?? null,
-                        ];
-                    });
-                    return [
-                        'zone' => $zoneId,
-                        "zone_name"=>$zoneName,
-                        'rates' => $categories
-                    ];
-                });
+                                $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
 
-                return [
-                    'period' => $periodTitle,
-                    'matrix' => $matrixRows
-                ];
-            })->values();
+                                $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
+                                    $zoneRecords = $periodRecords->where('zone_id', $zoneId);                                    
+                                    $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
+                                    // Group by Road Type -> Construction Type -> Usage Type
+                                    $roadTypes = $zoneRecords->groupBy('road_type')->map(function ($roadRecords) {
+                                        return $roadRecords->groupBy('construction_type')->map(function ($cRecords) {
+                                            return [
+                                                'Resident' => $cRecords->where('usage_type', 'Resident')->first()->rate ?? null,
+                                                'Commercial' => $cRecords->where('usage_type', 'Commercial')->first()->rate ?? null,
+                                            ];
+                                        });
+                                    });
+
+                                    return [
+                                        'zone' => $zoneId,
+                                        "zone_name"=>$zoneName,
+                                        'roadTypes' => $roadTypes
+                                    ];
+                                });
+
+                                return [
+                                    'period' => $periodTitle,
+                                    'matrix' => $matrixRows
+                                ];
+                            })->values();
 
             return responseMsg(true, "ARV Rate Matrix List", (remove_null($responseMatrix)));
 

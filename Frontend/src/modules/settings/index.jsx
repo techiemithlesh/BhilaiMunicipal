@@ -20,6 +20,7 @@ import UlbNoticeList from "./pages/UlbNoticeList";
 import UlbOfficerList from "./pages/UlbOfficerList";
 import QueryEditorUI from "./pages/QueryEditorUI";
 import ApartmentList from "./pages/ApartmentList";
+import PropertyArvList from "./pages/PropertyArvList";
 
 function SettingRoutes() {
   return (
@@ -119,6 +120,14 @@ function SettingRoutes() {
             element={
               <ProtectedRoute>
                 <ApartmentList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/property/arv/list"
+            element={
+              <ProtectedRoute>
+                <PropertyArvList />
               </ProtectedRoute>
             }
           />
