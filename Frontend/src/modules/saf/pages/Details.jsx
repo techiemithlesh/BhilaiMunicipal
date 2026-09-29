@@ -273,7 +273,6 @@ const Details = () => {
       : []),
   ];
 
-
   return (
     <div className="mx-auto container">
       <div

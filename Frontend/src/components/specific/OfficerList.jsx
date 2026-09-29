@@ -45,8 +45,7 @@ const OfficerList = () => {
     }
   }, [officers]);
 
-  // Duplicate list once + add blank spacer at end
-  const scrollingList = [...officers, { blank: true },...officers];
+  const scrollingList = [...officers, { blank: true }, ...officers];
 
   const openPreviewModel = (link) => {
     setIsModalPreviewOpen(true);
@@ -59,78 +58,83 @@ const OfficerList = () => {
   };
 
   return (
-      <div
-        className="h-[300px] overflow-hidden rounded-lg border bg-white shadow relative"
-        onMouseEnter={() => setPause(true)}
-        onMouseLeave={() => setPause(false)}
-      >
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full py-10">
-            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-3 text-gray-700 text-sm">Loading...</span>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-xl md:text-2xl font-bold text-center border-b py-2 bg-white z-20 relative h-[50px]">
-              Key Contacts
-            </h2>
+    <div
+      className="h-[300px] overflow-hidden rounded-lg border bg-white shadow relative"
+      onMouseEnter={() => setPause(true)}
+      onMouseLeave={() => setPause(false)}
+    >
+      {isLoading ? (
+        <div className="flex justify-center items-center h-full py-10">
+          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="ml-3 text-gray-700 text-sm">Loading...</span>
+        </div>
+      ) : (
+        <>
+          <h2 className="text-xl md:text-2xl font-bold text-center border-b py-2 bg-white z-20 relative h-[50px]">
+            Key Contacts
+          </h2>
 
-            {/* SCROLL AREA */}
-            <div
-              ref={listRef}
-              className={`absolute top-[55px] left-0 w-full flex flex-col gap-3 px-2 ${
-                pause ? "pause-animation" : ""
-              } scroll-now`}
-              style={{
-                animationDuration: `${scrollHeight / 60}s`,
-              }}
-            >
-              {scrollingList.map((officer, i) => (
-                officer.blank ? (
-                  <div key={i} className="h-10"></div> // blank space for smooth looping
-                ) : (
-                  <div
-                    key={i}
-                    className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-gray-50 shadow-sm hover:shadow-md hover:bg-white transition relative"
-                  >
-                    <div className="absolute right-0 top-0 h-full w-2 bg-blue-500"></div>
+          {/* SCROLL AREA */}
+          <div
+            ref={listRef}
+            className={`absolute top-[55px] left-0 w-full flex flex-col gap-3 px-2 ${
+              pause ? "pause-animation" : ""
+            } scroll-now`}
+            style={{
+              animationDuration: `${scrollHeight / 60}s`,
+            }}
+          >
+            {scrollingList.map((officer, i) =>
+              officer.blank ? (
+                <div key={i} className="h-10"></div> // blank space for smooth looping
+              ) : (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-gray-50 shadow-sm hover:shadow-md hover:bg-white transition relative"
+                >
+                  <div className="absolute right-0 top-0 h-full w-2 bg-blue-500"></div>
 
-                    <img
-                      onClick={() => openPreviewModel(officer?.imgPath)}
-                      src={officer?.imgPath || defaultAvatar}
-                      alt={officer?.officerName}
-                      className="w-20 h-20 rounded-full object-cover shadow cursor-pointer hover:scale-105 transition"
-                    />
+                  <img
+                    onClick={() => openPreviewModel(officer?.imgPath)}
+                    src={officer?.imgPath || defaultAvatar}
+                    alt={officer?.officerName}
+                    className="w-20 h-20 rounded-full object-cover shadow cursor-pointer hover:scale-105 transition"
+                  />
 
-                    <div className="flex flex-col flex-1">
-                      <h2 className="font-bold text-lg flex items-center gap-2 text-gray-800">
-                        <FaUserTie className="text-blue-600" />
-                        {officer?.officerName}
-                      </h2>
+                  <div className="flex flex-col flex-1">
+                    <h2 className="font-bold text-lg flex items-center gap-2 text-gray-800">
+                      <FaUserTie className="text-blue-600" />
+                      {officer?.officerName}
+                    </h2>
 
-                      <p className="text-gray-600 text-sm mb-2">
-                        {officer?.designation}
-                      </p>
+                    <p className="text-gray-600 text-sm mb-2">
+                      {officer?.designation}
+                    </p>
 
-                      <div className="flex flex-col gap-1 text-sm">
+                    <div className="flex flex-col gap-1 text-sm">
+                      {officer?.contactNo && (
                         <p className="flex items-center gap-2 text-gray-700">
                           <FaPhoneAlt className="text-green-600" />
                           {officer?.contactNo}
                         </p>
+                      )}
+
+                      {officer?.email && (
                         <p className="flex items-center gap-2 text-gray-700">
                           <FaEnvelope className="text-red-600" />
                           {officer?.email}
                         </p>
-                      </div>
+                      )}
                     </div>
                   </div>
-                )
-              ))}
-            </div>
-          </>
-        )}
+                </div>
+              ),
+            )}
+          </div>
+        </>
+      )}
 
-        <style>{`
+      <style>{`
           @keyframes scrollLoop {
             0% { transform: translateY(10); }
             100% { transform: translateY(-55%); }
@@ -146,11 +150,10 @@ const OfficerList = () => {
             animation-play-state: paused !important;
           }
         `}</style>
-        {isModalPreviewOpen && (
-          <ImagePreview imageSrc={previewImg} closePreview={closePreviewModel} />
-        )}
-      </div>
-
+      {isModalPreviewOpen && (
+        <ImagePreview imageSrc={previewImg} closePreview={closePreviewModel} />
+      )}
+    </div>
   );
 };
 
