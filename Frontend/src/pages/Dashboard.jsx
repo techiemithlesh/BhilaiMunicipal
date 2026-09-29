@@ -1,4 +1,3 @@
-import { Spinner } from "@nextui-org/react";
 import ProfileCard from "../components/common/ProfileCard";
 import WardList from "../components/common/WardList";
 import useUserProfileAndWardMapped from "../hooks/UseUserProfile";
@@ -14,12 +13,7 @@ const Dashboard = () => {
     setIsLoadingGable(isLoading ? true : false);
   }, [isLoading]);
 
-  if (isLoading)
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
+  if (isLoading) return null;
 
   if (error)
     return (

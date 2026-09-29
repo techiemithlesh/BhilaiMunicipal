@@ -60,7 +60,7 @@ function SafPendingList() {
   const handleSearch = () => {
     setPage(1);
     syncURLFilters();
-    fetchData();
+    if (page === 1) fetchData();
   };
 
   const fetchData = async (customFilters = null) => {

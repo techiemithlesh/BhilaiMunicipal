@@ -1,40 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import PropertyRoutes from "./modules/property/PropertyRoutes";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { Toaster } from "react-hot-toast";
 import { getBrowserInfo } from "./utils/browserInfo";
 import "./index.scss";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import LoadingOverlay from "./components/common/LoadingOverlay";
-import UserRoutes from "./modules/user/userRoutes";
-import SafRoutes from "./modules/saf/SafRoutes";
-import SettingRoutes from "./modules/settings";
-import SafPaymentReceipt from "./modules/saf/pages/SafPaymentReceipt";
-import SafMemoReceipt from "./modules/saf/pages/SafMemoReceipt";
-import MobiLogin from "./pages/MobiLogin";
-import MobileDashboard from "./pages/MobileDashboard";
-import MobileRoutes from "./MobileRoutes";
 import CitizenAuth from "./pages/citizen/CitizenAuth";
-import CitizenRoute from "./pages/citizen/CitizenRoute";
 import Layout from "./layout/Layout";
-import WaterRoute from "./modules/water/WaterRoute";
-import WaterConsumerRoute from "./modules/waterConsumer/index";
-import ReportDashboard from "./pages/ReportDashboard";
 import { MenuProvider } from "./components/common/MenuContext";
-import WaterAppPaymentReceipt from "./modules/water/pages/PaymentReceipt";
-import AccountsRoute from "./modules/accounts/AccountsRoute";
-import WaterConsumerPaymentReceipt from "./modules/waterConsumer/pages/PaymentReceipt";
-import TradeRoutes from './routes/TradeRoutes';
-import LicenseCertificateReceipt from "./modules/trade/pages/LicenseCertificateReceipt";
-import TradePaymentReceipt from "./modules/trade/pages/TradePaymentReceipt";
 import MaintenancePage from "./Maintenance.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import SWMRoute from "./modules/swm/index";
-import SwmPaymentReceipt from "./modules/swm/pages/SwmPaymentReceipt";
-import SwmDemandReceipt from "./modules/swm/pages/SwmDemandReceipt";
+
+const PropertyRoutes = lazy(() => import("./modules/property/PropertyRoutes"));
+const UserRoutes = lazy(() => import("./modules/user/userRoutes"));
+const SafRoutes = lazy(() => import("./modules/saf/SafRoutes"));
+const SettingRoutes = lazy(() => import("./modules/settings"));
+const SafPaymentReceipt = lazy(() => import("./modules/saf/pages/SafPaymentReceipt"));
+const SafMemoReceipt = lazy(() => import("./modules/saf/pages/SafMemoReceipt"));
+const CitizenRoute = lazy(() => import("./pages/citizen/CitizenRoute"));
+const WaterRoute = lazy(() => import("./modules/water/WaterRoute"));
+const WaterConsumerRoute = lazy(() => import("./modules/waterConsumer/index"));
+const ReportDashboard = lazy(() => import("./pages/ReportDashboard"));
+const WaterAppPaymentReceipt = lazy(() => import("./modules/water/pages/PaymentReceipt"));
+const AccountsRoute = lazy(() => import("./modules/accounts/AccountsRoute"));
+const WaterConsumerPaymentReceipt = lazy(() => import("./modules/waterConsumer/pages/PaymentReceipt"));
+const TradeRoutes = lazy(() => import("./routes/TradeRoutes"));
+const LicenseCertificateReceipt = lazy(() => import("./modules/trade/pages/LicenseCertificateReceipt"));
+const TradePaymentReceipt = lazy(() => import("./modules/trade/pages/TradePaymentReceipt"));
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const SWMRoute = lazy(() => import("./modules/swm/index"));
+const SwmPaymentReceipt = lazy(() => import("./modules/swm/pages/SwmPaymentReceipt"));
+const SwmDemandReceipt = lazy(() => import("./modules/swm/pages/SwmDemandReceipt"));
 
 const isMaintenance = false; 
 
@@ -66,11 +64,16 @@ function App() {
       <LoadingProvider>
         <Router>
           <LoadingOverlay />
+          <Suspense
+            fallback={
+              <div className="flex justify-center items-center h-screen">
+                <span className="inline-block border-4 border-t-transparent border-blue-600 rounded-full w-10 h-10 animate-spin"></span>
+              </div>
+            }
+          >
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/login/mobile" element={<MobiLogin />} />
-            <Route path="/mobile/*" element={<MobileRoutes />} />
             <Route path="/user/*" element={<UserRoutes />} />
             <Route path="/settings/*" element={<SettingRoutes />} />
             <Route path="/saf/*" element={<SafRoutes />} />
@@ -142,15 +145,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/mobile/dashboard"
-              element={
-                <ProtectedRoute>
-                  <MobileDashboard />
-                </ProtectedRoute>
-              }
-            />
           </Routes>
+          </Suspense>
         </Router>
         <Toaster />
       </LoadingProvider>

@@ -1,4 +1,3 @@
-import { Spinner } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import PropDtl from "../../../modules/property/component/Saf/PropDtl";
 import FloorDtlAdd from "../../../modules/property/component/Saf/FloorDtlAdd";
@@ -28,7 +27,6 @@ const ulbId = import.meta.env.VITE_REACT_APP_ULB_ID;
 
 const CitizenSafAssessment = ({
   mstrData,
-  isLoading,
   propDetails,
   formType,
 }) => {
@@ -259,13 +257,6 @@ const CitizenSafAssessment = ({
     if (formData.propTypeMstrId == 3) getApartment();
   }, [formData.propTypeMstrId]);
 
-  if (isLoading)
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
-
   const handlePreviewFormData = async (e) => {
     e.preventDefault();
     const previewUrl = "/citizen/saf/preview";
@@ -360,14 +351,6 @@ const CitizenSafAssessment = ({
 
     // eslint-disable-next-line
   }, [propDetails]);
-
-  if (isLoading) {
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
-  }
 
   console.log("Rendering CitizenSafAssessment with formData:", formData);
 

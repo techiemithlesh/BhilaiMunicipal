@@ -61,20 +61,17 @@ const AdminLayout = ({ children }) => {
     fetchUlbDtl();
   }, [ulbId]);
 
-  // === Close sidebar on outside click ===
+ 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
         setIsSidebarOpen(false);
       }
     };
-    // document.addEventListener("mousedown", handleClickOutside);
-
-    // return () =>
-    //   document.removeEventListener("mousedown", handleClickOutside);
+    
   }, []);
 
-  // === Disable body scroll when mobile sidebar open ===
+  
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? "hidden" : "";
   }, [isSidebarOpen]);

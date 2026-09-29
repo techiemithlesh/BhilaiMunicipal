@@ -132,7 +132,7 @@ function DateWiseConsumerAdded() {
 
     const handleSearch = () => {
         setPage(1);
-        fetchData();
+        if (page === 1) fetchData();
     };
 
     // Corrected the condition lookup from fromDate.isActive to standard state isActive

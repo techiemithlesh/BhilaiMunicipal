@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLoginType, getToken } from "../../../utils/auth";
+import { getToken } from "../../../utils/auth";
 import { Link } from "react-router-dom";
 import { FaEye } from "react-icons/fa";
 import { tradeInboxApi } from "../../../api/endpoints";
@@ -18,7 +18,6 @@ export default function TradeInbox() {
   const [search, setSearch] = useState("");
 
   const token = getToken();
-  const loginType = getLoginType();
 
   const headers = [
     { label: "#", key: "serial" },
@@ -44,11 +43,7 @@ export default function TradeInbox() {
       <td className="px-3 py-2 border">{item.address}</td>
       <td className="space-x-2 px-3 py-2 border">
         <Link
-          to={
-            loginType == "mobile"
-              ? `/mobile/saf/verification/${item?.id}`
-              : `/trade/wf/inbox/${item.id}`
-          }
+          to={`/trade/wf/inbox/${item.id}`}
           rel="noopener noreferrer"
           className="inline-flex justify-center items-center text-blue-600 hover:text-blue-800"
         >
@@ -90,7 +85,7 @@ export default function TradeInbox() {
 
   const handleSearch = () => {
     setPage(1);
-    fetchData();
+    if (page === 1) fetchData();
   };
 
   const fetchAllData = async () => {

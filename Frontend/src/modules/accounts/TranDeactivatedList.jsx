@@ -120,7 +120,7 @@ function TranDeactivatedList() {
     const handleSearch = () => {
         setIsSearch(true);
         setPage(1);
-        fetchData();
+        if (page === 1) fetchData();
     };
 
     const openPreviewModel = (link) => {

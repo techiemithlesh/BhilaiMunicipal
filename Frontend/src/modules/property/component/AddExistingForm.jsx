@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Spinner } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import PropAddress from "./Saf/PropAddress";
 import PropDtl from "./Saf/PropDtl";
@@ -34,7 +33,6 @@ import { toastMsg } from "../../../utils/utils";
 
 const AddExistingForm = ({
   mstrData,
-  isLoading,
   propDetails,
   formType,
   token,
@@ -316,13 +314,6 @@ const AddExistingForm = ({
     if (formData.propTypeMstrId == 1) getApartment();
   }, [formData.propTypeMstrId]);
 
-  if (isLoading)
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
-  // console.log("formData",formData);
   const handlePreviewFormData = async (e) => {
     e.preventDefault();
 
@@ -443,14 +434,6 @@ const AddExistingForm = ({
 
     // eslint-disable-next-line
   }, [propDetails]);
-
-  if (isLoading) {
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
-  }
 
 
   return (

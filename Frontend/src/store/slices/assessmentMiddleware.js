@@ -9,16 +9,16 @@ export const assessmentMiddleware = (store) => {
   let timeoutId = null;
 
   return (next) => (action) => {
-    const result = next(action);console.log("result",result);
+    const result = next(action);
 
-    // List of action types that should reset the inactivity timer
     const formUpdateActions = [
       setFormData?.type,
       setFloorDtl?.type,
       setOwnerDtl?.type,
     ];
 
-    if (formUpdateActions.includes(action.type)) {console.log("timeoutId",timeoutId);
+    if (formUpdateActions.includes(action.type)) {
+      
       if (timeoutId) {
         clearTimeout(timeoutId);
       }

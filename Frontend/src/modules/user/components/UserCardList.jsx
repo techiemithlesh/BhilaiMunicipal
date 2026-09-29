@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Spinner, Button, Input } from "@nextui-org/react";
+import { Button, Input } from "@nextui-org/react";
 import { FaHistory, FaLock, FaUnlock, FaUserCheck } from "react-icons/fa";
 import { getToken } from "../../../utils/auth";
 import { exportToExcel } from "../../../utils/exportExcel";
@@ -270,9 +270,7 @@ export default function UserCardList({ userType }) {
 
   return (
     <>
-      {isLoading ? (
-        <Spinner />
-      ) : (
+      {isLoading ? null : (
         <CommonTable
           data={userListData}
           headers={headers}

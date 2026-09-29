@@ -41,7 +41,7 @@ const PropertyListPage = () => {
         setTableData(data.data);
         setTotalPages(data.lastPage);
       } catch (error) {
-        console.error("Search failed", error);
+        // console.error("Search failed", error);
         setTableData([]);
         setTotalPages();
       } finally {
@@ -66,7 +66,6 @@ const PropertyListPage = () => {
     }
   }, [currentPage, itemsPerPage]);
 
-  console.log("data", tableData);
 
   return (
     <SearchWithTable

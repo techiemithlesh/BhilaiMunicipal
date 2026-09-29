@@ -273,7 +273,6 @@ const Details = () => {
       : []),
   ];
 
-  console.log("safDetails", safDetails);
 
   return (
     <div className="mx-auto container">

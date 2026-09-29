@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Spinner } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import PropAddress from "./Saf/PropAddress";
 import PropDtl from "./Saf/PropDtl";
@@ -27,7 +26,6 @@ import { getUserDetails } from "../../../utils/auth";
 
 const AssessmentForm = ({
   mstrData,
-  isLoading,
   propDetails,
   formType,
   token,
@@ -362,15 +360,6 @@ const AssessmentForm = ({
       floors: (floorDtl || []).map(() => lockedFloorFields),
     });
   }, [isEdit, floorDtl?.length]);
-
-  if (isLoading) {
-    return (
-      <div className="loading">
-        <Spinner />
-      </div>
-    );
-  }
-
 
   return (
     <div className="container-fluid">

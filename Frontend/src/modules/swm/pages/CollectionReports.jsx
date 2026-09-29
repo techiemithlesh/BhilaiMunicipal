@@ -175,7 +175,7 @@ function CollectionReports() {
 
   const handleSearch = () => {
     setPage(1);
-    fetchData();
+    if (page === 1) fetchData();
   };
 
   const headers = [

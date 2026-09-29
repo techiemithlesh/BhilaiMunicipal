@@ -78,7 +78,7 @@ function ApartmentList() {
 
   const handleSearch = () => {
     setPage(1);
-    fetchData();
+    if (page === 1) fetchData();
   };
 
   const itemLockUnlock = async (item) => {
