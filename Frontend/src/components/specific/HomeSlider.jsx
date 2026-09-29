@@ -47,32 +47,34 @@ const HomeSlider = () => {
   
 
   return (
-    <Slider {...settings}>
-      {sliderImages.map((slide, index) => (
-        <div key={index} className="relative">
-          <img
-            src={slide.image}
-            alt={`slide-${index}`}
-            className="w-full h-[60vh] object-cover"
-          />
-          <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/40 px-4 text-white text-center">
-            {slide.title && (
-              <h2 className="mb-4 font-bold text-2xl md:text-4xl">
-                {slide.title}
-              </h2>
-            )}
-            {slide.buttonTxt && slide.link && (
-              <a
-                href={slide.link}
-                className="bg-accent hover:bg-[#ffc700] px-5 py-3 rounded-md font-semibold text-black transition"
-              >
-                {slide.buttonTxt}
-              </a>
-            )}
+    <div className="w-full h-[60vh] overflow-hidden">
+      <Slider {...settings}>
+        {sliderImages.map((slide, index) => (
+          <div key={index} className="relative">
+            <img
+              src={slide.image}
+              alt={`slide-${index}`}
+              className="w-full h-[60vh] object-cover"
+            />
+            <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/40 px-4 text-white text-center">
+              {slide.title && (
+                <h2 className="mb-4 font-bold text-2xl md:text-4xl">
+                  {slide.title}
+                </h2>
+              )}
+              {slide.buttonTxt && slide.link && (
+                <a
+                  href={slide.link}
+                  className="bg-accent hover:bg-[#ffc700] px-5 py-3 rounded-md font-semibold text-black transition"
+                >
+                  {slide.buttonTxt}
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
-    </Slider>
+        ))}
+      </Slider>
+    </div>
   );
 };
 

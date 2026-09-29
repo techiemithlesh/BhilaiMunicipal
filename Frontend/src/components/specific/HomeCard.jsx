@@ -1,46 +1,43 @@
-const HomeCard = ({
-  title,
-  imageUrl,
-  icon: Icon,
-  description,
-  buttons,
-  className,
-}) => {
-  return (
-    <div
-      className={`rounded-xl shadow-md overflow-hidden bg-white hover:shadow-xl transition-all duration-300 ${className}`}
-    >
-      <div className="flex flex-col items-center p-5 space-y-4">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-28 h-28 object-cover rounded-full shadow-sm"
-          />
-        ) : Icon ? (
-          <Icon className="text-5xl text-primary" />
-        ) : null}
-        {title && (
-          <h2 className="text-xl md:text-2xl font-bold text-center">{title}</h2>
-        )}
-        {description && (
-          <p className="text-gray-600 text-center">{description}</p>
-        )}
+import { Link } from "react-router-dom";
 
-        {buttons && (
-          <div className="flex flex-wrap justify-center gap-2 mt-2">
-            {buttons.map((button, index) => (
-              <a
-                key={index}
-                href={button.link}
-                className={`px-4 py-2 rounded-md font-semibold text-sm transition hover:opacity-90 ${
-                  button.className || "bg-primary text-white"
-                }`}
-              >
-                {button.label}
-              </a>
-            ))}
-          </div>
+const HomeCard = ({ title, icon: Icon, links = [] }) => {
+  return (
+    <div className="flex flex-col h-full">
+      <h3 className="flex items-center gap-2 text-lg md:text-xl font-bold text-gray-700 uppercase mb-3 pb-2 border-b-2 border-gray-800">
+        {Icon && <Icon className="text-gray-900" />}
+        {title}
+      </h3>
+
+      <div className="flex flex-col flex-1 bg-gray-900 shadow-md rounded-lg divide-y divide-gray-700 overflow-hidden">
+        {links.map((item, index) =>
+          item.disabled ? (
+            <div
+              key={index}
+              className="flex justify-between items-center px-4 py-3 text-white/60 text-sm md:text-base cursor-not-allowed select-none"
+              title="Coming soon"
+            >
+              <span>{item.label}</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wide">
+                Coming soon
+              </span>
+            </div>
+          ) : item.to.startsWith("#") ? (
+            <a
+              key={index}
+              href={item.to}
+              className="block hover:bg-gray-700 px-4 py-3 text-white text-sm md:text-base transition-colors"
+            >
+              {item.label}
+            </a>
+          ) : (
+            <Link
+              key={index}
+              to={item.to}
+              className="block hover:bg-gray-700 px-4 py-3 text-white text-sm md:text-base transition-colors"
+            >
+              {item.label}
+            </Link>
+          )
         )}
       </div>
     </div>

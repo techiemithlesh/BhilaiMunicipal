@@ -6,6 +6,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { UlbApi } from "../api/endpoints";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { UlbProvider } from "../contexts/UlbContext";
 
 const Layout = ({
   children,
@@ -47,7 +48,9 @@ const Layout = ({
 
       <div className="flex flex-col bg-white min-h-screen text-[#222222]">
         <Header ulbData={ulbData} />
-        <main className="page-header">{children}</main>
+        <UlbProvider value={ulbData}>
+          <main className="page-header py-4">{children}</main>
+        </UlbProvider>
         <Footer ulbData={ulbData} />
       </div>
     </>
