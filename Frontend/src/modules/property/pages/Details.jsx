@@ -260,48 +260,7 @@ const Details = () => {
                 </tr>
               )}
             />
-            <DetailGrid
-              title="Electricity Details"
-              note="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
-              data={[
-                {
-                  label: "Electricity K. No",
-                  value: propDetails.electConsumerNo,
-                },
-                { label: "ACC No.", value: propDetails.electAccNo },
-                {
-                  label: "BIND/BOOK No.",
-                  value: propDetails?.electBindBookNo
-                    ? "electBindBookNo"
-                    : "NA",
-                },
-                {
-                  label: "Electricity Consumer Category",
-                  value: propDetails.electConsCategory,
-                },
-              ]}
-            />
-            <DetailGrid
-              title="Building Plan/Water Connection Details"
-              data={[
-                {
-                  label: "Building Plan Approval No",
-                  value: propDetails.buildingPlanApprovalNo || "NA",
-                },
-                {
-                  label: "Building Plan Approval Date",
-                  value: propDetails.buildingPlanApprovalDate || "NA",
-                },
-                {
-                  label: "Water Consumer No",
-                  value: propDetails?.waterConnNo || "NA",
-                },
-                {
-                  label: "Water Connection Date",
-                  value: propDetails?.waterConnDate || "NA",
-                },
-              ]}
-            />
+           
             <DetailGrid
               title="Property Details"
               data={[

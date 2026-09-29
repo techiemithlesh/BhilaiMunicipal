@@ -1,19 +1,22 @@
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { waterAppPaymentReceiptApi } from "../../../api/endpoints";
+import { waterConsumerDemandReceiptApi } from "../../../api/endpoints";
+import { getToken } from "../../../utils/auth";
 import { formatLocalDate, hostInfo } from "../../../utils/common";
 import QRCodeComponent from "../../../components/common/QRCodeComponent";
 import "../../../i18n";
 
-function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
+function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
   const isTest = JSON.parse(import.meta.env.VITE_REACT_APP_TEST || "false");
+  const token = getToken();
   const { t, i18n } = useTranslation();
   const [receiptData, setReceiptData] = useState({});
-  const [qrCode, setQrCode] = useState(null);
 
   useEffect(() => {
+    // Receipts default to Hindi; the English/Hindi toggle can still switch it.
     i18n.changeLanguage("hi");
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -22,6 +25,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
       setIsFrozen(false);
       setReceiptData({});
     };
+    // eslint-disable-next-line
   }, [id]);
 
   const fetchData = async () => {
@@ -30,20 +34,21 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
     try {
       if (data) {
         setReceiptData(data || {});
+        
         return;
       }
-      const response = await axios.post(waterAppPaymentReceiptApi, { id });
-      if (response?.data?.status) {
-        setReceiptData(response.data.data || {});
-      }
-      setQrCode(
-        <QRCodeComponent
-          value={`${host}/water-consumer/payment-receipt/${id ?? data?.tranDtl?.id}`}
-          size={80}
-        />
+      const response = await axios.post(
+        waterConsumerDemandReceiptApi,
+        { id },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (response?.data?.status) {
+        const fetched = response.data.data || {};
+        setReceiptData(fetched);
+        
+      }
     } catch (error) {
-      console.error("Error fetching receipt:", error);
+      console.error("Error fetching demand receipt:", error);
     } finally {
       setIsFrozen(false);
     }
@@ -66,14 +71,15 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
       ? ulbDtl?.hindiUlbName || ulbDtl?.ulbName
       : ulbDtl?.ulbName;
 
-  // Shared cell styles matching DemandPrintModalDtl
+  // Shared cell styles matching PaymentReceiptDtl
   const td = "border border-black px-2 py-[3px]";
   const th = "border border-black px-2 py-[4px] font-bold";
 
   return (
     <div className="print-container relative bg-white text-black font-[Arial,Helvetica,sans-serif] text-[13px] leading-snug border-2 border-dashed border-black px-5 pt-3 pb-8 overflow-hidden">
+      {/* Watermark Support */}
       {receiptData?.watermark && (
-        <div className="z-0 absolute inset-0 flex justify-center items-center pointer-events-none">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-0">
           <img
             src={receiptData.watermark}
             alt=""
@@ -82,20 +88,22 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
         </div>
       )}
 
+      {/* Test Environment Overlay */}
       {isTest && (
-        <div className="z-20 absolute inset-0 flex justify-center items-center overflow-hidden pointer-events-none">
-          <div className="font-bold text-[10rem] text-red-800 uppercase whitespace-nowrap -rotate-[35deg] opacity-10 select-none">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-20 overflow-hidden">
+          <div className="whitespace-nowrap text-red-800 opacity-10 text-[10rem] font-bold -rotate-[35deg] uppercase select-none">
             TEST TEST TEST TEST TEST
           </div>
         </div>
       )}
 
-      <div className="z-10 relative p-2">
+      <div className="relative z-10 p-2">
         {/* ===================== HEADER ===================== */}
-        <div className="items-start gap-2 grid grid-cols-[110px_1fr_110px]">
+        <div className="grid grid-cols-[110px_1fr_110px] items-start gap-2">
           <div></div>
+
           <div className="min-w-0">
-            <div className="flex justify-center items-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-3 pt-2">
               {ulbDtl?.logoImg && (
                 <img
                   src={ulbDtl.logoImg}
@@ -103,7 +111,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
                   className="w-[50px] h-[50px] object-contain shrink-0"
                 />
               )}
-              <h1 className="font-bold text-[16px] text-center uppercase whitespace-nowrap">
+              <h1 className="font-bold text-[16px] uppercase whitespace-nowrap text-center">
                 {val(ulbName)}
               </h1>
               {ulbDtl?.rightLogo && (
@@ -115,20 +123,19 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
               )}
             </div>
             <div className="flex justify-center mt-3">
-              <span className="inline-block border-2 border-black px-4 py-1 font-bold text-[13px] text-center uppercase">
-                <div>{t("Water User")}</div>
-                <div>{t("Charge Receipt")}</div>
+              <span className="inline-block px-4 py-1 border-2 border-black font-bold text-[13px] uppercase text-center">
+                <div>{t("WATER USER CHARGE DEMAND")}</div>
+                <div className="text-[10px] font-normal tracking-wide">
+                  {t("(THIS IS NOT PAYMENT RECEIPT)")}
+                </div>
               </span>
             </div>
           </div>
         </div>
 
-        {/* ===================== RECEIPT & CONSUMER INFO ===================== */}
+        {/* ===================== CONSUMER & DEMAND INFO ===================== */}
         <div className="gap-x-8 gap-y-1.5 grid grid-cols-2 mt-4 text-[12px] leading-normal">
           <div className="space-y-1">
-            <p>
-              {t("Receipt No.")} : <strong>{val(receiptData?.tranNo)}</strong>
-            </p>
             <p>
               {t("Department / Section")} :{" "}
               <strong>{t(val(receiptData?.department))}</strong>
@@ -137,18 +144,31 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
               {t("Account Description")} :{" "}
               <strong>{t(val(receiptData?.accountDescription))}</strong>
             </p>
+            <p>
+              {t("Connection Type")} :{" "}
+              <strong>{val(receiptData?.connectionType)}</strong>
+            </p>
+            <p>
+              {t("Property Type")} :{" "}
+              <strong>{val(receiptData?.propertyType)}</strong>
+            </p>
           </div>
+
           <div className="space-y-1">
             <p>
-              {t("Date")} :{" "}
-              <strong>{formatLocalDate(receiptData?.tranDate, "-")}</strong>
+              {t("Print Date")} :{" "}
+              <strong>{val(receiptData?.printDate)}</strong>
             </p>
             <p>
               {t("Ward No")} : <strong>{val(receiptData?.wardNo)}</strong>
             </p>
             <p>
               {t("Property Id")} :{" "}
-              <strong>{val(receiptData?.newHoldingNo)}</strong>
+              <strong>{val(receiptData?.propertyId)}</strong>
+            </p>
+            <p>
+              {t("Holding No")} :{" "}
+              <strong>{val(receiptData?.holdingNo)}</strong>
             </p>
             <p>
               {t("Consumer No")} :{" "}
@@ -159,10 +179,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
 
         <div className="space-y-1 mt-3 text-[12px] leading-normal">
           <p>
-            {t("Name")} : <strong>{val(receiptData?.ownerName)}</strong>
-          </p>
-          <p>
-            C/O : <strong>{val(receiptData?.guardianName)}</strong>
+            {t("Received By")} : <strong>{val(receiptData?.ownerName)}</strong>
           </p>
           <p>
             {t("Address")} : <strong>{val(receiptData?.address)}</strong>
@@ -172,35 +189,8 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
           </p>
         </div>
 
-        <div className="flex items-baseline gap-2 mt-3 text-[12px] leading-normal">
-          <span>
-            {t("Total Rs.")} <strong>{money(receiptData?.amount)}</strong>
-          </span>
-          <span>({t("In words")})</span>
-          <strong className="flex-1 border-black border-b border-dotted">
-            {receiptData?.amountInWords}
-          </strong>
-        </div>
-
-        <p className="mt-1 text-[12px] leading-normal">
-          {i18n.language === "hi" ? (
-            <>
-              {t("Water User Charge & Others")} के मद मे{" "}
-              <strong>{val(receiptData?.paymentMode)}</strong> प्राप्त किया गया
-            </>
-          ) : (
-            <>
-              Received <strong>{val(receiptData?.paymentMode)}</strong> towards{" "}
-              {t(receiptData?.accountDescription)}
-            </>
-          )}
-        </p>
-
-        {/* ===================== CHARGE TABLE ===================== */}
-        <p className="mt-4 font-bold text-[12px]">
-          {t("Water Usage Charge Details")}
-        </p>
-        <table className="mt-1 w-full border-2 border-black border-collapse text-[12px]">
+        {/* ===================== DEMAND TABLE ===================== */}
+        <table className="mt-4 w-full border-collapse border-2 border-black print:break-inside-avoid text-[12px]">
           <thead>
             <tr>
               <th className={`${th} text-left`}>{t("Tax Description")}</th>
@@ -220,21 +210,21 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
           </thead>
           <tbody>
             {receiptData?.isMetered ? (
-              (receiptData?.meterReading || []).map((range, index) => (
-                <tr key={`reading_${index}`}>
-                  <td className={td}>{t("Water Tax (User Charge)")}</td>
-                  <td className={`${td} text-center`}>
-                    {range?.fromReading} (Pre.) {t("To")} {range?.toReading} (Curr.)
-                  </td>
-                  <td className={`${td} text-center`}>{range?.units}</td>
-                  <td className={`${td} text-right`}>{money(range?.amount)}</td>
-                </tr>
-              ))
+              <tr>
+                <td className={td}>{t("Water Tax (User Charge)")}</td>
+                <td className={`${td} text-center`}>
+                  {receiptData?.fromReading} (P) {t("To")} {receiptData?.currentReading} (C)
+                </td>
+                <td className={`${td} text-center`}>{receiptData?.units}</td>
+                <td className={`${td} text-right`}>
+                  {money(receiptData?.demandAmount)}
+                </td>
+              </tr>
             ) : (
               <tr>
                 <td className={td}>{t("Water Tax (User Charge)")}</td>
                 <td className={`${td} text-center`}>
-                  {receiptData?.periodFrom} - {receiptData?.periodUpto}
+                  {receiptData?.demandFrom} {t("To")} {receiptData?.demandUpto}
                 </td>
                 <td className={`${td} text-center`}>
                   {receiptData?.periodMonths} {t("Months")}
@@ -244,64 +234,63 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
                 </td>
               </tr>
             )}
+
             <tr>
               <td className={`${td} text-right`} colSpan={3}>
-                {t("Surcharge Amount")}
+                {t("Penalty")}
               </td>
               <td className={`${td} text-right`}>
-                {money(receiptData?.penaltyAmt)}
+                {money(receiptData?.penalty)}
               </td>
             </tr>
-            <tr className="font-semibold">
-              <td className={`${td} text-right`} colSpan={3}>
-                {t("Total Billing Amount")}
-              </td>
-              <td className={`${td} text-right`}>
-                {money(receiptData?.totalBillingAmount)}
-              </td>
-            </tr>
+
             <tr className="font-bold">
               <td className={`${td} text-right`} colSpan={3}>
-                {t("Total Received Amount")}
+                {t("TOTAL PAYABLE")}
               </td>
               <td className={`${td} text-right`}>
-                {money(receiptData?.totalReceivedAmount)}
+                {money(receiptData?.payableAmount)}
               </td>
             </tr>
           </tbody>
         </table>
 
-        <div className="flex justify-between items-end mt-6">
-          <div>{qrCode}</div>
-          <p className="font-semibold text-[12px]">
-            {t("Tax Collector's Signature")}
-          </p>
-        </div>
+        <p className="mt-6 font-semibold text-[12px] text-right">
+          {t("Authorised Signature")}
+        </p>
 
         {/* ===================== NOTES & COLLABORATION FOOTER ===================== */}
         <div className="flex justify-between items-start gap-6 mt-3 border-2 border-black p-3 text-[12px] leading-snug">
           <div className="max-w-[65%] border-r-2 border-black">
-            <p className="mb-1 font-bold">{t("Note")}:-</p>
-            <ul className="pl-5 text-[11px] list-disc space-y-1">
-              <li>
-                {t("For details contact")} <strong>{val(ulbDtl?.tollFreeNo)}</strong>
-              </li>
-              <li>
-                {t("Print Date")} : <strong>{receiptData?.printingDate}</strong>
-              </li>
+            <p className="font-bold mb-1">{t("Note")}:-</p>
+            <ul className="list-disc pl-5 space-y-1 text-[11px]">
+              {receiptData?.isMetered && receiptData?.lastMeterReadingDate && (
+                <li>
+                  {t("Last Meter Reading Date")} :{" "}
+                  <strong>
+                    {formatLocalDate(receiptData?.lastMeterReadingDate, "-")}
+                  </strong>
+                </li>
+              )}
               <li>
                 {t(
                   "This is a Computer genrated Receipt.This receipt does not require physical signature."
                 )}
               </li>
+              <li>{t("This is only demand and not payment Receipt.")}</li>
+              <li>
+                {t(
+                  "You will Receive SMS in your Registered Mobile no for amount paid. If SMS is not received verify your paid amount by calling Toll Free no."
+                )}{" "}
+                <strong>{val(ulbDtl?.tollFreeNo)}</strong>
+              </li>
             </ul>
           </div>
+
           <div className="text-center pt-2 pr-2 whitespace-nowrap min-w-[150px]">
             <p className="text-[11px]">{t("In Collaboration With")}</p>
-            <p className="font-semibold text-[12px]">
-              {val(ulbDtl?.collaboration)}
-            </p>
-            <p className="mt-2 font-bold text-[12px] uppercase">
+            <p className="font-semibold text-[12px]">{val(ulbDtl?.collaboration)}</p>
+            <p className="mt-2 font-bold uppercase text-[12px]">
               {val(ulbName)}
             </p>
           </div>
@@ -311,4 +300,4 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
   );
 }
 
-export default PaymentReceiptDtl;
+export default DemandPrintModalDtl;

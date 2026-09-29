@@ -302,6 +302,9 @@ export const waterPropertyTypeListApi = `${BASE_URL}/api/water/get-prop-type-lis
 export const waterConsumerUpdateConnectionApi = `${BASE_URL}/api/water/consumer/update-connection`;
 export const waterConsumerDemandGenerateApi = `${BASE_URL}/api/water/consumer/generate-demand`;
 export const waterConsumerDemandHistoryApi = `${BASE_URL}/api/water/consumer/demand-history`;
+export const waterConsumerDemandReceiptApi = `${BASE_URL}/api/water/consumer/demand-receipt`;
+export const waterAddExistingConsumerTestApi = `${BASE_URL}/api/water/consumer/test-add-existing`;
+export const waterAddExistingConsumerApi = `${BASE_URL}/api/water/consumer/add-existing`;
 
 /**
  * Water Reports
@@ -339,7 +342,7 @@ export const swmFeedbackLockUnlockApi = `${BASE_URL}/api/swm/feedback/mstr-lock-
 
 // swm
 export const swmMasterDataApi = `${BASE_URL}/api/swm/get-master-data`;
-export const validateHoldingNoApi = `${BASE_URL}/api/swm/validate-holding`;
+export const validateHoldingNoApi = `${BASE_URL}/api/property/validate-holding`;
 export const swmAddConsumerTestRequestApi=`${BASE_URL}/api/swm/test-request`;
 export const swmAddConsumerApi=`${BASE_URL}/api/swm/consumer-add`;
 export const swmEditBasicConsumerApi=`${BASE_URL}/api/swm/consumer-edit-basic`;

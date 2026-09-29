@@ -12,6 +12,7 @@ class Consumer extends ParamModel
     protected $fillable = [
         "application_id",
         "consumer_no",
+        "old_consumer_no",
         "ulb_id",
         "connection_type_id",
         "property_type_id",
@@ -20,6 +21,7 @@ class Consumer extends ParamModel
         "pipeline_type_id",
         "ownership_type_id",
         "property_detail_id",
+        "saf_detail_id",
         "ward_mstr_id",
         "new_ward_mstr_id",
         "area_sqft",

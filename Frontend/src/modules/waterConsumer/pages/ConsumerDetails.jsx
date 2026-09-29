@@ -27,6 +27,7 @@ import UpdateConnectionModal from "../components/UpdateConnectionModal";
 import GenerateDemandModal from "../components/GenerateDemandModal";
 import DataTableFullData from "../../../components/common/DataTableFullData";
 import DemandHistoryModal from "../components/DemandHistoryModal";
+import DemandPrintModal from "../components/DemandPrintModal";
 
 function ConsumerDetails() {
   const { id } = useParams();
@@ -46,6 +47,7 @@ function ConsumerDetails() {
     useState(false);
   const [isDemandHistoryModalOpen, setIsDemandHistoryModalOpen] =
     useState(false);
+  const [isDemandPrintModalOpen, setIsDemandPrintModalOpen] = useState(false);
   const [previewImg, setPreviewImg] = useState("");
   const token = getToken();
 
@@ -59,6 +61,14 @@ function ConsumerDetails() {
       },
       icon: <FaEye />,
       show: true,
+    },
+    {
+      label: "Print Demand",
+      onClick: () => {
+        setIsDemandPrintModalOpen(true);
+      },
+      icon: <FaFile />,
+      show: appData?.meterStatusId,
     },
     {
       label: "Proceed Payment",
@@ -233,8 +243,7 @@ function ConsumerDetails() {
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{owner.ownerName}</td>
                   <td className="px-3 py-2 border">{owner.guardianName}</td>
-                  {/* <td className="px-3 py-2 border">{owner.mobileNo}</td>
-                  <td className="px-3 py-2 border">{owner.email}</td> */}
+                  <td className="px-3 py-2 border">{owner.mobileNo}</td>
                 </tr>
               )}
             />
@@ -417,6 +426,13 @@ function ConsumerDetails() {
                 onClose={() => setIsDemandHistoryModalOpen(false)}
                 id={appData?.id}
                 openPreviewModel={openPreviewModel}
+              />
+            )}
+
+            {isDemandPrintModalOpen && (
+              <DemandPrintModal
+                onClose={() => setIsDemandPrintModalOpen(false)}
+                id={appData?.id}
               />
             )}
 

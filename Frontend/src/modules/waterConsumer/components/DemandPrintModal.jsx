@@ -1,17 +1,18 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
-import PaymentReceiptDtl from "./PaymentReceiptDtl";
 import { usePrint } from "../../../utils/common";
+import DemandPrintModalDtl from "./DemandPrintModalDtl";
 import "../../../i18n";
 import { useTranslation } from "react-i18next";
 
-function PaymentReceiptModal({ id, onClose }) {
+function DemandPrintModal({ id, onClose }) {
   const { t, i18n } = useTranslation();
   const [isFrozen, setIsFrozen] = useState(false);
   const printRef = useRef();
-  const handlePrint = usePrint(printRef, "Payment Receipt");
+
+  const handlePrint = usePrint(printRef, "Water Demand Receipt");
 
   return (
     <div className="z-50 print:static fixed inset-0 flex justify-center items-center bg-black print:bg-transparent bg-opacity-50 p-4 print:p-0">
@@ -21,10 +22,10 @@ function PaymentReceiptModal({ id, onClose }) {
         exit="hidden"
         variants={modalVariants}
         transition={{ duration: 0.5 }}
-        className="flex flex-col bg-white shadow-lg print:shadow-none p-6 print:p-0 rounded-lg w-full print:max-w-full max-w-6xl max-h-[90vh]"
+        className="flex flex-col bg-white shadow-lg print:shadow-none p-6 print:p-0 rounded-lg w-full print:max-w-full max-w-4xl max-h-[90vh]"
       >
         <div className="print:hidden flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-blue-900 text-xl">View Receipt</h2>
+          <h2 className="font-semibold text-blue-900 text-xl">Demand Receipt</h2>
           <div className="flex gap-2">
             <button
               className="text-red-500 hover:text-red-400"
@@ -65,13 +66,9 @@ function PaymentReceiptModal({ id, onClose }) {
         </div>
 
         <div className="relative flex-grow print:overflow-visible overflow-y-auto">
-          <div
-            className={`${
-              isFrozen ? "pointer-events-none filter blur-sm" : ""
-            }`}
-          >
+          <div className={`${isFrozen ? "pointer-events-none filter blur-sm" : ""}`}>
             <div className="overflow-x-auto p-4" ref={printRef}>
-              <PaymentReceiptDtl id={id} setIsFrozen={setIsFrozen} />
+              <DemandPrintModalDtl id={id} setIsFrozen={setIsFrozen} />
             </div>
           </div>
           {isFrozen && (
@@ -87,4 +84,4 @@ function PaymentReceiptModal({ id, onClose }) {
   );
 }
 
-export default PaymentReceiptModal;
+export default DemandPrintModal;

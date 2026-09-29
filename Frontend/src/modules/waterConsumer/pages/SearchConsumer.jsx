@@ -70,7 +70,16 @@ function SearchConsumer() {
   };
 
   return (
-    <SearchWithTable
+    <>
+      <div className="flex justify-end mb-2">
+        <Link
+          to="/water/consumer/add-existing"
+          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white text-sm"
+        >
+          + Add Existing
+        </Link>
+      </div>
+      <SearchWithTable
       filterType="Search Application"
       itemsPerPage={itemsPerPage}
       currentPage={currentPage}
@@ -147,7 +156,8 @@ function SearchConsumer() {
           </td>
         </tr>
       )}
-    />
+      />
+    </>
   );
 }
 
