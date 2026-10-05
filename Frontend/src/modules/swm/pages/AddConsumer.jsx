@@ -20,6 +20,8 @@ import {
 import toast from "react-hot-toast";
 import SuccessModal from "../../../components/common/SuccessModal";
 import LocationPicker from "../../../components/common/LocationPicker";
+import ConnectionDetails from "../components/ConnectionDetails";
+import { Button, Input, Select, SelectItem } from "@nextui-org/react";
 
 function AddConsumer({ mstrData, formDetails }) {
     const navigate = useNavigate();
@@ -73,6 +75,20 @@ function AddConsumer({ mstrData, formDetails }) {
                         relationType: "",
                         mobileNo: "",
                         email: "",
+                    },
+                ],
+                dateOfEffective:"",
+                connectionDtl:[
+                    {
+                        categoryTypeMasterId: "",
+                        subCategoryTypeMasterId: "",
+                        totalNoOfHouseAreaRoomTruck: 1,
+                        hasRestaurant: false,
+                        totalNoOfRestaurant: 0,
+                        hasGarden: false,
+                        totalNoOfGarden: 0,
+                        hasBanquetHall: false,
+                        totalNoOfBanquetHall: 0,
                     },
                 ],
             }
@@ -208,13 +224,17 @@ function AddConsumer({ mstrData, formDetails }) {
                 const data = response.data.data;
                 setFormData((prev) => ({
                     ...prev,
-                    // wardMstrId: data.wardMstrId,
+                    wardMstrId: data.wardMstrId,
                     // newWardMstrId: data.newWardMstrId,
                     address: data?.propAddress,
                     pinCode: data?.propPinCode,
                     ownerDtl: data.owners || prev.ownerDtl,
                 }));
             } else {
+                setFormData((prev) => ({
+                    ...prev,
+                    holdingNo: "",
+                }));
                 setValidationError((prev) => ({
                     ...prev,
                     holdingNo: ["Invalid Holding No"],
@@ -323,13 +343,68 @@ function AddConsumer({ mstrData, formDetails }) {
         }
     };
 
+    const handleConnectionChange = (index, field, value) => {
+        setFormData((prev) => {
+            const updatedConnections = [...prev.connectionDtl];
+            updatedConnections[index] = {
+            ...updatedConnections[index],
+            [field]: value,
+            };
+
+            // Reset total field if user unchecks provision
+            if (field === "hasRestaurant" && !value) updatedConnections[index].totalNoOfRestaurant = "";
+            if (field === "hasGarden" && !value) updatedConnections[index].totalNoOfGarden = "";
+            if (field === "hasBanquetHall" && !value) updatedConnections[index].totalNoOfBanquetHall = "";
+
+            if(field==="categoryTypeMasterId" && value != 16){
+                updatedConnections[index] = {
+                    ...updatedConnections[index],
+                    ["hasRestaurant"]: false,
+                    ["totalNoOfRestaurant"]: 0,
+                    ["hasGarden"]: false,
+                    ["totalNoOfGarden"]: 0,
+                    ["hasBanquetHall"]: false,
+                    ["totalNoOfBanquetHall"]: 0,
+                };
+            }
+
+            return { ...prev, connectionDtl: updatedConnections };
+        });
+    };
+
+    const handleAddConnectionRow = () => {
+        setFormData((prev) => ({
+            ...prev,
+            connectionDtl: [
+            ...prev.connectionDtl,
+            {
+                categoryTypeMasterId: "",
+                subCategoryTypeMasterId: "",
+                totalNoOfHouseAreaRoomTruck: 1,
+                hasRestaurant: false,
+                totalNoOfRestaurant: 0,
+                hasGarden: false,
+                totalNoOfGarden: 0,
+                hasBanquetHall: false,
+                totalNoOfBanquetHall: 0,
+            },
+            ],
+        }));
+    };
+
+    const handleRemoveConnectionRow = (index) => {
+        setFormData((prev) => ({
+            ...prev,
+            connectionDtl:
+            prev.connectionDtl.length > 1
+                ? prev.connectionDtl.filter((_, i) => i !== index)
+                : prev.connectionDtl,
+        }));
+    };
+
     // -------------------- Submit Handler --------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // if((!loc?.lat)|| (!loc?.lng)){
-        //     alert("Please Select Location On Map");
-        //     return false;
-        // }
         setIsFormSubmit(true);
         try {
             const payload = { ...formData };//,latitude:loc?.lat,longitude:loc?.lng
@@ -378,6 +453,19 @@ function AddConsumer({ mstrData, formDetails }) {
     // -------------------- Field Configurations --------------------
     const formFields1 = [
         {
+            name: "holdingNo",
+            label: "Holding No",
+            type: "text",
+            error: validationError?.holdingNo || "",
+            value: formData.holdingNo || "",
+            required: true, 
+            isHidden: false,
+            placeholder: "Enter Holding No",
+            charRegex: /^[A-Za-z0-9\s,.\-\/#]$/,
+            regex: /^[A-Za-z0-9\s,.\-\/#]{0,20}$/,
+            onBlur: (e) => validateHoldingNo(e.target.value),
+        },
+        {
             name: "wardMstrId",
             label: "Ward No",
             type: "select",
@@ -385,18 +473,6 @@ function AddConsumer({ mstrData, formDetails }) {
             value: formData.wardMstrId || "",
             required: true,
             options: masterData?.wardList?.map((item) => ({ label: item.wardNo, value: item.id, })),
-        },
-        {
-            name: "holdingNo",
-            label: "Holding No",
-            type: "text",
-            error: validationError?.holdingNo || "",
-            value: formData.holdingNo || "",
-            required: false, isHidden: false,
-            placeholder: "Enter Holding No",
-            charRegex: /^[A-Za-z0-9\s,.\-\/#]$/,
-            regex: /^[A-Za-z0-9\s,.\-\/#]{0,20}$/,
-            onBlur: (e) => validateHoldingNo(e.target.value),
         },
         {
             name: "houseNo",
@@ -472,94 +548,11 @@ function AddConsumer({ mstrData, formDetails }) {
             type: "text",
             error: validationError?.pinCode || "",
             value: formData?.pinCode || "",
-            readOnly: true,
             charRegex: /^[0-9]$/,
             regex: /^[1-9][0-9]{0,5}$/,
             maxLength: 6,
             required: true,
             placeholder: "Enter Pin",
-        },
-    ];
-    const areaFields = [
-        {
-            name: "categoryTypeMasterId",
-            label: "Consumer Category",
-            type: "select",
-            error: validationError?.categoryTypeMasterId || "",
-            value: formData.categoryTypeMasterId || "",
-            required: true,
-            subOnChange: fetchSubCategory,
-            options: masterData?.categoryType?.map((item) => ({
-                label: item.categoryType,
-                value: item.id,
-            })),
-        },
-        {
-            name: "subCategoryTypeMasterId",
-            label: "Consumer Range Type",
-            type: "select",
-            error: validationError?.subCategoryTypeMasterId || "",
-            value: formData.subCategoryTypeMasterId || "",
-            loading: subCategoryLoading,
-            required: true,
-            options: subCategoryList?.map((item) => ({
-                label: item.subCategoryType,
-                value: item.id,
-            })),
-        },
-        {
-            name: "dateOfEffective",
-            label: "Date Of Effect",
-            type: "month",
-            error: validationError?.dateOfEffective || "",
-            value: formData.dateOfEffective || "",
-            required: true,
-            min: masterData?.minDate,
-            max: masterData?.maxDate,
-            placeholder: "Select Month & Year",
-        },
-        {
-            name: "hasCompostingMachineProvision",
-            label: "Has Provision of Own Composting Machine",
-            type: "radio",
-            error: validationError?.hasCompostingMachineProvision || "",
-            value: formData.hasCompostingMachineProvision || "",
-            required: true,
-            options: [
-                { label: "Yes", value: true },
-                { label: "No", value: false },
-            ],
-        },
-        {
-            name: "totalNoOfFlat",
-            label: "Total No. of Flats/Houses",
-            type: "number",
-            error: validationError?.totalNoOfFlat || "",
-            value: formData.totalNoOfFlat || "",
-            min: 1,
-            required: true,
-            isHidden: formData?.categoryTypeMasterId != 20,
-            placeholder: "Enter Total No. of Flats",
-        },
-        {
-            name: "typeOfMultiStoreyBuilding",
-            label: "Type of Multi-Storey Building",
-            type: "select",
-            error: validationError?.typeOfMultiStoreyBuilding || "",
-            value: formData.typeOfMultiStoreyBuilding || "",
-            options: [{ label: "APARTMENT", value: 1 }],
-            isHidden: formData?.categoryTypeMasterId != 20,
-        },
-        {
-            name: "actualNoOfFlat",
-            label: "Actual No. of Flats/Houses",
-            type: "number",
-            error: validationError?.actualNoOfFlat || "",
-            value: formData.actualNoOfFlat || "",
-            min: 1,
-            max: formData?.totalNoOfFlat,
-            required: true,
-            isHidden: formData?.categoryTypeMasterId != 20,
         },
     ];
     // -------------------- Table Config --------------------
@@ -573,118 +566,137 @@ function AddConsumer({ mstrData, formDetails }) {
     ];
 
     const applicantRenderers = {
-        "Owner Name": (_, row, index) => (
-            <>
-                <input
-                    type="text"
-                    required
-                    value={row.ownerName}
-                    {...getValidationHandlers("ownerName")}
-                    onChange={(e) =>
-                        handleApplicantChange(row.id, "ownerName", e.target.value)
-                    }
-                    placeholder="Owner Name"
-                    className={`px-2 py-1 border rounded w-full text-sm ${validationError && validationError[`ownerDtl.${index}.ownerName`]
-                        ? "border-red-500"
-                        : ""
-                        }`}
-                />
-                {validationError && validationError[`ownerDtl.${index}.ownerName`] && (
-                    <div className="mt-1 text-red-600 text-xs">
-                        {validationError[`ownerDtl.${index}.ownerName`]}
-                    </div>
-                )}
-            </>
-        ),
-        "Guardian Name": (_, row, index) => (
-            <>
-                <input
-                    type="text"
-                    required
-                    value={row.guardianName}
-                    {...getValidationHandlers("guardianName")}
-                    onChange={(e) =>
-                        handleApplicantChange(row.id, "guardianName", e.target.value)
-                    }
-                    placeholder="Guardian Name"
-                    className={`px-2 py-1 border rounded w-full text-sm ${validationError && validationError[`ownerDtl.${index}.guardianName`]
-                        ? "border-red-500"
-                        : ""
-                        }`}
-                />
-            </>
-        ),
-        Relation: (_, row, index) => (
-            <>
-                <select
-                    value={row.relationType}
-                    required
-                    onChange={(e) =>
-                        handleApplicantChange(row.id, "relationType", e.target.value)
-                    }
-                    className="border rounded px-2 py-1 w-full text-sm"
-                >
-                    <option value="">Select</option>
-                    {relationTypeList.map((r) => (
-                        <option key={r.value} value={r.value}>
-                            {r.label}
-                        </option>
-                    ))}
-                </select>
-                {validationError[`ownerDtl.${index}.relationType`] && (
-                    <div className="mt-1 text-red-600 text-xs">
-                        {validationError[`ownerDtl.${index}.relationType`]}
-                    </div>
-                )}
-            </>
-        ),
-        "Mobile No.": (_, row, index) => (
-            <input
+        "Owner Name": (_, row, index) => {
+            const error = validationError?.[`ownerDtl.${index}.ownerName`];
+            return (
+                    <Input 
+                        type="text"
+                        isRequired={true}
+                        value={row.ownerName || ""}
+                        {...getValidationHandlers("ownerName")}
+                        onChange={(e) =>
+                            handleApplicantChange(row.id, "ownerName", e.target.value)
+                        }
+                        placeholder="Owner Name"
+                        errorMessage={error}
+                        size="sm"
+                        variant="bordered"
+                        className="w-full"
+                    />
+            )
+        },
+
+        "Guardian Name": (_, row, index) => {
+            const error = validationError?.[`ownerDtl.${index}.guardianName`];
+            return (
+            <Input
                 type="text"
-                required
-                value={row.mobileNo}
+                isRequired={true}
+                value={row.guardianName || ""}
+                {...getValidationHandlers("guardianName")}
+                onChange={(e) =>
+                handleApplicantChange(row.id, "guardianName", e.target.value)
+                }
+                placeholder="Guardian Name"
+                errorMessage={error}
+                size="sm"
+                variant="bordered"
+                className="w-full"
+            />
+            );
+        },
+
+        Relation: (_, row, index) => {
+            const error = validationError?.[`ownerDtl.${index}.relationType`];
+            return (
+            <Select
+                isRequired={true}
+                placeholder="Select Relation"
+                selectedKeys={row.relationType ? [String(row.relationType)] : []}
+                onChange={(e) =>
+                handleApplicantChange(row.id, "relationType", e.target.value)
+                }
+                errorMessage={error}
+                size="sm"
+                variant="bordered"
+                className="w-full"
+            >
+                {(relationTypeList || []).map((r) => (
+                <SelectItem key={String(r.value || r.id)} value={String(r.value || r.id)}>
+                    {r.label || r.name}
+                </SelectItem>
+                ))}
+            </Select>
+            );
+        },
+
+        "Mobile No.": (_, row, index) => {
+            const error = validationError?.[`ownerDtl.${index}.mobileNo`];
+            return (
+            <Input
+                labelPlacement="outside"
+                type="text"
+                isRequired={true}
+                value={row.mobileNo || ""}
                 {...getValidationHandlers("mobileNo")}
                 onChange={(e) =>
-                    handleApplicantChange(row.id, "mobileNo", e.target.value)
+                handleApplicantChange(row.id, "mobileNo", e.target.value)
                 }
                 placeholder="Mobile No."
-                className="px-2 py-1 border rounded w-full text-sm"
+                errorMessage={error}
+                size="sm"
+                variant="bordered"
+                className="w-full"
             />
-        ),
-        "Email ID": (_, row, index) => (
-            <input
+            );
+        },
+
+        "Email ID": (_, row, index) => {
+            const error = validationError?.[`ownerDtl.${index}.email`];
+            return (
+            <Input
                 type="email"
-                value={row.email}
+                value={row.email || ""}
                 {...getValidationHandlers("email")}
                 onChange={(e) =>
-                    handleApplicantChange(row.id, "email", e.target.value)
+                handleApplicantChange(row.id, "email", e.target.value)
                 }
                 placeholder="Email ID"
-                className="px-2 py-1 border rounded w-full text-sm"
+                errorMessage={error}
+                size="sm"
+                variant="bordered"
+                className="w-full"
             />
-        ),
+            );
+        },
+
         Action: (_, row, idx) => (
-            <div className="flex justify-center gap-2">
-                {formData.ownerDtl.length > 1 && (
-                    <button
-                        onClick={() => handleRemoveApplicant(row.id)}
-                        className="bg-red-600 hover:bg-red-700 p-2 rounded text-white"
-                        title="Delete"
-                        type="button"
-                    >
-                        <FaTrash />
-                    </button>
-                )}
-                {idx === formData.ownerDtl.length - 1 && (
-                    <button
-                        onClick={handleAddApplicant}
-                        className="bg-green-600 hover:bg-green-700 p-2 rounded text-white"
-                        title="Add"
-                        type="button"
-                    >
-                        <FaPlus />
-                    </button>
-                )}
+            <div className="flex justify-center gap-2 items-center">
+            {formData?.ownerDtl?.length > 1 && (
+                <Button
+                isIconOnly
+                color="danger"
+                size="sm"
+                onClick={() => handleRemoveApplicant(row.id)}
+                title="Delete"
+                type="button"
+                >
+                <FaTrash />
+                </Button>
+            )}
+            {idx === (formData?.ownerDtl?.length || 0) - 1 && (
+                <Button
+                isIconOnly
+                color="success"
+                size="sm"
+                onClick={handleAddApplicant}
+                title="Add"
+                type="button"
+                className="text-white"
+                >
+                <FaPlus />
+                </Button>
+            )}
             </div>
         ),
     };
@@ -759,13 +771,16 @@ function AddConsumer({ mstrData, formDetails }) {
                 data={formData.ownerDtl}
                 renderers={applicantRenderers}
             />
-
-            <FormCard
-                title="Area Details"
-                formFields={areaFields}
-                onChange={handleChange}
+            <ConnectionDetails
+                dateOfEffect = {formData?.dateOfEffective}
+                connectionDtl={formData.connectionDtl}
+                categoryList={masterData?.categoryType|| []}
+                onChange={handleConnectionChange}
+                onAddRow={handleAddConnectionRow}
+                onRemoveRow={handleRemoveConnectionRow}
+                onDateOfEffectChange = {handleChange}
+                validationError={validationError}
             />
-
             <div className="text-green-600 text-center">
                 {rateLoading
                     ? (
@@ -777,7 +792,8 @@ function AddConsumer({ mstrData, formDetails }) {
                         </div>
                     ) : (
                         <>
-                            Monthly Amount: {rates?.ratePerMonth}
+                            Monthly Amount: 
+                            {formData?.connectionDtl?.reduce((acc, curr) => acc + (Number(curr?.rate) || 0), 0).toFixed(2)}
                         </>
                     )
                 }

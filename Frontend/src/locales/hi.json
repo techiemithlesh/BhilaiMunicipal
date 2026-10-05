@@ -149,5 +149,10 @@
   "MOB":"मोबाइल",
   "Area (sq.ft.)":"क्षेत्रफल (वर्गफुट)",
   "Rs. 1000 will be appreciable if citizen not fill the SAF Form (Penal Charge - 1000).":"यदि नागरिक द्वारा एसएएफ फॉर्म नहीं भरा गया तो 1000 रुपये का जुर्माना लगाया जाएगा (पेनल चार्ज - 1000)।",
-  "Demand will be revised at the time of Payment(based on applicable discount & penalty).":"भुगतान के समय मांग को संशोधित किया जाएगा (लागू छूट एवं जुर्माने के आधार पर)।"
+  "Demand will be revised at the time of Payment(based on applicable discount & penalty).":"भुगतान के समय मांग को संशोधित किया जाएगा (लागू छूट एवं जुर्माने के आधार पर)।",
+
+  "SOLID WASTE USER CHARGE RECEIPT":"ठोस अपशिष्ट उपयोगकर्ता रसीद",
+  "Solid Waste User Charge & Others":"ठोस अपशिष्ट उपयोगकर्ता शुल्क एवं अन्य",
+  "Total Amount":"कुल राशि",
+  "Due Amount":"बकाया राशि"
 }

@@ -141,8 +141,10 @@ function SubCategoryList() {
                         <thead>
                         <tr>
                             <th className="px-4 py-2 border border-gray-400">Sl No.</th>
-                            <th className="px-4 py-2 border border-gray-400">Rate Per Month</th>
-                            <th className="px-4 py-2 border border-gray-400">Rate Per Month If Composting Machine</th>
+                            <th className="px-4 py-2 border border-gray-400">Rate Per ( Month / Rooms / Truck / Sqt Ft) </th>
+                            <th className="px-4 py-2 border border-gray-400">Rate Per Restorenet </th>
+                            <th className="px-4 py-2 border border-gray-400">Rate Per Garden </th>
+                            <th className="px-4 py-2 border border-gray-400">Rate Per Banquet Hall </th>
                             <th className="px-4 py-2 border border-gray-400">Effective From</th>
                             <th className="px-4 py-2 border border-gray-400">Effective Upto</th>
                             <th className="px-4 py-2 border border-gray-400">Lock Status</th>
@@ -158,7 +160,13 @@ function SubCategoryList() {
                                     {val?.ratePerMonth}
                                 </td>
                                 <td className="px-4 py-2 border border-gray-400">
-                                    {val?.ratePerMonthCompostingMachine}
+                                    {val?.restaurantRatePerMonth}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-400">
+                                    {val?.gardenRatePerMonth}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-400">
+                                    {val?.banquetHallRatePerMonth}
                                 </td>
                                 <td className="px-4 py-2 border border-gray-400">
                                     {val?.effectiveFrom}

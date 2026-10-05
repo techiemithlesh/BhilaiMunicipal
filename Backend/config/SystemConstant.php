@@ -10,11 +10,13 @@ return [
         2=>[
             "property"=>"pgsql_property",
             "water"=>"pgsql_water",
+            "swm"=>"pgsql_swm",
             "trade"=>"pgsql_trade",
         ],
         1=>[
             "property"=>"pgsql_dmc_property",
             "water"=>"pgsql_dmc_water",
+            "swm"=>"pgsql_dmc_swm",
             "trade"=>"pgsql_dmc_trade",
         ],
     ],

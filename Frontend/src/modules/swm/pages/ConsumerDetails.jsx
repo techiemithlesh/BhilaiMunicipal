@@ -30,6 +30,7 @@ import DemandHistoryModal from "../components/DemandHistoryModal";
 import EditConsumer from "../components/EditConsumer";
 import VisitingLogModal from "../components/VisitingLogModal";
 import DeactivateConsumerModal from "../components/DeactivateConsumerModal";
+import ShowConnectionDetails from "../components/ShowConnectionDetails";
 
 function ConsumerDetails() {
   const { id } = useParams();
@@ -155,7 +156,12 @@ function ConsumerDetails() {
     { label: "Consumer No.", value: appData?.consumerNo },
     { label: "RFID No.", value: appData?.rfId },
     { label: "Ward No.", value: appData?.wardNo },
-    { label: "Holding No.", value: appData?.holdingNo },
+    { label: "Holding No.", value: (
+              <a href={`/property/details/${appData?.propertyDetailId}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                {appData?.holdingNo}
+              </a>
+            )
+       },
     { label: "House/Flat No.", value: appData?.houseNo },
     { label: "Address", value: appData?.address },
     { label: "Landmark", value: appData?.landmark },
@@ -163,20 +169,19 @@ function ConsumerDetails() {
     { label: "Police Station", value: appData?.ps},
     { label: "Street Name", value: appData?.streetName },
     { label: "Locality", value: appData?.locality },
-    { label: "Consumer Category", value: appData?.categoryType },
-    { label: "Consumer Range Type", value: appData?.subCategoryType },
-    { label: "Date Of Effect", value: formatLocalDate(appData?.dateOfEffective) },
-    { label: "Has Provision of Own Composting Machine", value: appData?.hasCompostingMachineProvision?"Yes":"No" },
+    { label: "Apply Date", value: formatLocalDate(appData?.applyDate) },
   ];
 
   const handelConnectionSubmit = async () => {
     setIsModalUpdateConnectionOpen(false);
     fetchDetails();
   };
+
   const demandGenerateSubmit = async () => {
     setIsDemandGenerateModalOpen(false);
     fetchDetails();
   };
+
   return (
     <div className="mx-auto container">
       <div
@@ -273,56 +278,23 @@ function ConsumerDetails() {
               data={appData?.tranDtls}
               showingItem={[5, 10, 15, 50, 100, 500, 1000]}
             />
-
-            {/* <DetailGrid
+            
+            <ShowConnectionDetails
               title="Consumer Connection Details"
-              note1="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
-              data={[
-                {
-                  label: "Connection Type",
-                  value: appData?.connectionDtl?.connectionType,
-                },
-                {
-                  label: "Connection Date",
-                  value:
-                    formatLocalDate(appData?.connectionDtl?.connectionDate) ??
-                    "NA",
-                },
-                {
-                  label: "Meter No.",
-                  value: appData?.connectionDtl?.meterNo ?? "N/A",
-                },
-                {
-                  label: "Last Reading",
-                  value: appData?.connectionDtl?.currentReading ?? "N/A",
-                },
-                {
-                  label: "Last Reading Date",
-                  value:
-                    formatLocalDateTime(
-                      appData?.connectionDtl?.currentReadingDate
-                    ) ?? "N/A",
-                },
-                {
-                  label: "Last Reading Img",
-                  value: appData?.connectionDtl?.docPath ? (
-                    <img
-                      onClick={() =>
-                        openPreviewModel(appData?.connectionDtl?.docPath)
-                      }
-                      src={appData?.connectionDtl?.docPath}
-                      className="inline-block mr-3 ml-2 border border-gray-300 rounded-full w-10 h-10 object-cover cursor-pointer"
-                    />
-                  ) : (
-                    "N/A"
-                  ),
-                },
-                {
-                  label: "User Name",
-                  value: appData?.connectionDtl?.userName ?? "N/A",
-                },
-              ]}
-            /> */}
+              data={appData?.connections}
+            />
+            <SectionCard
+              title="Monthly Rate Details"
+              headers={["SL", "Monthly Rate", "Date of Effect"]}
+              data={appData?.monthlyCharges}
+              renderRow={(monthlyCharge, idx) => (
+                <tr key={idx}>
+                  <td className="px-3 py-2 border">{idx + 1}</td>
+                  <td className="px-3 py-2 border">{monthlyCharge.demandFrom}</td>
+                  <td className="px-3 py-2 border">{monthlyCharge.rate}</td>
+                </tr>
+              )}
+            />
 
             {/* action buttons */}
             <div className="flex flex-wrap justify-center gap-3">

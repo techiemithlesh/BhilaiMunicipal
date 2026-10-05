@@ -26,8 +26,9 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
     rates: [
       {
         ratePerMonth: "",
-        compostingMachineRate: "",
-        isPercentCompostingMachineRate: false,
+        restaurantRatePerMonth:0.00,
+        gardenRatePerMonth:0.00,
+        banquetHallRatePerMonth:0.00,
         effectiveFrom: "",
         effectiveUpto: "",
       },
@@ -141,9 +142,10 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
   };
 
   const primaryFields = [
-    { name: "ratePerMonth", label: "Rate Per Month", type: "number" },
-    { name: "compostingMachineRate", label: "Composting Machine Rate", type: "number" },
-    { name: "isPercentCompostingMachineRate", label: "Is % of Rate Per Month", type: "checkbox" },
+    { name: "ratePerMonth", label: "Monthly Rate For Per (House/Room/Truck/Sqt Ft)", type: "number" },
+    { name: "restaurantRatePerMonth", label: "Monthly Rate For Per Restaurant", type: "number" },
+    { name: "gardenRatePerMonth", label: "Monthly Rate For Per Garden", type: "number" },
+    { name: "banquetHallRatePerMonth", label: "Monthly Rate For Per Banquet Hall", type: "number" },
     { name: "effectiveFrom", label: "Effective From", type: "date" },
     { name: "effectiveUpto", label: "Effective Upto", type: "date" },
   ];
@@ -229,7 +231,7 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="flex items-center gap-2 font-bold text-gray-700 text-md">
                         <FaGripVertical className="text-gray-400" />
-                        Step {rowIndex + 1}
+                        Rate {rowIndex + 1}
                       </h4>
                       <Button
                         color="danger"
@@ -242,34 +244,46 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
                     </div>
 
                     <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-                      {primaryFields.map((field) => (
-                        <div key={field.name}>
-                          <label className="block mb-1 font-medium text-xs">
-                            {field.label}
-                          </label>
-                          {field.type === "checkbox" ? (
-                            <input
-                              type="checkbox"
-                              checked={row[field.name] || false}
-                              onChange={() =>
-                                updateRow(rowIndex, field.name, !row[field.name])
-                              }
-                              disabled={isFrozen}
-                              className="w-4 h-4"
-                            />
-                          ) : (
-                            <input
-                              type={field.type}
-                              value={row[field.name] || ""}
-                              onChange={(e) =>
-                                updateRow(rowIndex, field.name, e.target.value)
-                              }
-                              disabled={isFrozen}
-                              className="px-3 py-2 border rounded focus:ring-1 focus:ring-blue-300 w-full h-10"
-                            />
-                          )}
-                        </div>
-                      ))}
+                      {primaryFields.map((field) => {
+                        const errorKey = `rates.${rowIndex}.${field.name}`;
+                        const rawError = errors?.[errorKey];
+                        const errorMessage = typeof rawError === "object" ? rawError[0] : rawError;
+
+                        return (
+                          <div key={field.name}>
+                            <label className="block mb-1 font-medium text-xs">
+                              {field.label}
+                            </label>
+                            {field.type === "checkbox" ? (
+                              <input
+                                type="checkbox"
+                                checked={!!row[field.name]}
+                                onChange={() =>
+                                  updateRow(rowIndex, field.name, !row[field.name])
+                                }
+                                disabled={isFrozen}
+                                className="w-4 h-4"
+                              />
+                            ) : (
+                              <input
+                                type={field.type}
+                                value={row[field.name] || ""}
+                                onChange={(e) =>
+                                  updateRow(rowIndex, field.name, e.target.value)
+                                }
+                                disabled={isFrozen}
+                                className="px-3 py-2 border rounded focus:ring-1 focus:ring-blue-300 w-full h-10"
+                              />
+                            )}
+                            
+                            {errorMessage && (
+                              <span className="text-red-500 text-sm block mt-1">
+                                {errorMessage.replace(`rates.${rowIndex}.${field.name}`, field.label)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

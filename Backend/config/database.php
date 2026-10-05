@@ -184,6 +184,32 @@ return [
                 'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
             ],
         ],
+        'pgsql_swm' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_SWM_HOST', '127.0.0.1'),
+            'read' => [
+                'host' => [
+                    env('DB_SWM_READ_HOST', env('DB_SWM_HOST', '127.0.0.1')),
+                ],
+                'port' => env('DB_SWM_READ_PORT', env('DB_SWM_PORT', '5432')),
+                'database' => env('DB_SWM_READ_DATABASE', env('DB_SWM_DATABASE', 'laravel')),
+                'username' => env('DB_SWM_READ_USERNAME', env('DB_SWM_USERNAME', 'postgres')),
+                "password" => env('DB_SWM_READ_PASSWORD', env('DB_SWM_PASSWORD', 'root')),
+            ],
+            'write' => [
+                'host' => env('DB_SWM_HOST', '127.0.0.1'),
+            ],
+            'port' => env('DB_SWM_PORT', '5432'),
+            'database' => env('DB_SWM_DATABASE', 'laravel'),
+            'username' => env('DB_SWM_USERNAME', 'root'),
+            'password' => env('DB_SWM_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
         'pgsql_trade' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

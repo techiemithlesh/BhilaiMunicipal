@@ -8,18 +8,14 @@ import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
 import BhilaiLogo from "../../../assets/images/logo.jpg";
 import PaymentReceiptDtl from "./PaymentReceiptDtl";
+import { useTranslation } from "react-i18next";
 
 function PaymentReceiptModal({ id, onClose }) {
   const [isFrozen, setIsFrozen] = useState(false);
   const printRef = useRef();
+  const { t, i18n } = useTranslation();
 
-  // Print in same tab (no new window)
-    const handlePrint1 = async () => {
-      setIsFrozen(true);
-      await handleGeneratePdf(printRef);
-      setIsFrozen(false);
-    };
-    const handlePrint = usePrint(printRef,`${"Payment Receipt" || ""}`);
+  const handlePrint = usePrint(printRef,`${"Payment Receipt" || ""}`);
 
   return (
     <div className="z-50 print:static fixed inset-0 flex justify-center items-center bg-black print:bg-transparent bg-opacity-50 p-4 print:p-0">
@@ -33,12 +29,49 @@ function PaymentReceiptModal({ id, onClose }) {
       >
         <div className="print:hidden flex justify-between items-center mb-4">
           <h2 className="font-semibold text-blue-900 text-xl">View Receipt</h2>
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <button
               onClick={handlePrint}
               className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
             >
               Print
+            </button>
+            {onClose && (
+              <button
+                className="text-gray-600 hover:text-red-600"
+                onClick={() => {
+                  setIsFrozen(false);
+                  if (onClose) onClose();
+                }}
+              >
+                <FaTimes size={20} />
+              </button>
+            )}
+          </div> */}
+          <div className="flex gap-2">
+            <button 
+              className="text-red-500 hover:text-red-400"
+              onClick={() => {
+                i18n.changeLanguage("en");
+                localStorage.setItem("lang", "en");
+              }}
+            >
+              {t("English")}
+            </button>
+            <button 
+              className="text-gray-500 hover:text-gray-400"
+              onClick={() => {
+                i18n.changeLanguage("hi");
+                localStorage.setItem("lang", "hi");
+              }}
+            >
+              {t("Hindi")}
+            </button>
+            <button
+              onClick={handlePrint}
+              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
+            >
+              {t("Print")} 
             </button>
             {onClose && (
               <button

@@ -344,6 +344,7 @@ export const swmFeedbackLockUnlockApi = `${BASE_URL}/api/swm/feedback/mstr-lock-
 
 // swm
 export const swmMasterDataApi = `${BASE_URL}/api/swm/get-master-data`;
+export const swmGetRateApi = `${BASE_URL}/api/swm/get-rate`;
 export const validateHoldingNoApi = `${BASE_URL}/api/property/validate-holding`;
 export const swmAddConsumerTestRequestApi=`${BASE_URL}/api/swm/test-request`;
 export const swmAddConsumerApi=`${BASE_URL}/api/swm/consumer-add`;

@@ -27,6 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path("routes/water.php"));
 
             Route::middleware('api')
+                ->prefix("api/swm")
+                ->name("swm.")
+                ->group(base_path("routes/swm.php"));
+
+            Route::middleware('api')
                 ->prefix("api/trade")
                 ->name("trade.")
                 ->group(base_path("routes/trade.php"));

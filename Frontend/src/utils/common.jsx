@@ -75,6 +75,13 @@ export const formatYearMonth = (dateStr) => {
   return `${year}-${month}`;
 };
 
+export const getCurrentYearMonth = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Pad to 2 digits
+  return `${year}-${month}`; // Returns "YYYY-MM"
+};
+
 
 export const toTitleCase = (str) => {
   return str.replace(

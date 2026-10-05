@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { safPaymentReceiptApi, UlbApi } from "../../../api/endpoints";
+import { safPaymentReceiptApi } from "../../../api/endpoints";
 import axios from "axios";
 import QRCodeComponent from "../../../components/common/QRCodeComponent";
 import {
@@ -15,9 +15,8 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
   const isTest = JSON.parse(import.meta.env.VITE_REACT_APP_TEST || "false");
   const { t, i18n } = useTranslation();
   const ulbId = import.meta.env.VITE_REACT_APP_ULB_ID;
-  const [receiptData, setReceiptData] = useState({});
   const [qurCode, setQurCode] = useState(null);
-  const [ulbDetails, setUlbDetails] = useState(null);
+  const [receiptData, setReceiptData] = useState(null);
 
   useEffect(() => {
     // Receipts default to Hindi; the English/Hindi toggle can still switch it.
@@ -34,19 +33,6 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
     };
     // eslint-disable-next-line
   }, [id]);
-
-  useEffect(() => {
-    const fetchUlbDtl = async () => {
-      if (!ulbId) return;
-      try {
-        const res = await axios.post(UlbApi.replace("{id}", ulbId), {});
-        if (res?.data?.data) setUlbDetails(res.data.data);
-      } catch (err) {
-        console.error("Error loading ULB details:", err);
-      }
-    };
-    fetchUlbDtl();
-  }, [ulbId]);
 
   const fetchData = async () => {
     setIsFrozen(true);
@@ -113,8 +99,8 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
 
   const ulbName =
     i18n.language === "hi"
-      ? ulbDetails?.hindiUlbName || ulbDetails?.ulbName
-      : ulbDetails?.ulbName;
+      ? receiptData?.ulbDtl?.hindiUlbName || receiptData?.ulbDtl?.ulbName
+      : receiptData?.ulbDtl?.ulbName;
 
   const swm = receiptData?.swmTranReceipt;
   const swmPeriod = swm?.fromDate
@@ -156,8 +142,8 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
 
           <div className="min-w-0">
             <div className="flex items-center justify-center gap-3 pt-3">
-              {ulbDetails?.logoImg && (
-                <img src={ulbDetails.logoImg} alt="Logo" className="w-[50px] h-[50px] object-contain shrink-0" />
+              {receiptData?.ulbDtl?.logoImg && (
+                <img src={receiptData?.ulbDtl.logoImg} alt="Logo" className="w-[50px] h-[50px] object-contain shrink-0" />
               )}
               <h1 className="font-bold text-[16px] uppercase whitespace-nowrap text-center">{val(ulbName)}</h1>
               {receiptData?.ulbDtl?.rightLogo && (
@@ -377,8 +363,8 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
                 {t(
                   "You will receive SMS on your registered mobile number. For the amount paid.If SMS is not received then call to verify your payment amount",
                 )}{" "}
-                <strong>{val(ulbDetails?.tollFreeNo)}</strong> {t("Or go")}{" "}
-                <strong className="block">{ulbDetails?.ulbUrl || hostInfo()}</strong>
+                <strong>{val(receiptData?.ulbDtl?.tollFreeNo)}</strong> {t("Or go")}{" "}
+                <strong className="block">{receiptData?.ulbDtl?.ulbUrl || hostInfo()}</strong>
               </li>
               <li>
                 {t("Print Date")} : {formatLocalDate(receiptData?.printingDate, "-")}{" "}
@@ -390,7 +376,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
           <div className="text-center pt-8 pr-2">
             <p className="font-bold uppercase">{val(ulbName)}</p>
             <p>{t("In collaboration with")}</p>
-            <p>{val(ulbDetails?.collaboration)}</p>
+            <p>{val(receiptData?.ulbDtl?.collaboration)}</p>
           </div>
         </div>
       </div>

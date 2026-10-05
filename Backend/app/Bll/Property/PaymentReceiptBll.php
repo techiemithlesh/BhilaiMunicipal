@@ -81,7 +81,8 @@ class PaymentReceiptBll{
         if($this->_UlbDetail){
             $this->_WatermarkBase64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
             $this->_UlbDetail->logo_img = $this->_UlbDetail->logo_img ? url('/'.$this->_UlbDetail->logo_img) : "";
-            $this->_UlbDetail->left_logo =  url('/'."UlbLog/swm.png") ;
+            $this->_UlbDetail->water_mark_img = $this->_UlbDetail->water_mark_img ? url('/'.$this->_UlbDetail->water_mark_img) : "";
+            $this->_UlbDetail->left_logo =  $this->_UlbDetail->logo_img ;
             $this->_UlbDetail->right_logo =  url('/'."UlbLogo/swachh_bharat.png") ;
         }
         $this->_propSafData = $this->adjustSafValue($this->_propSafData);
