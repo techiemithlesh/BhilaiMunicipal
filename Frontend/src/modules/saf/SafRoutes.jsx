@@ -10,6 +10,7 @@ import SafApply from "./pages/SafApply";
 import Preview from "./components/Preview";
 import EditSaf from "./pages/EditSaf";
 import SafAutoApprove from "./pages/SafAutoApprove";
+import TaxCalculator from "../property/component/TaxCalculator";
 
 const SafRoutes = () => {
   return (
@@ -78,6 +79,15 @@ const SafRoutes = () => {
               element={
                 <ProtectedRoute>
                   <Wf />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tax-calculator"
+              element={
+                <ProtectedRoute>
+                  <TaxCalculator />
                 </ProtectedRoute>
               }
             />

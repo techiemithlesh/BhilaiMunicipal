@@ -11,6 +11,7 @@ import ReportRoute from "./ReportRoute";
 import EditHolding from "./pages/EditHolding";
 import AddExistingHolding from "./pages/AddExistingHolding";
 import AddExistingFormPreview from "./component/AddExistingFormPreview";
+import TaxCalculator from "./component/TaxCalculator";
 
 const PropertyRoutes = () => {
   return (
@@ -89,6 +90,14 @@ const PropertyRoutes = () => {
                   </ProtectedRoute>
                 }
               />
+            <Route
+              path="/tax-calculator"
+              element={
+                <ProtectedRoute>
+                  <TaxCalculator />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/report/*" element={<ReportRoute />} />
           </Routes>
         </AdminLayout>

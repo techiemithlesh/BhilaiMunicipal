@@ -91,7 +91,8 @@ trait ConsumerTrait
         $subQuery = ConsumerDemand::query()
             ->select('demand_from', 'rate')
             ->selectRaw('LAG(rate) OVER (ORDER BY demand_from) as prev_rate')
-            ->where('consumer_id', $consumerId);
+            ->where('consumer_id', $consumerId)
+            ->where('lock_status', false);
 
         return ConsumerDemand::query()
             ->fromSub($subQuery, 'rate_changes')

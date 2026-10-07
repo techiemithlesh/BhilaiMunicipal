@@ -33,6 +33,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const SWMRoute = lazy(() => import("./modules/swm/index"));
 const SwmPaymentReceipt = lazy(() => import("./modules/swm/pages/SwmPaymentReceipt"));
 const SwmDemandReceipt = lazy(() => import("./modules/swm/pages/SwmDemandReceipt"));
+const TaxCalculator = lazy(() => import("./modules/property/component/TaxCalculator"));
 
 const isMaintenance = false; 
 
@@ -103,6 +104,16 @@ function App() {
               element={
                 <Layout>
                   <CitizenAuth />
+                </Layout>
+              }
+            />
+            <Route
+              path="/tax-calculator"
+              element={
+                <Layout title="Property Tax Calculator - MUNICIPAL CORPORATION BHILAI">
+                  <div className="px-4 md:px-8 py-6">
+                    <TaxCalculator />
+                  </div>
                 </Layout>
               }
             />

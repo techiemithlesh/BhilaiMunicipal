@@ -6,7 +6,7 @@ const Header = ({ ulbData }) => {
     format(new Date(), "eeee, yyyy-MM-dd HH:mm:ss")
   );
   
-  // Initialize as false to prevent hydration mismatch, or true if you want it visible initially
+  
   const [showTopBar, setShowTopBar] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   
@@ -67,18 +67,15 @@ const Header = ({ ulbData }) => {
 
   return (
     <>
-      {/* ✅ TOP HEADER 
-          Fix: Removed 'h-0'. Instead, we use negative margin ('-mt-10') or just translate.
-          Using 'absolute' or 'fixed' here prevents the SubHeader from jumping when this hides.
-      */}
+     
       <div
         className={`w-full z-50 transition-all duration-500 ease-in-out bg-header text-main border-b border-border-color-light relative
         ${showTopBar ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 absolute top-0 left-0 w-full pointer-events-none"}`}
       >
         <div className="flex justify-between items-center px-4 md:px-6 py-2 text-sm">
           <div className="flex items-center space-x-3">
-            <a href="/citizen/auth" className="hover:text-accent">Citizen Login</a>
-            <span>|</span>
+            {/* <a href="/citizen/auth" className="hover:text-accent">Citizen Login</a>
+            <span>|</span> */}
             <a href="/login" className="hover:text-accent">Official Login</a>
           </div>
           <span className="bg-white/10 shadow-md backdrop-blur-sm px-4 py-1 border border-white/20 rounded-xl font-medium text-white text-sm">
@@ -87,9 +84,7 @@ const Header = ({ ulbData }) => {
         </div>
       </div>
 
-      {/* ✅ SUB HEADER 
-          Fix: Added 'bg-white/0' to ensure smooth transition from transparent to color.
-      */}
+      
       <div
         className={`z-40 border-b sticky top-0 transition-colors duration-500 ease-in-out
           ${isScrolled 

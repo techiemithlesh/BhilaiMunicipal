@@ -18,6 +18,7 @@ use App\Http\Requests\Property\RequestFieldVerification;
 use App\Http\Requests\Property\RequestAddSaf;
 use App\Http\Requests\Property\RequestPostNextLevel;
 use App\Http\Requests\Property\RequestTaxReview;
+use App\Http\Requests\Property\RequestTaxCalculator;
 use App\Models\DBSystem\OldWardNewWardMap;
 use App\Models\DBSystem\RoleTypeMstr;
 use App\Models\DBSystem\UlbMaster;
@@ -275,6 +276,19 @@ class SafController extends Controller
             return responseMsg(false,"Internal Server Error","");
         }
 
+    }
+
+    public function taxCalculator(RequestTaxCalculator $request){
+        try{
+            $calCulator = new BhiliaTaxCalculator($request);
+            $calCulator->calculateTax();
+            return responseMsg(true,"Tax Calculator",camelCase(remove_null($calCulator->_GRID)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){
+            return responseMsg(false,"Internal Server Error","");
+        }
     }
 
     public function testAddRequest(RequestAddSaf $request){

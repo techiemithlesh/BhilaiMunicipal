@@ -17,6 +17,7 @@ const Home = () => {
         { label: "View Property Demand Details", to: "/citizen/holding/search" },
         { label: "View Last Payment Details", to: "/citizen/holding/search" },
         { label: "Pay Property/Holding Tax", to: "/citizen/holding/search" },
+        { label: "Property Tax Calculator", to: "/tax-calculator" },
         { label: "Know Your Tax Collector", to: "#officers" },
       ],
     },
