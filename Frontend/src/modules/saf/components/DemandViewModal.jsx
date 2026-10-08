@@ -148,7 +148,7 @@ function DemandViewModal({
                       Month Deference
                     </th>
                     <th className="p-2 border" rowSpan={2}>
-                      Penalty
+                      Monthly Penalty
                     </th>
                     <th className="p-2 border" rowSpan={2}>
                       Total Due
@@ -156,17 +156,17 @@ function DemandViewModal({
                   </tr>
                   <tr>
                     <th className="p-2 border">Holding Tax</th>
-                    <th className="p-2 border">Latrine Tax</th>
-                    <th className="p-2 border">Water Tax</th>
-                    <th className="p-2 border">HealthCess Tax</th>
+                    <th className="p-2 border">Composite Tax</th>
                     <th className="p-2 border">EducationCess Tax</th>
+                    <th className="p-2 border">Penalty</th>
+                    <th className="p-2 border">Penal Charges</th>
                     <th className="p-2 border">Total Tax</th>
 
                     <th className="p-2 border">Holding Tax</th>
-                    <th className="p-2 border">Latrine Tax</th>
-                    <th className="p-2 border">Water Tax</th>
-                    <th className="p-2 border">HealthCess Tax</th>
+                    <th className="p-2 border">Composite Tax</th>
                     <th className="p-2 border">EducationCess Tax</th>
+                    <th className="p-2 border">Penalty</th>
+                    <th className="p-2 border">Penal Charges</th>
                     <th className="p-2 border">Total Tax</th>
                   </tr>
                 </thead>
@@ -192,16 +192,16 @@ function DemandViewModal({
                             {item?.holdingTax}
                           </td>
                           <td className="p-2 border text-center">
-                            {item?.latrineTax}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {item?.waterTax}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {item?.healthCessTax}
+                            {item?.compositeTax}
                           </td>
                           <td className="p-2 border text-center">
                             {item?.educationCessTax}
+                          </td>
+                          <td className="p-2 border text-center">
+                            {item?.fineTax}
+                          </td>
+                          <td className="p-2 border text-center">
+                            {item?.penalCharge}
                           </td>
                           <td className="p-2 border text-center">
                             {item?.totalTax}
@@ -211,16 +211,16 @@ function DemandViewModal({
                             {item?.dueHoldingTax}
                           </td>
                           <td className="p-2 border text-center">
-                            {item?.dueLatrineTax}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {item?.dueWaterTax}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {item?.dueHealthCessTax}
+                            {item?.dueCompositeTax}
                           </td>
                           <td className="p-2 border text-center">
                             {item?.dueEducationCessTax}
+                          </td>
+                          <td className="p-2 border text-center">
+                            {item?.dueFineTax}
+                          </td>
+                          <td className="p-2 border text-center">
+                            {item?.duePenalCharge}
                           </td>
                           <td className="p-2 border text-center">
                             {item?.balanceTax}
@@ -260,16 +260,16 @@ function DemandViewModal({
                         {demandData?.grantTax?.holdingTax}
                       </td>
                       <td className="p-2 border text-center">
-                        {demandData?.grantTax?.latrineTax}
-                      </td>
-                      <td className="p-2 border text-center">
-                        {demandData?.grantTax?.waterTax}
-                      </td>
-                      <td className="p-2 border text-center">
-                        {demandData?.grantTax?.healthCessTax}
+                        {demandData?.grantTax?.compositeTax}
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.educationCessTax}
+                      </td>
+                      <td className="p-2 border text-center">
+                        {demandData?.grantTax?.fineTax}
+                      </td>
+                      <td className="p-2 border text-center">
+                        {demandData?.grantTax?.penalCharge}
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.totalTax}
@@ -279,16 +279,16 @@ function DemandViewModal({
                         {demandData?.grantTax?.dueHoldingTax}
                       </td>
                       <td className="p-2 border text-center">
-                        {demandData?.grantTax?.dueLatrineTax}
-                      </td>
-                      <td className="p-2 border text-center">
-                        {demandData?.grantTax?.dueWaterTax}
-                      </td>
-                      <td className="p-2 border text-center">
-                        {demandData?.grantTax?.dueHealthCessTax}
+                        {demandData?.grantTax?.dueCompositeTax}
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.dueEducationCessTax}
+                      </td>
+                      <td className="p-2 border text-center">
+                        {demandData?.grantTax?.dueFineTax}
+                      </td>
+                      <td className="p-2 border text-center">
+                        {demandData?.grantTax?.duePenalCharge}
                       </td>
                       <td className="p-2 border text-center">
                         {demandData?.grantTax?.balanceTax}

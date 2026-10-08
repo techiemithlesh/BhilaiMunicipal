@@ -185,6 +185,11 @@ class PropertyController extends Controller
                 throw new CustomException("Property Not Found");
             }
             $this->adjustSafValue($property);
+            $safDtl = $property->getSafDetail();
+            $property->saf_no = $safDtl?->saf_no;
+            $lastAssessmentYear = $safDtl ? getFy($safDtl->apply_date) : "";
+            $property->last_assessment_year = $lastAssessmentYear;
+            $property->is_assessment_due = !$lastAssessmentYear || $lastAssessmentYear < getFY();
             $property->floors = $this->adjustFloorValue($property->getFloors());
             $property->owners = $property->getOwners();
             $property->tran_dtls = $property->getTrans();

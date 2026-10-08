@@ -5,6 +5,7 @@ namespace App\Models\Property;
 use App\Models\DBSystem\UlbWardMaster;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class PropertyDetail extends ParamModel
 {
@@ -127,4 +128,12 @@ class PropertyDetail extends ParamModel
     public function getAdditionalDoc(){
         return $this->hasMany(PropertyAdditionalDocument::class,"property_detail_id","id")->where("lock_status",false)->get();
     }
+
+    public function getSafDetail(){
+        $saf = $this->belongsTo(SafDetail::class,"saf_detail_id","id")->first();
+        if(!$saf){
+            $saf =  $this->belongsTo(ActiveSafDetail::class,"saf_detail_id","id")->first();
+        }
+        return $saf;
+    }   
 }

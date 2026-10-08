@@ -581,7 +581,7 @@ const Details = () => {
               )}
             />
             {/* FIELD VERIFICATION */}
-            <SectionCard
+            {/* <SectionCard
               title="Field Verification"
               headers={["SL", "Verified By", "Verification On", "View"]}
               data={safDetails.tcVerifications}
@@ -613,7 +613,7 @@ const Details = () => {
                   </td>
                 </tr>
               )}
-            />
+            /> */}
             {/* MEMO DETAILS */}
             <SectionCard
               title="Memo Details"

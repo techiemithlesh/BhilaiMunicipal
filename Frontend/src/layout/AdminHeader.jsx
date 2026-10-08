@@ -102,13 +102,13 @@ const AdminHeader = ({ setIsSidebarOpen, isSidebarOpen, ulbData }) => {
         >
           <FaBars className="text-xl" />
         </button>
-        <a href="/">
+        <a href="/" className="bg-white shadow rounded-full">
           <img
             src={ulbData?.logoImg}
             alt={ulbData?.shortName}
             width={60}
             height={60}
-            className="shadow rounded-full"
+            className=""
           />
         </a>
         <div className="hidden md:block">

@@ -210,6 +210,8 @@ const Details = () => {
     setPreviewImg("");
   };
 
+  
+
   return (
     <div className="space-y-6 w-full">
       <div
@@ -314,7 +316,7 @@ const Details = () => {
               headers={[
                 "SL",
                 "Floor No",
-                "Usege Type",
+                "Usage Type",
                 "Occupancy Type",
                 "Construction Type",
                 "Built Up Area (in Sq. Ft)",
@@ -404,33 +406,25 @@ const Details = () => {
                 "Effect From",
                 "Property Tax",
                 "Holding Tax",
+                "Composite Tax",
                 "Water Tax",
-                "Conservancy/Latrine Tax",
                 "Education Cess",
                 "RWH Penalty",
-                "Quarterly Tax",
               ]}
               data={propDetails.taxDtl}
               renderRow={(tax, idx) => (
                 <tr key={idx}>
                   <td className="px-3 py-2 border">{idx + 1}</td>
                   <td className="px-3 py-2 border">{tax?.arv || "NA"}</td>
-                  <td className="px-3 py-2 border">
-                    {tax?.qtr && tax?.fyear
-                      ? `${tax.qtr} / ${tax.fyear}`
-                      : "NA"}
-                  </td>
+                  <td className="px-3 py-2 border">{tax?.fyear || "NA"}</td>
                   <td className="px-3 py-2 border">{tax?.propertyTax || ""}</td>
                   <td className="px-3 py-2 border">{tax?.holdingTax || ""}</td>
+                  <td className="px-3 py-2 border">{tax?.compositeTax || ""}</td>
                   <td className="px-3 py-2 border">{tax?.waterTax || ""}</td>
-                  <td className="px-3 py-2 border">{tax?.latrineTax || ""}</td>
                   <td className="px-3 py-2 border">
                     {tax?.educationCess ?? "NA"}
                   </td>
                   <td className="px-3 py-2 border">{tax?.rwhTax ?? ""}</td>
-                  <td className="px-3 py-2 border">
-                    {tax?.quarterlyTax ?? ""}
-                  </td>
                 </tr>
               )}
             />
@@ -441,8 +435,8 @@ const Details = () => {
                 "Transaction No",
                 "Payment Mode",
                 "Date",
-                "From Quarter / Year",
-                "Upto Quarter / Year",
+                "From Year",
+                "Upto Year",
                 "Amount",
                 "View",
               ]}

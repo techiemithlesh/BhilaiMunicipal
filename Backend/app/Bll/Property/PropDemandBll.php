@@ -285,18 +285,23 @@ class PropDemandBll{
         $returnData = [
             "total_tax"=>roundFigure($demandList->sum("total_tax")),
             "holding_tax"=> roundFigure($demandList->sum("holding_tax")),
+            "composite_tax"=> roundFigure($demandList->sum("composite_tax")),
             "latrine_tax"=> roundFigure($demandList->sum("latrine_tax")),
             "water_tax"=> roundFigure($demandList->sum("water_tax")),
             "health_cess_tax"=> roundFigure($demandList->sum("health_cess_tax")),
             "education_cess_tax"=> roundFigure($demandList->sum("education_cess_tax")),
             "fine_tax"=> roundFigure($demandList->sum("fine_tax")),
+            "penal_charge"=> roundFigure($demandList->sum("penal_charge")),
             "adjust_amt"=> roundFigure($demandList->sum("adjust_amt")),
             "balance_tax"=> roundFigure($demandList->sum("balance_tax")),
             "due_holding_tax"=> roundFigure($demandList->sum("due_holding_tax")),
+            "due_composite_tax"=> roundFigure($demandList->sum("due_composite_tax")),
             "due_latrine_tax"=> roundFigure($demandList->sum("due_latrine_tax")),
             "due_water_tax"=> roundFigure($demandList->sum("due_water_tax")),
             "due_health_cess_tax"=> roundFigure($demandList->sum("due_health_cess_tax")),
             "due_education_cess_tax"=> roundFigure($demandList->sum("due_education_cess_tax")),
+            "due_fine_tax"=> roundFigure($demandList->sum("due_fine_tax")),
+            "due_penal_charge"=> roundFigure($demandList->sum("due_penal_charge")),
             "monthlyPenalty"=> roundFigure($demandList->sum("monthlyPenalty")),
         ];
         return collect($returnData);
