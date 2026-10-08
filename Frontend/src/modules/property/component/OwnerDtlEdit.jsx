@@ -4,102 +4,142 @@ import axios from "axios";
 import { propOwnerEditApi } from "../../../api/endpoints";
 import toast from "react-hot-toast";
 import { modalVariants } from "../../../utils/motionVariable";
-import { FaTimes } from "react-icons/fa";
-import InputCard from "./InputCard";
+import { FaTimes, FaUser, FaPhoneAlt, FaFileUpload } from "react-icons/fa";
 
-export default function OwnerDtlEdit({ propDetails, onClose, token }) {
-  const [ownerDetails, setOwnerDetails] = useState([
-    {
-      ownerName: "",
-      guardianName: "",
-      relationType: "",
-      mobileNo: "",
-      aadharNo: "",
-      email: "",
-      panNo: "",
-      document: "",
-    },
-  ]);
+const MAX_FILE_SIZE_MB = 5;
+
+const HIDDEN_FIELDS = ["aadharNo", "panNo", "email", "dob"];
+const INLINE_FIELDS = [
+  "ownerName",
+  "guardianName",
+  "relationType",
+  "gender",
+  "address",
+  "mobileNo",
+  "remarks",
+  "document",
+];
+
+const inputClass =
+  "block w-full bg-white px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100";
+
+const toFlag = (value) =>
+  value === true || value === 1 || value === "1" || value === "true" ? 1 : 0;
+
+const Field = ({ id, label, required, error, hint, className = "", children }) => (
+  <div className={className}>
+    <label htmlFor={id} className="block mb-1 font-medium text-gray-700 text-sm">
+      {label}
+      {required && <span className="ml-1 text-red-500">*</span>}
+    </label>
+    {children}
+    {hint && !error && <p className="mt-1 text-gray-500 text-xs">{hint}</p>}
+    {error && <p className="mt-1 text-red-500 text-xs">{error}</p>}
+  </div>
+);
+
+const SectionTitle = ({ icon: Icon, title }) => (
+  <h3 className="flex items-center gap-2 mb-3 font-semibold text-blue-900 text-sm uppercase tracking-wide">
+    <Icon className="text-base" />
+    {title}
+  </h3>
+);
+
+export default function OwnerDtlEdit({ propDetails, onClose, onSuccess, token }) {
+  const [owners, setOwners] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [submittingId, setSubmittingId] = useState(null);
 
   useEffect(() => {
-    if (propDetails) {
-      if (Array.isArray(propDetails.owners) && propDetails.owners.length) {
-        setOwnerDetails(
-          propDetails.owners.map((ele) => ({
-            ...ele,
-            remarks: "",
-            document: "",
-            isArmedForce: 0,
-            isSpeciallyAbled: 0,
-          }))
-        );
-      }
+    if (Array.isArray(propDetails?.owners) && propDetails.owners.length) {
+      setOwners(
+        propDetails.owners.map((ele) => ({
+          ...ele,
+          isArmedForce: toFlag(ele.isArmedForce),
+          isSpeciallyAbled: toFlag(ele.isSpeciallyAbled),
+          remarks: "",
+          document: "",
+        }))
+      );
     }
   }, [propDetails]);
 
-  const handleChange = (name, value, index) => {
-    setOwnerDetails((prev) =>
-      prev.map((owner, i) =>
-        i === index ? { ...owner, [name]: value } : owner
+  const handleChange = (ownerId, name, value) => {
+    setOwners((prev) =>
+      prev.map((owner) =>
+        owner.id === ownerId ? { ...owner, [name]: value } : owner
       )
     );
+    setErrors((prev) => {
+      if (!prev[ownerId]?.[name]) return prev;
+      const next = { ...prev, [ownerId]: { ...prev[ownerId] } };
+      delete next[ownerId][name];
+      return next;
+    });
   };
 
-  const handleOwnerDetailsSubmit = async (submittedId) => {
-    const payload = ownerDetails.find((ele) => ele.id === submittedId);
-    const formData = new FormData();
+  const handleFile = (ownerId, file) => {
+    if (file && file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast.error(`File must be ${MAX_FILE_SIZE_MB} MB or smaller.`, {
+        position: "top-right",
+      });
+      return;
+    }
+    handleChange(ownerId, "document", file || "");
+  };
 
+  const handleSubmit = async (ownerId) => {
+    const payload = { ...owners.find((ele) => ele.id === ownerId) };
+    HIDDEN_FIELDS.forEach((key) => delete payload[key]);
+    const formData = new FormData();
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, value);
       }
     });
+
+    setSubmittingId(ownerId);
     try {
       const response = await axios.post(propOwnerEditApi, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response && response.data && response.data.status) {
-        toast.success("Property details updated successfully!", { position: "top-right" });
+      if (response?.data?.status) {
+        toast.success("Owner details updated successfully!", {
+          position: "top-right",
+        });
+        onSuccess && onSuccess();
         onClose && onClose();
-      } else {
-        if (response && response.data && response.data.errors) {
-          const errorMessages = Object.values(response.data.errors)
-            .flat()
-            .join("\n");
-          toast.error(errorMessages, { duration: 8000 });
-        } else {
-          toast.error("Failed to update property details.", {position: "top-right"});
-        }
+        return;
       }
-      // Optionally show a toast or success message here
+
+      const fieldErrors = response?.data?.errors;
+      if (fieldErrors) {
+        setErrors((prev) => ({
+          ...prev,
+          [ownerId]: Object.fromEntries(
+            Object.entries(fieldErrors).map(([key, msgs]) => [
+              key,
+              Array.isArray(msgs) ? msgs[0] : msgs,
+            ])
+          ),
+        }));
+        toast.error("Please correct the highlighted fields.", {
+          position: "top-right",
+        });
+      } else {
+        toast.error(response?.data?.message || "Failed to update owner details.", {
+          position: "top-right",
+        });
+      }
     } catch (error) {
       console.error("Error submitting owner details:", error);
-      toast.error("An error occurred while updating property details.", {
+      toast.error("An error occurred while updating owner details.", {
         position: "top-right",
       });
+    } finally {
+      setSubmittingId(null);
     }
-  };
-
-  const fields = {
-    ownerDetails: [
-      { label: "Owner Name", type: "input", name: "ownerName" },
-      { label: "Guardian Name", type: "input", name: "guardianName" },
-      {
-        label: "Relation",
-        type: "select",
-        name: "relationType",
-        options: ["S/O", "D/O", "W/O", "C/O"],
-      },
-      { label: "Mobile", type: "input", name: "mobileNo" },
-      { label: "Aadhaar No", type: "input", name: "aadharNo" },
-      { label: "Email", type: "input", name: "email" },
-      { label: "PAN No", type: "input", name: "panNo" },
-      {label : "Remarks", type: "input", name: "remarks"},
-      { label: "Supportive Document", type: "upload", name: "document" },
-    ],
   };
 
   return (
@@ -110,44 +150,200 @@ export default function OwnerDtlEdit({ propDetails, onClose, token }) {
         exit="hidden"
         variants={modalVariants}
         transition={{ duration: 0.5 }}
-        className="flex flex-col bg-white shadow-lg p-6 rounded-lg w-full max-w-6xl max-h-[90vh]"
+        className="flex flex-col bg-white shadow-lg rounded-lg w-full max-w-4xl max-h-[90vh]"
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-blue-900 text-xl">
-            Owner Detail Edit
-          </h2>
+        <div className="flex justify-between items-start bg-blue-900 px-6 py-4 rounded-t-lg text-white">
+          <div>
+            <h2 className="font-semibold text-xl">Edit Owner Details</h2>
+            <p className="mt-1 text-blue-100 text-sm">
+              Each owner is updated separately. Fields marked{" "}
+              <span className="text-red-300">*</span> are required.
+            </p>
+          </div>
           <button
-            className="text-gray-600 hover:text-red-600"
+            type="button"
+            className="text-blue-100 hover:text-white"
             onClick={onClose}
+            aria-label="Close"
           >
             <FaTimes size={20} />
           </button>
         </div>
 
-        <div className="flex flex-col border border-blue-900 rounded-t-xl overflow-y-auto p-6 space-y-6">
-          <h1 className="bg-blue-900 px-4 py-1 rounded-t-xl font-semibold text-white text-lg">
-            Owner Details
-          </h1>
-          {ownerDetails.length
-            ? ownerDetails.map((ele, index) => (
-                <div key={index}>
-                  <InputCard
-                    fields={fields.ownerDetails}
-                    values={ele}
-                    onChange={(name, value) => handleChange(name, value, index)}
-                  />
-                  <div className="flex justify-end mb-4 px-5">
-                    <button
-                      className="flex justify-center items-center bg-blue-600 hover:bg-blue-700 px-4 rounded-full h-7 font-semibold text-white"
-                      onClick={() => handleOwnerDetailsSubmit(ele.id)}
-                    >
-                      Submit
-                    </button>
-                  </div>
+        <div className="flex flex-col flex-1 gap-6 p-6 min-h-0 overflow-y-auto">
+          {owners.map((owner, index) => {
+            const err = errors[owner.id] || {};
+            const otherErrors = Object.entries(err).filter(
+              ([key]) => !INLINE_FIELDS.includes(key)
+            );
+            const isSubmitting = submittingId === owner.id;
+            const fid = (name) => `owner-${owner.id}-${name}`;
+            return (
+              <div
+                key={owner.id ?? index}
+                className="shrink-0 border border-gray-200 rounded-lg overflow-hidden"
+              >
+                <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 border-gray-200 border-b">
+                  <span className="flex justify-center items-center bg-blue-900 rounded-full w-7 h-7 font-semibold text-white text-sm">
+                    {index + 1}
+                  </span>
+                  <span className="font-semibold text-gray-800">
+                    {owner.ownerName || `Owner ${index + 1}`}
+                  </span>
                 </div>
-              ))
-            : null}
+
+                <div className="flex flex-col gap-6 p-5">
+                  <section>
+                    <SectionTitle icon={FaUser} title="Personal Details" />
+                    <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
+                      <Field id={fid("ownerName")} label="Owner Name" required error={err.ownerName}>
+                        <input
+                          id={fid("ownerName")}
+                          type="text"
+                          value={owner.ownerName || ""}
+                          onChange={(e) => handleChange(owner.id, "ownerName", e.target.value)}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field id={fid("guardianName")} label="Guardian Name" error={err.guardianName}>
+                        <input
+                          id={fid("guardianName")}
+                          type="text"
+                          value={owner.guardianName || ""}
+                          onChange={(e) => handleChange(owner.id, "guardianName", e.target.value)}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field
+                        id={fid("relationType")}
+                        label="Relation"
+                        required={!!owner.guardianName}
+                        error={err.relationType}
+                      >
+                        <select
+                          id={fid("relationType")}
+                          value={owner.relationType || ""}
+                          onChange={(e) => handleChange(owner.id, "relationType", e.target.value)}
+                          className={inputClass}
+                        >
+                          <option value="">Select Relation</option>
+                          {["S/O", "D/O", "W/O", "C/O"].map((rel) => (
+                            <option key={rel} value={rel}>
+                              {rel}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field id={fid("gender")} label="Gender" required error={err.gender}>
+                        <select
+                          id={fid("gender")}
+                          value={owner.gender || ""}
+                          onChange={(e) => handleChange(owner.id, "gender", e.target.value)}
+                          className={inputClass}
+                        >
+                          <option value="">Select Gender</option>
+                          {["Male", "Female", "Other"].map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field
+                        id={fid("address")}
+                        label="Owner Address"
+                        error={err.address}
+                        className="md:col-span-2"
+                      >
+                        <input
+                          id={fid("address")}
+                          type="text"
+                          placeholder="Enter Owner Address"
+                          value={owner.address || ""}
+                          onChange={(e) => handleChange(owner.id, "address", e.target.value)}
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+                  </section>
+
+                  <section>
+                    <SectionTitle icon={FaPhoneAlt} title="Contact" />
+                    <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
+                      <Field id={fid("mobileNo")} label="Mobile No" required error={err.mobileNo} hint="10 digit mobile number">
+                        <input
+                          id={fid("mobileNo")}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={10}
+                          value={owner.mobileNo || ""}
+                          onChange={(e) => handleChange(owner.id, "mobileNo", e.target.value.replace(/\D/g, ""))}
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+                  </section>
+
+                  <section>
+                    <SectionTitle icon={FaFileUpload} title="Reason for Update" />
+                    <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+                      <Field id={fid("remarks")} label="Remarks" required error={err.remarks} hint="Why is this change needed?">
+                        <textarea
+                          id={fid("remarks")}
+                          rows={3}
+                          value={owner.remarks || ""}
+                          onChange={(e) => handleChange(owner.id, "remarks", e.target.value)}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field
+                        id={fid("document")}
+                        label="Supportive Document"
+                        required
+                        error={err.document}
+                        hint={`PDF, JPG, PNG or BMP, up to ${MAX_FILE_SIZE_MB} MB`}
+                      >
+                        <input
+                          id={fid("document")}
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.bmp"
+                          onChange={(e) => handleFile(owner.id, e.target.files[0])}
+                          className={inputClass}
+                        />
+                      </Field>
+                    </div>
+                  </section>
+                </div>
+
+                {otherErrors.length > 0 && (
+                  <ul className="bg-red-50 mx-5 mb-4 px-4 py-2 border border-red-200 rounded text-red-600 text-xs list-disc list-inside">
+                    {otherErrors.map(([key, msg]) => (
+                      <li key={key}>{msg}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex justify-end gap-3 bg-gray-50 px-5 py-3 border-gray-200 border-t">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="bg-white hover:bg-gray-100 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md text-gray-700 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(owner.id)}
+                    disabled={isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-5 py-2 rounded-md font-semibold text-white text-sm"
+                  >
+                    {isSubmitting ? "Updating..." : "Update Owner"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </motion.div>
     </div>

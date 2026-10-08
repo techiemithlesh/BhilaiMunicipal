@@ -21,6 +21,7 @@ class PropertyOwnerDetail extends ParamModel
         "dob",
         "is_armed_force",
         "is_specially_abled",
+        "address",
         "user_id",
         "lock_status",
     ];

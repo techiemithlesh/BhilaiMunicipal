@@ -32,6 +32,7 @@ class RequestOwnerEdit extends ParentRequest
                 "id"=>"required|int|exists:".$this->_PropertyOwnerDetail->getConnectionName().".".$this->_PropertyOwnerDetail->getTable().",id",
                 "ownerName"=>"required|string|regex:".$this->_REX_OWNER_NAME,
                 "guardianName"=>"nullable",
+                "address"=>"nullable|string",
                 "relationType"=>"nullable|required_with:guardianName|in:S/O,D/O,W/O,C/O",
                 "mobileNo"=>"required|digits:10|regex:/[0-9]{10}/",
                 "email"=>"nullable|email",

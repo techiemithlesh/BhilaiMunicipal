@@ -3,11 +3,10 @@ import axios from "axios";
 import { getWardListApi } from "../../api/endpoints";
 import { getToken } from "../../utils/auth";
 
-const token = getToken();
-
 export const fetchWardList = createAsyncThunk(
   "wards/fetchWardList",
   async (_, { rejectWithValue }) => {
+    const token = getToken();
     try {
       const response = await axios.get(getWardListApi, {
         headers: {

@@ -576,6 +576,7 @@ const Details = () => {
             {modal.ownerDetailEdit && (
               <OwnerDtlEdit
                 propDetails={propDetails}
+                onSuccess={fetchDetails}
                 onClose={() =>
                   setModal((m) => ({ ...m, ownerDetailEdit: false }))
                 }

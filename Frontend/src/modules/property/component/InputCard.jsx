@@ -13,11 +13,16 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
       ) : null}
       <div className="gap-4 grid grid-cols-2 md:grid-cols-4 p-4">
         {fields.map((field, index) => {
+          const required =
+            typeof field.required === "function"
+              ? field.required(values)
+              : !!field.required;
           if (field.type === "input") {
             return (
               <Input
                 key={index}
                 label={field.label}
+                required={required}
                 error={field?.error}
                 type="text"
                 name={field.name}
@@ -30,6 +35,7 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
               <TeaxtArea
                 key={index}
                 label={field.label}
+                required={required}
                 name={field.name}
                 error={field?.error}
                 value={values[field.name] || ""}
@@ -41,6 +47,7 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
               <CustomSelect
                 key={index}
                 label={field.label}
+                required={required}
                 name={field.name}
                 value={values[field.name] || ""}
                 error={field?.error}
@@ -53,6 +60,7 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
               <Upload
                 key={index}
                 label={field.label}
+                required={required}
                 name={field.name}
                 error={field?.error}
                 value={values[field.name] || ""}
@@ -64,6 +72,7 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
               <WardSelect
                 key={index}
                 label={field.label}
+                required={required}
                 value={values[field.name] || ""}
                 name={field.name}
                 error={field?.error}
@@ -79,11 +88,12 @@ export default function InputCard({ fields, onChange, values, title,isSubTitle=f
   );
 }
 
-const Input = ({ label, type, name, value, error,onChange }) => {
+const Input = ({ label, type, name, value, error, required, onChange }) => {
   return (
     <>
       <label className="block self-center col-span-1 mb-1 font-medium text-gray-700 text-sm">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <input
         type={type}
@@ -99,11 +109,12 @@ const Input = ({ label, type, name, value, error,onChange }) => {
   );
 };
 
-const TeaxtArea = ({ label, name, value, error,onChange }) => {
+const TeaxtArea = ({ label, name, value, error, required, onChange }) => {
   return (
     <>
       <label className="block self-center col-span-1 mb-1 font-medium text-gray-700 text-sm">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <textarea
         name={name}
@@ -118,11 +129,12 @@ const TeaxtArea = ({ label, name, value, error,onChange }) => {
   );
 };
 
-const CustomSelect = ({ label, name, value, onChange, error,options }) => {
+const CustomSelect = ({ label, name, value, onChange, error, required, options }) => {
   return (
     <>
       <label className="block self-center col-span-1 mb-1 font-medium text-gray-700 text-sm">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <select
         name={name}
@@ -144,11 +156,12 @@ const CustomSelect = ({ label, name, value, onChange, error,options }) => {
   );
 };
 
-const WardSelect = ({ label, name, value, onChange,error, wardList }) => {
+const WardSelect = ({ label, name, value, onChange, error, required, wardList }) => {
   return (
     <>
       <label className="block self-center col-span-1 mb-1 font-medium text-gray-700 text-sm">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <Select
         // isMulti
@@ -172,11 +185,12 @@ const WardSelect = ({ label, name, value, onChange,error, wardList }) => {
   );
 };
 
-const Upload = ({ label, name, error,onChange }) => {
+const Upload = ({ label, name, error, required, onChange }) => {
   return (
     <>
       <label className="block self-center col-span-1 mb-1 font-medium text-gray-700 text-sm">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <input
         type="file"
