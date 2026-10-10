@@ -239,6 +239,38 @@ return [
                 'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
             ],
         ],
+
+        // SHOP & RENT
+         'pgsql_shop_rent' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_SHOP_RENT_HOST', '127.0.0.1'),
+            'read' => [
+                'host' => [
+                    env('DB_SHOP_RENT_READ_HOST', env('DB_SHOP_RENT_HOST', '127.0.0.1')),
+                ],
+                'port' => env('DB_SHOP_RENT_READ_PORT', env('DB_SHOP_RENT_PORT', '5432')),
+                'database' => env('DB_SHOP_RENT_READ_DATABASE', env('DB_SHOP_RENT_DATABASE', 'laravel')),
+                'username' => env('DB_SHOP_RENT_READ_USERNAME', env('DB_SHOP_RENT_USERNAME', 'postgres')),
+                "password" => env('DB_SHOP_RENT_READ_PASSWORD', env('DB_SHOP_RENT_PASSWORD', 'root')),
+            ],
+            'write' => [
+                'host' => env('DB_SHOP_RENT_HOST', '127.0.0.1'),
+            ],
+            'port' => env('DB_SHOP_RENT_PORT', '5432'),
+            'database' => env('DB_SHOP_RENT_DATABASE', 'laravel'),
+            'username' => env('DB_SHOP_RENT_USERNAME', 'root'),
+            'password' => env('DB_SHOP_RENT_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
+        ],
+
         // DMC 
         'pgsql_dmc_property' => [
             'driver' => 'pgsql',

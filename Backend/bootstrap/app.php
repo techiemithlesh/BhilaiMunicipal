@@ -45,7 +45,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix("api/dashboard")
                 ->name("dashboard.")
                 ->group(base_path("routes/dashboard.php"));
-     
+
+            // SHOP & RENT ROUTES
+            Route::middleware('api')
+                ->prefix("api/shop-rent")
+                ->name("shop-rent.")
+                ->group(base_path("routes/shoprent.php"));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         },

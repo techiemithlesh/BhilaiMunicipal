@@ -383,6 +383,22 @@ function RolePermissionAddEditModal({ item, onClose, onSuccess }) {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
+                    id="canNoticeApproved"
+                    name="canNoticeApproved"
+                    checked={!!formData?.canNoticeApproved}
+                    onChange={handleChange}
+                    className="border-gray-300 rounded w-4 h-4 text-indigo-600"
+                  />
+                  <label
+                    htmlFor="canNoticeApproved"
+                    className="block ml-2 font-semibold text-gray-700 text-sm"
+                  >
+                    Can Approve Notice
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
                     id="canGenerateDemand"
                     name="canGenerateDemand"
                     checked={!!formData?.canGenerateDemand}

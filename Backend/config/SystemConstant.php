@@ -12,12 +12,14 @@ return [
             "water"=>"pgsql_water",
             "swm"=>"pgsql_swm",
             "trade"=>"pgsql_trade",
+            "shop_rent"=>"pgsql_shop_rent",
         ],
         1=>[
             "property"=>"pgsql_dmc_property",
             "water"=>"pgsql_dmc_water",
             "swm"=>"pgsql_dmc_swm",
             "trade"=>"pgsql_dmc_trade",
+            "shop_rent"=>"pgsql_dmc_shop_rent",
         ],
     ],
     "MODULE"=>[

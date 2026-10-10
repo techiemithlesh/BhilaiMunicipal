@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Redis;
 class RateMaster extends ParamModel
 {
     use HasFactory;
+    
     protected $fillable = [
         "sub_category_type_master_id",
         "rate_per_month",

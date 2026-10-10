@@ -33,8 +33,12 @@ class QueryEditedController extends Controller
             "value" => "water",
         ],
         [
-            "label" => "trade",
-            "value" => "trade",
+            "label" => "swm",
+            "value" => "swm",
+        ],
+        [
+            "label" => "Shop Rent",
+            "value" => "shop_rent",
         ],
     ];
 
