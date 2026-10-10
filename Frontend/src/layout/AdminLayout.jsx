@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import AdminFooter from "./AdminFooter";
 import AdminHeader from "./AdminHeader";
 import AdminSidebar from "./AdminSidebar";
-import { getToken, clearAuth } from "../utils/auth";
+import { getToken, clearAuth, setWithExpiry, getWithExpiry } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { heartBeatApi, UlbApi } from "../api/endpoints";
@@ -51,9 +51,15 @@ const AdminLayout = ({ children }) => {
   useEffect(() => {
     const fetchUlbDtl = async () => {
       if (!ulbId) return;
+      let ulb = getWithExpiry("uldDtl");
       try {
+        if(ulb?.id && ulb?.id==ulbId ){
+          return setUlbData(ulb);
+        }
         const res = await axios.post(UlbApi.replace("{id}", ulbId), {});
-        setUlbData(res?.data?.data);
+        ulb = res?.data?.data;
+        setUlbData(ulb);
+        setWithExpiry("uldDtl", ulb,30);
       } catch {
         setUlbData({ ulb_name: "ULB Info" });
       }

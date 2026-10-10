@@ -6,15 +6,17 @@ use App\Exceptions\CustomException;
 use App\Models\DBSystem\UlbMaster;
 use App\Models\Water\Consumer;
 use App\Models\Water\ConsumerDemand;
-use App\Models\Water\FixedRateMaster;
+use App\Models\Water\ExtraRoomRate;
+use App\Models\Water\FixRateMaster;
 use App\Models\Water\MeterRateMaster;
 use App\Models\Water\MeterReading;
-use App\Models\Water\MeterUlbTypeMultyFactorMaster;
+use App\Models\Water\RoomRangeMaster;
 use App\Models\Water\TaxDetail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 
 class BhilaiConsumerDemandGenerateBll
 {
@@ -36,9 +38,7 @@ class BhilaiConsumerDemandGenerateBll
     private $_Consumer;
     private $_demandFrom;
     private $_connectionTypeId;
-    private $_FixedRateMaster;
     private $_MeterRates;
-    private $_mutlyFactor;
     private $_initialMeterReadingDtl;
     private $_fromReading;
     private $_currentReading;
@@ -47,12 +47,16 @@ class BhilaiConsumerDemandGenerateBll
     private $_meterFixedMaxDate;
     private $_UlbId;
     private $_UlbTypeId;
+    private $_CurrentConnectionDtl;
+    private $_FixRateMasterList;
+    private $_RoomRangList;
+    private $_ExtraRoomRateList;
+    private $_MeterRateMasterList;
 
     public function __construct($request)
     {
         $this->_REQUEST = $request;
         $this->_ConsumerId = $request->id;
-        $this->_CurrentDate = $this->_REQUEST->currentDate ? $this->_REQUEST->currentDate : Carbon::now()->format('Y-m-d');
         $this->_WaterConstant = Config::get("WaterConstant");
         $this->loadParam();
         $this->_TaxArray = collect();
@@ -66,28 +70,35 @@ class BhilaiConsumerDemandGenerateBll
         $ulbDtl = UlbMaster::find($this->_Consumer->ulb_id);
         $this->_ulbTypeId = $ulbDtl->ulb_type_id;
         $lastDemand = $this->_Consumer->getDemand()->orderBy("demand_upto","desc")->first();
-        $currentConnection = $this->_Consumer->getCurrentConnection;
-        $this->_initialMeterReadingDtl =  $currentConnection->getLastReading();
+        $this->_CurrentConnectionDtl = $this->_Consumer->getCurrentConnection;
+        $this->_initialMeterReadingDtl =  $this->_CurrentConnectionDtl->getLastReading();
         $this->_fromReading = $this->_initialMeterReadingDtl?->reading;
-        $this->_connectionTypeId = $currentConnection->meter_type_id;
-        $this->_demandFrom = $lastDemand ? Carbon::parse($lastDemand->demand_upto)->addDay()->format("Y-m-d") : $currentConnection->connection_date;
+        $this->_connectionTypeId = $this->_CurrentConnectionDtl->meter_type_id;
+        $this->_demandFrom = $lastDemand ? Carbon::parse($lastDemand->demand_upto)->addDay()->format("Y-m-d") : $this->_CurrentConnectionDtl->connection_date;
 
-        $this->_propertyTypeId = $this->_Consumer->property_type_id;
+        $this->_propertyTypeId = $this->_CurrentConnectionDtl->property_type_id;
         $this->_category = $this->_Consumer->category;
         $this->_areaSqrt = $this->_Consumer->area_sqft;
 
         $this->_UlbId = $this->_Consumer->ulb_id;
         $this->_UlbTypeId = $ulbDtl?->ulb_type_id;
 
-        $this->_FixedRateMaster = FixedRateMaster::where("lock_status", false)->get();
+        $this->_FixRateMasterList = FixRateMaster::where("lock_status", false)->where("ulb_id",$this->_UlbId)->get();
         $this->_MeterRates = MeterRateMaster::where("lock_status", false)->get();
+        $this->_RoomRangList = RoomRangeMaster::where("lock_status",false)->where("ulb_id",$this->_UlbId)->get();
+        $this->_ExtraRoomRateList = ExtraRoomRate::where("lock_status",false)->where("ulb_id",$this->_UlbId)->get();
 
-        $this->_mutlyFactor = MeterUlbTypeMultyFactorMaster::find($this->_ulbTypeId)->multy_factor;
-        $this->_minFromDate = $this->_FixedRateMaster->min("effective_from");
+        $this->_minFromDate = $this->_FixRateMasterList->min("effective_from");
         $this->_meterFixedMaxDate = $this->_MeterRates->min("effective_from");
         if($this->_demandFrom<$this->_minFromDate){
             $this->_demandFrom = $this->_minFromDate;
         }
+        $this->_CurrentDate = $this->_REQUEST->currentDate ? $this->_REQUEST->currentDate : Carbon::now()->format('Y-m-d');
+        if($this->_connectionTypeId==2 && !$this->_REQUEST->currentDate){
+            list($from,$upto)=FyearFromUptoDate(getFy());    
+            $this->_CurrentDate = $upto;
+        }        
+        
         $this->_dayDifference = dateDiff($this->_demandFrom,$this->_CurrentDate)+1;
     }
 
@@ -156,22 +167,53 @@ class BhilaiConsumerDemandGenerateBll
                 $uptoDate = $this->_CurrentDate;
             }
             $dayDiff=(dateDiff($this->_demandFrom,$uptoDate) +1 );
-
-            $rate = $this->_FixedRateMaster
-                    ->where("property_type_id",$this->_propertyTypeId)
-                    ->where("ulb_type_id",$this->_UlbTypeId)
+            $maxRoomRange = $this->_RoomRangList
+                            ->where("property_type_master_id",$this->_propertyTypeId)
+                            ->where("effective_from",'<=',$this->_demandFrom)
+                            ->filter(function($item)use($uptoDate) {
+                                return (Carbon::parse($item->effective_upto)->gte(Carbon::parse($uptoDate)) || is_null($item->effective_upto));
+                            })
+                            ->first();
+            $maxRoom = $maxRoomRange->upto_room??0;
+            $currentRoom = $this->_CurrentConnectionDtl->no_of_room ? $this->_CurrentConnectionDtl->no_of_room : 1;
+            if($currentRoom<=$maxRoom){
+                $maxRoom = $currentRoom;
+            }
+            $roomRange = $this->_RoomRangList
+                            ->where("property_type_master_id",$this->_propertyTypeId)
+                            ->where("from_room","<=",$maxRoom)
+                            ->where("upto_room",">=",$maxRoom)
+                            ->where("effective_from",'<=',$this->_demandFrom)
+                            ->filter(function($item)use($uptoDate) {
+                                return (Carbon::parse($item->effective_upto)->gte(Carbon::parse($uptoDate)) || is_null($item->effective_upto));
+                            })
+                            ->first();
+            $rate = $this->_FixRateMasterList
+                    ->where("property_type_master_id",$this->_propertyTypeId)
+                    ->where("room_range_master_id",$roomRange?->id)
                     ->where("effective_from",'<=',$this->_demandFrom)
                     ->filter(function($item)use($uptoDate) {
                         return (Carbon::parse($item->effective_upto)->gte(Carbon::parse($uptoDate)) || is_null($item->effective_upto));
                     });
-            if(in_array($this->_propertyTypeId,[1])){
-                $rate->where("category",$this->_category);
-            }
+                    
             $rate = $rate->where("lock_status",false)
-                    ->sortBy("effective_from")
-                    ->first();
+                ->sortBy("effective_from")
+                ->first();
+            $extraRoomRate = $this->_ExtraRoomRateList
+                ->where("property_type_master_id",$this->_propertyTypeId)
+                ->where("effective_from",'<=',$this->_demandFrom)
+                ->filter(function($item)use($uptoDate) {
+                    return (Carbon::parse($item->effective_upto)->gte(Carbon::parse($uptoDate)) || is_null($item->effective_upto));
+                })
+                ->sortBy("effective_from")
+                ->first();
+            $extraRoom = $currentRoom - ($roomRange->upto_room??0);
+            if($extraRoom<0){
+                $extraRoom=0;
+            }
+            $extraRoomCharge = $extraRoom * ($extraRoomRate->rate??0);
 
-            $unitRate = $rate->rate ;
+            $unitRate = $rate->rate + $extraRoomCharge;
             $amount = $unitRate;
             $this->_DemandArray->push([
                 "consumerId"=>$this->_Consumer->id,
@@ -179,6 +221,9 @@ class BhilaiConsumerDemandGenerateBll
                 "generationDate"=>Carbon::now()->format("Y-m-d"),
                 "userId"=>$this->_user?->id,
                 "rate"=>$rate,
+                "extraRoomRate"=>$extraRoomRate,
+                "extraRoom"=>$extraRoom,
+                "extraRoomCharge"=>$extraRoomCharge,
                 "diffDay"=>$dayDiff,
                 "oneDayReading"=>0,
                 "demandFrom"=>$this->_demandFrom,
@@ -220,7 +265,7 @@ class BhilaiConsumerDemandGenerateBll
         }
         if($this->_DemandArray->count()){
 
-            $this->_TaxArray=[
+            $TaxArray=[
                 "consumerId"=>$this->_Consumer->id,
                 "meterStatusId"=>$this->_Consumer->meter_status_id,
                 "taxType"=>$this->_DemandArray->unique("demandType")->implode(","),
@@ -231,7 +276,7 @@ class BhilaiConsumerDemandGenerateBll
                 "totalAmount"=>$this->_DemandArray->sum("amount"),
                 "taxJson"=>$this->_DemandArray
             ];
-            $newTaxRequest = new Request($this->_TaxArray);
+            $newTaxRequest = new Request($TaxArray);
             $this->_taxId = $objTaxDetail->store($newTaxRequest);
             foreach($this->_DemandArray as $demand){
                 $demandRequest = new Request($demand);

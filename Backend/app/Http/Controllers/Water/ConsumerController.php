@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Water;
 
 use App\Bll\Common;
 use App\Bll\Water\BhilaiConsumerDemandGenerateBll;
-use App\Bll\Water\BiharConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDemandReceiptBll;
 use App\Bll\Water\ConsumerDueBll;
@@ -424,6 +423,9 @@ class ConsumerController extends Controller
                 ]);
                 $meterImgRules = array_diff($meterImgRules, ['nullable']);
                 $rules['meterImg'] = array_merge((array)$meterImgRules, ['required']);
+            }elseif($lastConnection->meter_type_id == 2){
+                list($from,$upto)=FyearFromUptoDate(getFy());                
+                $rules['currentDate'] = "nullable|date|date_format:Y-m-d|before_or_equal:".$upto;
             }
             
             $validator = Validator::make($request->all(), $rules);
@@ -447,7 +449,7 @@ class ConsumerController extends Controller
             
             $this->begin();
 
-            $objGenerateDemand = new BiharConsumerDemandGenerateBll($request);
+            $objGenerateDemand = new BhilaiConsumerDemandGenerateBll($request);
             $objGenerateDemand->generateDemand();
 
             $response = [
