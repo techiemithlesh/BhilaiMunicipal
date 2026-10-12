@@ -247,25 +247,7 @@ function ConsumerDetails() {
                 </tr>
               )}
             />
-            {/* <DetailGrid
-              title="Electricity Details"
-              note="Note: In case, there is no Electric Connection. You have to upload Affidavit Form-I. (Please Tick)"
-              data={[
-                {
-                  label: "Electricity K. No",
-                  value: appData?.electConsumerNo,
-                },
-                { label: "ACC No.", value: appData?.electAccNo },
-                {
-                  label: "BIND/BOOK No.",
-                  value: appData?.electBindBookNo ? "electBindBookNo" : "NA",
-                },
-                {
-                  label: "Electricity Consumer Category",
-                  value: appData?.electConsCategory,
-                },
-              ]}
-            /> */}
+            
 
             {/* PAYMENT DETAILS */}
 
@@ -332,9 +314,46 @@ function ConsumerDetails() {
               showingItem={[5, 10, 15, 50, 100, 500, 1000]}
             />
 
+            <DataTableFullData
+              title="Connection Details"
+              headers={[
+                { label: "SL" },
+                {label: "Is Correct Connection"},
+                { label: "Property Type" },
+                { label: "Connection Type" },
+                { label: "Meter No." },
+                { label: "Initial Reading" },
+                { label: "Is Meter Working" },
+                { label: "No. Of Connection/Room/Table" },
+                { label: "Effect Of Connection" },
+                { label: "Any Fix Rate" },
+              ]}
+              renderRow={(conn, idx) => (
+                <tr key={idx} className={`${conn?.isCurrent ? 'text-green-200 bg-black' :''}`}>
+                  <td className="px-3 py-2 border">{idx + 1}</td>
+                  <td className="px-3 py-2 border">{conn?.isCurrent ? "Yes":"No"}</td>
+                  <td className="px-3 py-2 border">{conn?.propertyType || "-"}</td>
+                  <td className="px-3 py-2 border">{conn?.connectionType || "-"}</td>
+                  <td className="px-3 py-2 border">{conn?.meterNo || "-"}</td>
+                  <td className="px-3 py-2 border">{conn?.initialReading || "-"}</td>
+                  <td className="px-3 py-2 border">{conn?.isMeterWorking && conn?.meterTypeId==1 ? "Yes": "No"}</td>
+                  <td className="px-3 py-2 border">{conn?.noOfRoom || "-"}</td>
+                  <td className="px-3 py-2 border">{formatLocalDate(conn?.connectionDate) || "-"} </td>
+                  <td className="px-3 py-2 border">{conn?.fixRate || ""}</td>
+                  
+                </tr>
+              )}
+              data={appData?.allConnection}
+              showingItem={[5, 10, 15, 50, 100, 500, 1000]}
+            />
+
             <DetailGrid
               title="Consumer Connection Details"
               data={[
+                {
+                  label: "Property Type",
+                  value: appData?.connectionDtl?.propertyType,
+                },
                 {
                   label: "Connection Type",
                   value: appData?.connectionDtl?.connectionType,
@@ -406,6 +425,7 @@ function ConsumerDetails() {
             )}
             {isModalUpdateConnectionOpen && (
               <UpdateConnectionModal
+                propertyTypeId={appData?.propertyTypeId}
                 lastConnectionTypeId={appData?.connectionDtl?.meterTypeId}
                 onSuccess={handelConnectionSubmit}
                 onClose={() => setIsModalUpdateConnectionOpen(false)}

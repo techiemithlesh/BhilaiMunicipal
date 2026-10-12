@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Water;
 
 use App\Bll\Common;
 use App\Bll\Water\BhilaiConsumerDemandGenerateBll;
-use App\Bll\Water\ConsumerDemandGenerateBll;
 use App\Bll\Water\ConsumerDemandReceiptBll;
 use App\Bll\Water\ConsumerDueBll;
 use App\Bll\Water\ConsumerPaymentBll;
@@ -36,6 +35,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ConsumerController extends Controller
 {
@@ -138,8 +138,10 @@ class ConsumerController extends Controller
             });
             $connectionDtl = $application->getCurrentConnection()->first();
             if($connectionDtl){
+                $propertyType = $connectionDtl->getPropertyType()->first();
                 $connectionType = $connectionDtl->getMeterType()->first();
                 $connectionDtl->connectionType =$connectionType->meter_type;
+                $connectionDtl->propertyType =$propertyType->property_type;
                 $lastReading = $connectionDtl->getLastReading();
                 $connectionDtl->current_reading_date = $lastReading?->created_at;
                 $connectionDtl->current_reading = $lastReading?->reading;
@@ -147,6 +149,18 @@ class ConsumerController extends Controller
                 $connectionDtl->userName = $lastReading?->user_id ? $lastReading->getUser()->first()?->name:"";
             }
             $application->connectionDtl = $connectionDtl;
+            $application->allConnection = $application->getAllConnection()->orderBy("id","DESC")->get()->each(function($connection) use($application){
+                $connection->isCurrent = ($connection->id == $application->meter_status_id);
+                $connection->propertyType = $connection?->getPropertyType?->property_type;
+
+                $connectionType = $connection->getMeterType()->first();
+                $connection->connectionType =$connectionType->meter_type;
+                $lastReading = $connection->getLastReading();
+                $connection->current_reading_date = $lastReading?->created_at;
+                $connection->current_reading = $lastReading?->reading;
+                $connection->doc_path = $lastReading?->doc_path ? url("/documents")."/".$lastReading?->doc_path:"";
+                $connection->userName = $lastReading?->user_id ? $lastReading->getUser()->first()?->name:"";
+            });
             if($user->getTable()=="users"){
                 $role = $user->getRoleDetailsByUserId()->first();
                 $application->UserPermission = $role?->getRolePermission()->where("ulb_id",$user->ulb_id)->where("module_id",$this->_MODULE_ID)->first();
@@ -218,8 +232,9 @@ class ConsumerController extends Controller
         try{
             $rule=[
                 "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Consumer->getConnectionName().".".$this->_Consumer->getTable().",id,lock_status,false",
-                "meterTypeId"=>"required|exists:".$this->_MeterTypeMaster->getConnectionName().".".$this->_MeterTypeMaster->getTable().",id",
                 "propertyTypeId"=>"required|exists:".$this->_PropertyTypeMaster->getConnectionName().".".$this->_PropertyTypeMaster->getTable().",id",
+                "noOfRoom"=>"required|numeric|min:1",
+                "meterTypeId"=>"required|exists:".$this->_MeterTypeMaster->getConnectionName().".".$this->_MeterTypeMaster->getTable().",id",
                 "connectionDate"=>"required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
                 "initialReading"=>"required_if:meterTypeId,1".($request->initialReading ? "|numeric" : ""),
                 "meterNo"=>"required_if:meterTypeId,1",
@@ -237,6 +252,15 @@ class ConsumerController extends Controller
                         }
                     },
                 ],
+                "isMeterWorking" => "required_if:meterTypeId,1|boolean", 
+                "fixRate" => [
+                    Rule::requiredIf(function () use ($request) {
+                        return $request->input('meterTypeId') == 1 && in_array($request->input('isMeterWorking'), [0, '0', false], true);
+                    }),
+                    "nullable",
+                    "numeric",
+                    "min:0"
+                ]
             ];
             $validator = Validator::make($request->all(),$rule);
             $validator->sometimes('lastReading', 'required', function ($input) use ($request) {
@@ -260,13 +284,19 @@ class ConsumerController extends Controller
                 "consumerId"=>$consumer->id,                
                 "docPath"=>$path,
             ]);  
+            if($request->meterTypeId!=1){
+                $newMeterStatusRequest->merge([
+                    "isMeterWorking"=>false,  
+                    "fixRate"=>null
+                ]);
+            }
             $this->begin();          
             if($lastConnection){
                 $newRequest = new Request($newMeterStatusRequest->all());
                 $newRequest->merge([
                     "currentDate"=>$request->connectionDate,
                 ]);
-                $objGenerateDemand = new ConsumerDemandGenerateBll($request);
+                $objGenerateDemand = new BhilaiConsumerDemandGenerateBll($request);
                 $objGenerateDemand->generateDemand();
             }
             $meterId = $this->_MeterStatus->store($newMeterStatusRequest);            
@@ -275,6 +305,7 @@ class ConsumerController extends Controller
                 $meterReadingRequest->merge(["meter_status_id"=>$meterId,"reading"=>$request->initialReading]);
                 $this->_MeterReading->store($meterReadingRequest);
             }
+            $consumer->property_type_id = $request->propertyTypeId;
             $consumer->meter_status_id = $meterId;
             $consumer->update();
             $this->commit();
@@ -283,7 +314,7 @@ class ConsumerController extends Controller
             $this->rollback();
             return responseMsg(false,$e->getMessage(),"");
         }catch(Exception $e){
-            $this->rollback();
+            $this->rollback();dd($e);
             return responseMsg(false,"Server Error","");
         }
     }

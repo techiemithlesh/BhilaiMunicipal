@@ -177,7 +177,7 @@ export default function FormCard({
                         type="radio"
                         name={name}
                         value={opt.value}
-                        checked={value === opt.value}
+                        checked={value == opt.value}
                         onChange={(e) => {
                           onChange(name, e.target.value);
                           if (typeof subOnChange === "function") {

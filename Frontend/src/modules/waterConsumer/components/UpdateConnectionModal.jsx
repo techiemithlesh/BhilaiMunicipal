@@ -17,12 +17,17 @@ function UpdateConnectionModal({
   onClose,
   onSuccess,
   lastConnectionTypeId,
+  propertyTypeId,
   connectionDtl = {},
   id,
 }) {
   const token = getToken();
   const [meterList, setMeterList] = useState([]);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({
+    noOfRoom:1,
+    propertyTypeId:propertyTypeId,
+    isMeterWorking:1,
+  });
   const [imageFiles, setImageFiles] = useState([]);
   const [validationError, setValidationError] = useState({});
   const [isFrozen, setIsFrozen] = useState(false); // Added missing state
@@ -80,7 +85,13 @@ function UpdateConnectionModal({
     setForm((prev) => {
       let updated = { ...prev, [name]: value };
       if (name === "meterTypeId" && value != 1) {
-        updated = { ...updated, meterNo: "", initialReading: "" };
+        updated = { ...updated, meterNo: "", initialReading: "",isMeterWorking:"",fixRate:"" };
+      }
+      if(name==="propertyTypeId" && ![3,4].includes(parseInt(value))){
+        updated = { ...updated, noOfRoom: 1 };
+      }
+      if(name==="isMeterWorking" && (parseInt(value)==1)){
+        updated = { ...updated, fixRate: "" };
       }
       return updated;
     });
@@ -145,6 +156,18 @@ function UpdateConnectionModal({
       })),
     },
     {
+      name: "noOfRoom",
+      label: [3, 4].includes(Number(form?.propertyTypeId)) 
+        ? (form?.propertyTypeId == 3 ? "No Of Room" : "No Of Tables") 
+        : "No Of Connection",
+      type: "number",
+      min: 1,
+      error: validationError?.noOfRoom || "",
+      value: form?.noOfRoom || "",
+      required: true,
+      readOnly: ![3, 4].includes(Number(form?.propertyTypeId))
+    },
+    {
       name: "meterTypeId",
       label: "Type of Connection",
       type: "select",
@@ -155,7 +178,36 @@ function UpdateConnectionModal({
         label: item.meterType,
         value: item.id,
       })),
-    },
+    },    
+
+    ...(form?.meterTypeId == 1 ? [
+      {
+        name: "isMeterWorking",
+        label: "Is Meter Working",
+        type: "radio",
+        error: validationError?.isMeterWorking || "",
+        value: form?.isMeterWorking ,
+        required: form?.meterTypeId==1,
+        options: [
+          {
+            label: "Meter Working",
+            value: 1,
+          },
+          {
+            label: "Meter Not Working",
+            value: 0,
+          },
+        ],
+      },
+    ] : []),
+    ...(form?.meterTypeId == 1 && Number(form?.isMeterWorking) === 0 ? [{
+      name: "fixRate",
+      label: "Rate Per Month",
+      type: "number",
+      error: validationError?.fixRate || "",
+      value: form?.fixRate || "",
+      required: true,
+    }] : []),
     {
       name: "meterNo",
       label: "Meter No.",
@@ -243,6 +295,7 @@ function UpdateConnectionModal({
                   allowMultiple={false}
                   required={true}
                   acceptedFileTypes={["image/png", "image/jpeg", ".pdf"]}
+                  error={validationError?.document || ""}
                 />
               </div>
             </div>

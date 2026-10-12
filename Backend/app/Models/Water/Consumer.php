@@ -76,6 +76,11 @@ class Consumer extends ParamModel
         return $this->hasOne(MeterStatus::class,"id","meter_status_id");
     }
 
+    public function getAllConnection(){
+        return $this->hasMany(MeterStatus::class,"consumer_id","id")->where("lock_status",false)
+        ->with("getPropertyType");
+    }
+
     public function getDemand(){
         return $this->hasMany(ConsumerDemand::class,"consumer_id","id")->where("lock_status",false);
     }

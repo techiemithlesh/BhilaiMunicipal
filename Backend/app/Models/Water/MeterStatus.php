@@ -18,6 +18,10 @@ class MeterStatus extends ParamModel
         "is_meter_working",
         "doc_path",
         "ref_unique_no",
+        "initial_reading",
+        "property_type_id",
+        "no_of_room",
+        "fix_rate",
         "user_id",
         "lock_status",
     ];
@@ -36,6 +40,11 @@ class MeterStatus extends ParamModel
             ->where("lock_status",false)
             ->orderBy("id","DESC")
             ->first();
+    }
+
+    public function getPropertyType(){
+        return $this->belongsTo(PropertyTypeMaster::class,"property_type_id","id");
+
     }
 
 }
