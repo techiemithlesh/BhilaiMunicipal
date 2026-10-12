@@ -266,3 +266,29 @@ export const formatCustomMonthYear = (dateStr, separator = '-') => {
   const year = date.getFullYear();
   return `${month}${separator}${year}`;
 };
+
+export const appendToFormData = (data, formData = new FormData(), parentKey = '') => {
+  if (data === null || data === undefined) return formData;
+
+  if (data instanceof File || data instanceof Blob) {
+    // If it's a file, append directly
+    formData.append(parentKey, data);
+  } else if (Array.isArray(data)) {
+    // Handle Arrays recursively
+    data.forEach((item, index) => {
+      const propName = `${parentKey}[${index}]`;
+      appendToFormData(item, formData, propName);
+    });
+  } else if (typeof data === 'object') {
+    // Handle Nested Objects recursively
+    Object.keys(data).forEach((key) => {
+      const propName = parentKey ? `${parentKey}[${key}]` : key;
+      appendToFormData(data[key], formData, propName);
+    });
+  } else {
+    // Handle primitive values (strings, numbers, booleans)
+    formData.append(parentKey, data);
+  }
+
+  return formData;
+};

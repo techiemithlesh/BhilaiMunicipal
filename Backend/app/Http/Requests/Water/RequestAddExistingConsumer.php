@@ -4,12 +4,15 @@ namespace App\Http\Requests\Water;
 
 use App\Models\Water\MeterTypeMaster;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 class RequestAddExistingConsumer extends RequestApplyApplication
 {
     protected $_MeterTypeMaster;
 
-    function __construct(){
+    public function __construct()
+    {
         parent::__construct();
         $this->_MeterTypeMaster = new MeterTypeMaster();
     }
@@ -17,38 +20,61 @@ class RequestAddExistingConsumer extends RequestApplyApplication
     public function rules(): array
     {
         $rules = parent::rules();
-
-        $rules["pipelineTypeId"] = "nullable|integer";
-        $rules["ownershipTypeId"] = "nullable|integer";
-
-        $rules["areaSqft"] = "nullable|numeric|min:0.1";
-
         
-        $rules["holdingNo"] = [
-            "nullable",
-            function ($attribute, $value, $fail) {
-                if ($value && !$this->_PropertyDetail->where("new_holding_no", $value)->where("lock_status", false)->exists()) {
-                    $fail("The {$attribute} is invalid.");
-                }
-            },
+        $meterTypeTable = $this->_MeterTypeMaster->getTable();
+        $connectionName = $this->_MeterTypeMaster->getConnectionName();
+
+        $newRules = [
+            "oldConsumerNo" => "nullable|string|max:50",
+            "noOfRoom" => "required|numeric|min:1",
+            "meterTypeId" => "required|exists:{$connectionName}.{$meterTypeTable},id",
+            "connectionDate" => "required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
+            "initialReading" => "required_if:meterTypeId,1" . ($this->initialReading ? "|numeric" : ""),
+            "meterNo" => "required_if:meterTypeId,1",
+            "isMeterWorking" => [
+                Rule::requiredIf($this->input('meterTypeId') == 1),
+                "nullable",
+                "boolean",
+            ],
+            "fixRate" => [
+                Rule::requiredIf(function () {
+                    return $this->input('meterTypeId') == 1 && in_array($this->input('isMeterWorking'), [0, '0', false], true);
+                }),
+                "nullable",
+                "numeric",
+                "min:0",
+            ],
+            "demandFrom" => "nullable|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
+            "arrearAmount" => "nullable|numeric|min:0",
+            "document" => [
+                "required",
+                "mimes:bmp,jpeg,jpg,png,pdf",
+                fn ($attribute, $value, $fail) => $this->validateFileSize($attribute, $value, $fail),
+            ], 
+            "supportingDocument" => [
+                "required",
+                "mimes:bmp,jpeg,jpg,png,pdf",
+                fn ($attribute, $value, $fail) => $this->validateFileSize($attribute, $value, $fail),
+            ],         
         ];
 
-        // "ownerDtl.*.dob" => "required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
-        $rules["ownerDtl.*.dob"] = "nullable|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d");
-        $rules["oldConsumerNo"] = "nullable|string|max:50";
-        $rules["connectionDate"] = "nullable|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d");
-        $rules["meterTypeId"] = "nullable|exists:" . $this->_MeterTypeMaster->getConnectionName() . "." . $this->_MeterTypeMaster->getTable() . ",id";
-        $rules["meterNo"] = "required_if:meterTypeId,1|nullable|string|max:20";
-        $rules["initialReading"] = "required_if:meterTypeId,1|nullable|numeric";
+        return array_merge($rules, $newRules);
+    }
 
-        // Meter Declaration is only enforced on the actual create step — the earlier
-        // "test" step validates the rest of the form before the file is even attached.
-        $documentRules = ["nullable", "mimes:pdf,png,jpg,jpeg", "max:2048"];
-        if ($this->route()?->getActionMethod() === "addExistingConsumer") {
-            array_unshift($documentRules, "required_if:meterTypeId,1");
+    /**
+     * Reusable file size validation helper.
+     */
+    protected function validateFileSize(string $attribute, $value, $fail): void
+    {
+        if ($value instanceof UploadedFile) {
+            // PDF max size: 10MB (10240 KB), Images max size: 5MB (5120 KB)
+            $isPdf = strtolower($value->getClientOriginalExtension()) === 'pdf' || $value->getMimeType() === 'application/pdf';
+            $maxSize = $isPdf ? 10240 : 5120; 
+            $maxSizeBytes = $maxSize * 1024; // Converted properly to bytes
+
+            if ($value->getSize() > $maxSizeBytes) {
+                $fail('The ' . $attribute . ' may not be greater than ' . $maxSize . ' kilobytes.');
+            }
         }
-        $rules["document"] = $documentRules;
-
-        return $rules;
     }
 }

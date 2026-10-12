@@ -21,6 +21,7 @@ use App\Models\Water\ConsumerOwner;
 use App\Models\Water\MeterReading;
 use App\Models\Water\MeterStatus;
 use App\Http\Requests\Water\RequestAddExistingConsumer;
+use App\Models\Water\ConsumerAdditionalDocument;
 use App\Models\Water\MeterTypeMaster;
 use App\Models\Water\ParamModel;
 use App\Models\Water\PropertyTypeMaster;
@@ -57,6 +58,7 @@ class ConsumerController extends Controller
     protected $_MeterStatus;
     protected $_MeterReading;
     protected $_WaterTransaction;
+    protected $_ConsumerAdditionalDocument;
 
     function __construct()
     {
@@ -76,6 +78,7 @@ class ConsumerController extends Controller
         $this->_MeterStatus = new MeterStatus();
         $this->_MeterReading = new MeterReading();
         $this->_WaterTransaction = new WaterTransaction();
+        $this->_ConsumerAdditionalDocument = new ConsumerAdditionalDocument();
     }
 
     private function begin(){
@@ -252,7 +255,11 @@ class ConsumerController extends Controller
                         }
                     },
                 ],
-                "isMeterWorking" => "required_if:meterTypeId,1|boolean", 
+                "isMeterWorking" => [
+                    Rule::requiredIf($request->input('meterTypeId') == 1),
+                    "nullable",
+                    "boolean"
+                ],
                 "fixRate" => [
                     Rule::requiredIf(function () use ($request) {
                         return $request->input('meterTypeId') == 1 && in_array($request->input('isMeterWorking'), [0, '0', false], true);
@@ -355,12 +362,44 @@ class ConsumerController extends Controller
             $this->begin();
             $consumerId = $this->_Consumer->store($request);
 
+            if($request->supportingDocument){
+                $relativePath = "Uploads/ExistingWaterConnection";
+                $imageName = $consumerId."_Existing".".".$request->supportingDocument->getClientOriginalExtension();
+                // $request->document->move($relativePath, $imageName);
+                $path = $request->supportingDocument->storeAs($relativePath,$imageName, $this->disk);
+                $additionalDocRequest = new Request(
+                    [
+                        "consumerId"=>$consumerId,
+                        "document_name"=>"Existing",
+                        "doc_path"=>$path,
+                        "user_id"=>$user?->id,
+                    ]
+                );
+                $this->_ConsumerAdditionalDocument->store($additionalDocRequest);
+            }
+
             foreach($request->ownerDtl as $owner){
                 $ownerRequest = new Request($owner);
                 $ownerRequest->merge(["consumerId"=>$consumerId]);
                 $this->_ConsumerOwner->store($ownerRequest);
             }
 
+            // insert Arrear Demand
+            if($request->demandFrom){
+                $arrearDemandRequest = new Request([
+                    "consumerId"=>$consumerId,
+                    "wardMstrId"=>$request->wardMstrId,
+                    "generationDate"=>Carbon::now()->format("Y-m-d"),
+                    "userId"=>$request->userId,
+                    "demandFrom"=>$request->demandFrom,
+                    "demandUpto"=>Carbon::now()->format("Y-m-d"),
+                    "amount"=>roundFigure($request->arrearAmount),
+                    "balance"=>roundFigure($request->arrearAmount),
+                    "demandType"=>"Fixed",
+                ]);
+                $this->_ConsumerDemand->store($arrearDemandRequest);
+
+            }
             // Existing Connection Details are optional — record them now only if the
             if($request->meterTypeId && $request->connectionDate){
                 $docPath = null;
@@ -404,7 +443,7 @@ class ConsumerController extends Controller
             }
 
             $this->commit();
-            return responseMsg(true,"Consumer Added",remove_null(camelCase(["id"=>$consumerId,"consumerNo"=>$additionData["consumerNo"]])));
+            return responseMsg(true,"Consumer Added",remove_null(camelCase(["consumerId"=>$consumerId,"consumerNo"=>$additionData["consumerNo"]])));
         }catch(CustomException $e){
             $this->rollback();
             return responseMsg(false,$e->getMessage(),"");

@@ -71,14 +71,7 @@ function SearchConsumer() {
 
   return (
     <>
-      <div className="flex justify-end mb-2">
-        <Link
-          to="/water/consumer/add-existing"
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white text-sm"
-        >
-          + Add Existing
-        </Link>
-      </div>
+      
       <SearchWithTable
       filterType="Search Application"
       itemsPerPage={itemsPerPage}
@@ -124,7 +117,6 @@ function SearchConsumer() {
         "Ward No.",
         "Consumer No.",
         "Holding No.",
-        "SAF No.",
         "Owner Name",
         "Guardian Name",
         "Mobile No",
@@ -139,7 +131,6 @@ function SearchConsumer() {
           <td className="px-3 py-2 border">{row.wardNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.consumerNo}</td>
           <td className="px-3 py-2 border">{row.newHoldingNo}</td>
-          <td className="px-3 py-2 border">{row.safNo}</td>
           <td className="px-3 py-2 border">{row.ownerName ?? ""}</td>
           <td className="px-3 py-2 border">{row.guardianName ?? ""}</td>
           <td className="px-3 py-2 border">{row.mobileNo ?? ""}</td>
