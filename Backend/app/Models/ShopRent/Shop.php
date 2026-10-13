@@ -2,6 +2,7 @@
 
 namespace App\Models\ShopRent;
 
+use App\Models\DBSystem\UlbWardMaster;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,4 +32,16 @@ class Shop extends ParamModel
         'user_id',
         'lock_status',
     ];
+
+    public function getWardNo(){
+        return $this->belongsTo(UlbWardMaster::class,"ward_mstr_id","id")->first();
+    }
+
+    public function getCurrentRent(){
+        return $this->hasOne(ShopRent::class,"id","current_rate_id")->where("lock_status",false);
+    }
+
+    public function getDemand(){
+        return $this->hasMany(ShopDemand::class,"shop_id","id")->where("lock_status",false);
+    }
 }

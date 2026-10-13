@@ -24,6 +24,23 @@ class AreaMaster extends ParamModel
         return json_encode($areaList);
     }
 
+    public function store($request){
+        $inputs = snakeCase($request);
+        $role= self::create($inputs->all());
+        $this->cashingData();
+        return $role->id;
+    }
+
+    public function edit($request){
+        $inputs= snakeCase($request)->filter(function($val,$index){
+            return (in_array($index,$this->fillable));
+        });
+        $model = self::find($request->id);
+        $returnData= $model->update($inputs->all());
+        $this->cashingData();
+        return $returnData;
+    }
+
     public function getAreaList(){
         $areaList  = json_decode(Redis::get($this->_cashKey));
         if(!$areaList){

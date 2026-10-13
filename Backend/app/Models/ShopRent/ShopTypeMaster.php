@@ -17,17 +17,36 @@ class ShopTypeMaster extends ParamModel
         'lock_status',
     ];
 
+    private $_cashKey = "SHOP_RENT_SHOP_TYPE_LIST";
+
     public function cashingData(){
-        $shopTypeList = self::where("lock_status",false)->get();
-        Redis::set("SHOP_RENT_SHOP_TYPE_LIST",$shopTypeList);  
-        return json_encode($shopTypeList);
+        $areaList = self::where("lock_status",false)->get();
+        Redis::set($this->_cashKey,$areaList);  
+        return json_encode($areaList);
+    }
+
+    public function store($request){
+        $inputs = snakeCase($request);
+        $role= self::create($inputs->all());
+        $this->cashingData();
+        return $role->id;
+    }
+
+    public function edit($request){
+        $inputs= snakeCase($request)->filter(function($val,$index){
+            return (in_array($index,$this->fillable));
+        });
+        $model = self::find($request->id);
+        $returnData= $model->update($inputs->all());
+        $this->cashingData();
+        return $returnData;
     }
 
     public function getShopTypeList(){
-        $shopTypeList  = json_decode(Redis::get("SHOP_RENT_SHOP_TYPE_LIST"));
-        if(!$shopTypeList){
-            $shopTypeList = json_decode($this->cashingData());            
+        $areaList  = json_decode(Redis::get($this->_cashKey));
+        if(!$areaList){
+            $areaList = json_decode($this->cashingData());            
         }
-        return collect($shopTypeList);
+        return collect($areaList);
     }
 }

@@ -146,39 +146,6 @@ class ConsumerController extends Controller
         }
     }
 
-    public function validateHoldingNo(Request $request){
-        try{
-            $client = new Client();
-            $url = Config::get("SystemConstant.HOLDING_VALIDATE");
-            $promise =$client->post(
-                $url,
-                [
-                    'json' => $request->all(),
-                    [
-                        'headers' => $request->header()                         // Attach all headers
-                    ]
-                ]
-            );
-            // Create an async HTTP POST request
-            $promises[] = $promise;
-            // Wait for the promise to complete
-            $responses = Utils::settle($promises)->wait();
-            // Process the response
-            $response = $responses[0];
-
-            if ($response['state'] === PromiseInterface::FULFILLED) {
-                $apiResponse = $response['value']->getBody()->getContents();    // Process the response body as needed
-                return json_decode($apiResponse, true);
-            } else {
-                $apiResponse = $response['reason']->getMessage();            // Handle the error message as needed
-                throw new Exception($apiResponse);
-            }
-        }catch(CustomException $e){
-            return responseMsg(false,$e->getMessage(),"");
-        }catch(Exception $e){
-            return responseMsg(false,"Internal Server Error!!!","");
-        }
-    }
 
     public function reviewTax(Request $request){
         try{
@@ -262,7 +229,7 @@ class ConsumerController extends Controller
             $objDemandBll->generateDemand();
 
             $consumerNo = $consumer->consumer_no??"";
-            // $this->commit();
+            $this->commit();
             return responseMsg(true,"Application Submitted ",remove_null(camelCase(["consumerId"=>$consumerId,"consumerNo"=>$consumerNo])));
         }catch(CustomException $e){
             $this->rollBack();

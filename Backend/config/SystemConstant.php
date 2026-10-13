@@ -28,6 +28,7 @@ return [
         "TRADE"=>3,
         "SWM"=>4,
         "ACCOUNT"=>5,
+        "SHOP"=>6
     ],
     "USER-TYPE-SHORT-NAME" =>[
         ""                  =>"ONLINE",
