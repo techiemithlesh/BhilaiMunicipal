@@ -366,6 +366,11 @@ export const swmConsumerBulkPaymentReceiptApi = `${BASE_URL}/api/swm/bulk-paymen
 export const swmConsumerDemandGenerateApi = `${BASE_URL}/api/swm/generate-demand`;
 export const swmConsumerDailyVisitingLogApi = `${BASE_URL}/api/swm/daily-visiting-log`;
 
+// shop rent
+export const shopRentMasterDataApi = `${BASE_URL}/api/shop-rent/get-master-data`;
+export const shopRentAddApi = `${BASE_URL}/api/shop-rent/add`;
+export const shopRentSearchApi = `${BASE_URL}/api/shop-rent/search`;
+
 // swm report
 
 export const swmPaymentModeListApi = `${BASE_URL}/api/swm/report/payment-mode`;

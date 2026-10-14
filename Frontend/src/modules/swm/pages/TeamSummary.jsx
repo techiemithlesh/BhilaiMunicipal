@@ -234,14 +234,9 @@ function TeamSummary() {
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">Tax Collector</label>
-        {tcListLoading ? (
-          <div className="flex justify-center items-center h-10">
-            <span className="inline-block w-5 h-5 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></span>
-            <span className="ml-2 text-blue-600 text-sm">Loading...</span>
-          </div>
-        ) : (
-          <Select
+                  <Select
             isMulti
+            isLoading={tcListLoading}
             options={tcList}
             value={tcList.filter((opt) => tcId.includes(opt.value))}
             onChange={(selected) =>
@@ -250,7 +245,6 @@ function TeamSummary() {
             placeholder="Select TC..."
             isClearable
           />
-        )}
       </div>
     </div>
   );

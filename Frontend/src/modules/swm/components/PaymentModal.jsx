@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
@@ -7,6 +8,12 @@ import toast from "react-hot-toast";
 function PaymentModal({ demandData, onSubmit, onCancel }) {
   const [form, setForm] = useState({ paymentType: "FULL" });
   const [isFrozen, setIsFrozen] = useState(false);
+  const { setIsLoadingGable } = useLoading();
+  useEffect(() => {
+    if (!isFrozen) return;
+    setIsLoadingGable(true);
+    return () => setIsLoadingGable(false);
+  }, [isFrozen]);
   const isNonCash = form.paymentMode && form.paymentMode !== "CASH";
 
   const handleSubmit = (e) => {
@@ -212,15 +219,6 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
             </button>
           </div>
         </form>
-
-        {/* Loading Overlay */}
-        {isFrozen && (
-          <div className="z-20 absolute inset-0 flex justify-center items-center bg-white/70">
-            <span className="font-medium text-gray-800 text-lg">
-              Processing...
-            </span>
-          </div>
-        )}
       </motion.div>
     </div>
   );

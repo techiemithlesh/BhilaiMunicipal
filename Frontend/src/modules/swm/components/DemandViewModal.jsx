@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { swmConsumerPaymentApi } from "../../../api/endpoints";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
@@ -22,6 +23,12 @@ function DemandViewModal({
   const [demandList, setDemandList] = useState([]);
   const [demandData, setDemandData] = useState({});
   const [isFrozen, setIsFrozen] = useState(false);
+  const { setIsLoadingGable } = useLoading();
+  useEffect(() => {
+    if (!isFrozen) return;
+    setIsLoadingGable(true);
+    return () => setIsLoadingGable(false);
+  }, [isFrozen]);
   const [isShowPaymentModal, setIsShowPaymentModal] = useState(false);
   const [isShowPaymentReceiptModal, setIsShowPaymentReceiptModal] =
     useState(false);
@@ -127,7 +134,7 @@ function DemandViewModal({
         <div className="relative flex-grow overflow-y-auto">
           <div
             className={`${
-              isFrozen ? "pointer-events-none filter blur-sm" : ""
+              isFrozen ? "pointer-events-none" : ""
             }`}
           >
             <DataTableFullData
@@ -191,14 +198,6 @@ function DemandViewModal({
               onSubmit={handlePaymentSubmit}
               onCancel={() => setIsShowPaymentModal(false)}
             />
-          )}
-
-          {isFrozen && (
-            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 backdrop-blur-sm">
-              <div className="font-semibold text-gray-800 text-lg">
-                Processing...
-              </div>
-            </div>
           )}
 
           {isShowPaymentReceiptModal && (

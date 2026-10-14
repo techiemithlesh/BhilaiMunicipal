@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { swmConsumerDailyVisitingLogApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 import { motion } from "framer-motion";
@@ -7,11 +8,16 @@ import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { formatTimeAMPM } from "../../../utils/common";
-import { Spinner } from "@nextui-org/react";
 
 function VisitingLogModal({ id, onClose, onSuccess }) {
   const token = getToken();
   const [isFrozen, setIsFrozen] = useState(false);
+  const { setIsLoadingGable } = useLoading();
+  useEffect(() => {
+    if (!isFrozen) return;
+    setIsLoadingGable(true);
+    return () => setIsLoadingGable(false);
+  }, [isFrozen]);
   const [logList, setLogList] = useState([]);
   const [openIndexes, setOpenIndexes] = useState([]);
 
@@ -84,10 +90,7 @@ function VisitingLogModal({ id, onClose, onSuccess }) {
 
         {/* BODY */}
         <div className="relative flex-grow overflow-y-auto">
-          {isFrozen&&(
-            <Spinner />
-          )}
-          <div className={`${isFrozen ? "pointer-events-none filter blur-sm" : ""}`}>
+          <div className={`${isFrozen ? "pointer-events-none" : ""}`}>
             {/* Accordion Section */}
             {logList.map((monthItem, index) => (
               <div
@@ -143,15 +146,6 @@ function VisitingLogModal({ id, onClose, onSuccess }) {
               </div>
             ))}
           </div>
-
-          {/* LOADER */}
-          {isFrozen && (
-            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 backdrop-blur-sm">
-              <div className="font-semibold text-gray-800 text-lg">
-                Processing...
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

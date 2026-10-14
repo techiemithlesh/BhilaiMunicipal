@@ -5,6 +5,7 @@ import { Input, Select, SelectItem, Checkbox, Button } from "@nextui-org/react";
 import { swmSubCategoryListApi, swmGetRateApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 import { getCurrentYearMonth } from "../../../utils/common";
+import { useLoading } from "../../../contexts/LoadingContext";
 
 const ConnectionDetails = ({
   dateOfEffect = "",
@@ -19,8 +20,7 @@ const ConnectionDetails = ({
 }) => {
   const token = getToken();
   const [subCategoryMap, setSubCategoryMap] = useState({});
-  const [loadingMap, setLoadingMap] = useState({});
-  const [rateLoadingMap, setRateLoadingMap] = useState({});
+  const { setIsLoadingGable } = useLoading();
   const today = getCurrentYearMonth();
 
   // Fetch subcategories per row when category changes
@@ -31,7 +31,7 @@ const ConnectionDetails = ({
         return;
       }
 
-      setLoadingMap((prev) => ({ ...prev, [rowIndex]: true }));
+      setIsLoadingGable(true);
       try {
         const response = await axios.post(
           swmSubCategoryListApi,
@@ -47,10 +47,10 @@ const ConnectionDetails = ({
       } catch (error) {
         console.error("Error fetching subcategories:", error);
       } finally {
-        setLoadingMap((prev) => ({ ...prev, [rowIndex]: false }));
+        setIsLoadingGable(false);
       }
     },
-    [token]
+    [token, setIsLoadingGable]
   );
 
   // Fetch rate for a specific row
@@ -64,7 +64,7 @@ const ConnectionDetails = ({
         return;
       }
 
-      setRateLoadingMap((prev) => ({ ...prev, [rowIndex]: true }));
+      setIsLoadingGable(true);
       try {
         const response = await axios.post(
           swmGetRateApi,
@@ -85,10 +85,10 @@ const ConnectionDetails = ({
         console.error("Error fetching rate:", error);
         onChange(rowIndex, "rate", "");
       } finally {
-        setRateLoadingMap((prev) => ({ ...prev, [rowIndex]: false }));
+        setIsLoadingGable(false);
       }
     },
-    [dateOfEffect, onChange, token]
+    [dateOfEffect, onChange, token, setIsLoadingGable]
   );
 
   // Pre-fetch subcategories on mount or row addition
@@ -254,14 +254,12 @@ const ConnectionDetails = ({
                 isRequired
                 label="Sub Category"
                 labelPlacement="outside"
-                placeholder={
-                  loadingMap[index] ? "Loading..." : "Select Sub Category"
-                }
+                placeholder="Select Sub Category"
                 selectedKeys={
                   row.subCategoryTypeMasterId ? [String(row.subCategoryTypeMasterId)] : []
                 }
                 onChange={(e) => handleSubCategoryChange(index, e.target.value)}
-                isDisabled={isFrozen || loadingMap[index]}
+                isDisabled={isFrozen}
                 errorMessage={rowError("subCategoryTypeMasterId")}
                 size="sm"
                 variant="bordered"
@@ -298,7 +296,7 @@ const ConnectionDetails = ({
                 type="number"
                 label="Rate"
                 labelPlacement="outside"
-                placeholder={rateLoadingMap[index] ? "Fetching..." : "Auto Rate"}
+                placeholder="Auto Rate"
                 value={row.rate ?? ""}
                 isReadOnly
                 isDisabled={isFrozen}

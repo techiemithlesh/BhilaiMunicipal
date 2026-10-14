@@ -7,7 +7,8 @@ import {
   swmSubCategoryEditApi,
 } from "../../../api/endpoints";
 import toast from "react-hot-toast";
-import { Button, Spinner } from "@nextui-org/react";
+import { Button } from "@nextui-org/react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import Select from "react-select";
 import { modalVariants } from "../../../utils/motionVariable";
 import { motion } from "framer-motion";
@@ -18,7 +19,7 @@ import axios from "axios";
 function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
   const token = getToken();
   const [categoryList, setCategoryList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { setIsLoadingGable } = useLoading();
   const [isFrozen, setIsFrozen] = useState(false);
   const [formData, setFormData] = useState({
     categoryTypeMasterId: "",
@@ -41,7 +42,7 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
   }, [token]);
 
   const fetchInitialData = async () => {
-    setIsLoading(true);
+    setIsLoadingGable(true);
     try {
       const categoryRes = await axios.post(
         swmCategoryListApi,
@@ -65,7 +66,7 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
     } catch (error) {
       console.error("Error during initial data fetch:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingGable(false);
     }
   };
 
@@ -89,6 +90,7 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
 
   const handleFormSubmit = async () => {
     setIsFrozen(true);
+    setIsLoadingGable(true);
     try {
       const url = item?.id ? swmSubCategoryEditApi : swmSubCategoryAddApi;
       const res = await axios.post(url, formData, {
@@ -106,6 +108,7 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
       console.error("Error submitting form:", error);
     } finally {
       setIsFrozen(false);
+      setIsLoadingGable(false);
     }
   };
 
@@ -152,174 +155,162 @@ function AddEditSubCategoryModal({ item, onClose, onSuccess }) {
 
   return (
     <div className="z-50 fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-75 p-4">
-      {isLoading ? (
-        <Spinner />
-      ) : (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          variants={modalVariants}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col bg-white shadow-lg p-6 rounded-lg w-full max-w-6xl max-h-[80vh]"
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-lg">
-              {item?.id ? "Update" : "Add"} Sub Category
-            </h2>
-            <button
-              className="text-gray-500 hover:text-gray-700"
-              onClick={onClose}
-            >
-              <FaTimes size={20} />
-            </button>
-          </div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
+        variants={modalVariants}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col bg-white shadow-lg p-6 rounded-lg w-full max-w-6xl max-h-[80vh]"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-lg">
+            {item?.id ? "Update" : "Add"} Sub Category
+          </h2>
+          <button
+            className="text-gray-500 hover:text-gray-700"
+            onClick={onClose}
+          >
+            <FaTimes size={20} />
+          </button>
+        </div>
 
-          <div className="relative flex-grow pr-2 overflow-y-auto">
-            <div
-              className={`${
-                isFrozen ? "pointer-events-none filter blur-sm" : ""
-              } w-full space-y-4`}
-            >
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <label className="block font-semibold text-gray-700 text-sm mb-1">
-                    Category Type
-                  </label>
-                  <Select
-                    name="categoryTypeMasterId"
-                    value={categoryOptions.find(
-                      (opt) => opt.value === formData.categoryTypeMasterId
-                    )}
-                    onChange={(selected) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        categoryTypeMasterId: selected?.value || "",
-                      }))
-                    }
-                    options={categoryOptions}
-                    placeholder="Select Category"
-                    isClearable
-                  />
-                  {errors?.categoryTypeMasterId && (
-                    <span className="text-red-500 text-sm">
-                      {errors.categoryTypeMasterId}
-                    </span>
+        <div className="relative flex-grow pr-2 overflow-y-auto">
+          <div
+            className={`${
+              isFrozen ? "pointer-events-none" : ""
+            } w-full space-y-4`}
+          >
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="block font-semibold text-gray-700 text-sm mb-1">
+                  Category Type
+                </label>
+                <Select
+                  name="categoryTypeMasterId"
+                  value={categoryOptions.find(
+                    (opt) => opt.value === formData.categoryTypeMasterId
                   )}
-                </div>
-
-                <InputField
-                  label="Sub Category Type"
-                  name="subCategoryType"
-                  value={formData.subCategoryType || ""}
-                  onChange={handleInputChange}
-                  error={errors?.subCategoryType}
+                  onChange={(selected) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      categoryTypeMasterId: selected?.value || "",
+                    }))
+                  }
+                  options={categoryOptions}
+                  placeholder="Select Category"
+                  isClearable
                 />
+                {errors?.categoryTypeMasterId && (
+                  <span className="text-red-500 text-sm">
+                    {errors.categoryTypeMasterId}
+                  </span>
+                )}
               </div>
 
-              {/* Rates Section */}
-              <div className="space-y-6">
-                <h3 className="pb-2 border-b font-semibold text-lg">
-                  Rate Setup
-                </h3>
-
-                {formData?.rates?.map((row, rowIndex) => (
-                  <div
-                    key={rowIndex}
-                    className="p-4 border border-gray-200 rounded-lg shadow-md relative"
-                  >
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="flex items-center gap-2 font-bold text-gray-700 text-md">
-                        <FaGripVertical className="text-gray-400" />
-                        Rate {rowIndex + 1}
-                      </h4>
-                      <Button
-                        color="danger"
-                        size="sm"
-                        onClick={() => removeRow(rowIndex)}
-                        disabled={formData?.rates?.length === 1 || isFrozen}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-
-                    <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-                      {primaryFields.map((field) => {
-                        const errorKey = `rates.${rowIndex}.${field.name}`;
-                        const rawError = errors?.[errorKey];
-                        const errorMessage = typeof rawError === "object" ? rawError[0] : rawError;
-
-                        return (
-                          <div key={field.name}>
-                            <label className="block mb-1 font-medium text-xs">
-                              {field.label}
-                            </label>
-                            {field.type === "checkbox" ? (
-                              <input
-                                type="checkbox"
-                                checked={!!row[field.name]}
-                                onChange={() =>
-                                  updateRow(rowIndex, field.name, !row[field.name])
-                                }
-                                disabled={isFrozen}
-                                className="w-4 h-4"
-                              />
-                            ) : (
-                              <input
-                                type={field.type}
-                                value={row[field.name] || ""}
-                                onChange={(e) =>
-                                  updateRow(rowIndex, field.name, e.target.value)
-                                }
-                                disabled={isFrozen}
-                                className="px-3 py-2 border rounded focus:ring-1 focus:ring-blue-300 w-full h-10"
-                              />
-                            )}
-                            
-                            {errorMessage && (
-                              <span className="text-red-500 text-sm block mt-1">
-                                {errorMessage.replace(`rates.${rowIndex}.${field.name}`, field.label)}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2">
-                <Button variant="bordered" onClick={addRow} disabled={isFrozen}>
-                  ➕ Add New Rate
-                </Button>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <button
-                  className={`bg-blue-600 text-white px-6 py-2 rounded-md ${
-                    isFrozen
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-blue-700 transition"
-                  }`}
-                  onClick={handleFormSubmit}
-                  disabled={isFrozen}
-                >
-                  {item?.id ? "Update" : "Add"} Sub Category
-                </button>
-              </div>
+              <InputField
+                label="Sub Category Type"
+                name="subCategoryType"
+                value={formData.subCategoryType || ""}
+                onChange={handleInputChange}
+                error={errors?.subCategoryType}
+              />
             </div>
 
-            {isFrozen && (
-              <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/40 backdrop-blur-sm">
-                <div className="font-semibold text-gray-800 text-lg">
-                  Processing...
+            {/* Rates Section */}
+            <div className="space-y-6">
+              <h3 className="pb-2 border-b font-semibold text-lg">
+                Rate Setup
+              </h3>
+
+              {formData?.rates?.map((row, rowIndex) => (
+                <div
+                  key={rowIndex}
+                  className="p-4 border border-gray-200 rounded-lg shadow-md relative"
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="flex items-center gap-2 font-bold text-gray-700 text-md">
+                      <FaGripVertical className="text-gray-400" />
+                      Rate {rowIndex + 1}
+                    </h4>
+                    <Button
+                      color="danger"
+                      size="sm"
+                      onClick={() => removeRow(rowIndex)}
+                      disabled={formData?.rates?.length === 1 || isFrozen}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+                    {primaryFields.map((field) => {
+                      const errorKey = `rates.${rowIndex}.${field.name}`;
+                      const rawError = errors?.[errorKey];
+                      const errorMessage = typeof rawError === "object" ? rawError[0] : rawError;
+
+                      return (
+                        <div key={field.name}>
+                          <label className="block mb-1 font-medium text-xs">
+                            {field.label}
+                          </label>
+                          {field.type === "checkbox" ? (
+                            <input
+                              type="checkbox"
+                              checked={!!row[field.name]}
+                              onChange={() =>
+                                updateRow(rowIndex, field.name, !row[field.name])
+                              }
+                              disabled={isFrozen}
+                              className="w-4 h-4"
+                            />
+                          ) : (
+                            <input
+                              type={field.type}
+                              value={row[field.name] || ""}
+                              onChange={(e) =>
+                                updateRow(rowIndex, field.name, e.target.value)
+                              }
+                              disabled={isFrozen}
+                              className="px-3 py-2 border rounded focus:ring-1 focus:ring-blue-300 w-full h-10"
+                            />
+                          )}
+                          
+                          {errorMessage && (
+                            <span className="text-red-500 text-sm block mt-1">
+                              {errorMessage.replace(`rates.${rowIndex}.${field.name}`, field.label)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <Button variant="bordered" onClick={addRow} disabled={isFrozen}>
+                ➕ Add New Rate
+              </Button>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button
+                className={`bg-blue-600 text-white px-6 py-2 rounded-md ${
+                  isFrozen
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-blue-700 transition"
+                }`}
+                onClick={handleFormSubmit}
+                disabled={isFrozen}
+              >
+                {item?.id ? "Update" : "Add"} Sub Category
+              </button>
+            </div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
     </div>
   );
 }

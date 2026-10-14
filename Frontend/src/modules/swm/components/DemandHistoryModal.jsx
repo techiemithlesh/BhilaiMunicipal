@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
 import { getToken } from "../../../utils/auth";
@@ -19,6 +20,12 @@ function DemandHistoryModal({ id, onClose, openPreviewModel }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [isFrozen, setIsFrozen] = useState(false);
+  const { setIsLoadingGable } = useLoading();
+  useEffect(() => {
+    if (!isFrozen) return;
+    setIsLoadingGable(true);
+    return () => setIsLoadingGable(false);
+  }, [isFrozen]);
   const [isDemandReceiptModal,setIsDemandReceiptModal] = useState(false);
 
   const headers = [
@@ -156,7 +163,7 @@ function DemandHistoryModal({ id, onClose, openPreviewModel }) {
         <div className="relative flex-grow overflow-y-auto">
           <div
             className={`${
-              isFrozen ? "pointer-events-none filter blur-sm" : ""
+              isFrozen ? "pointer-events-none" : ""
             }`}
           >
             <CommonTable
@@ -178,14 +185,6 @@ function DemandHistoryModal({ id, onClose, openPreviewModel }) {
               links={summary?.totalDue>0 ? printDemandModal:""}
             />
           </div>
-
-          {isFrozen && (
-            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 backdrop-blur-sm">
-              <div className="font-semibold text-gray-800 text-lg">
-                Processing...
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
 
