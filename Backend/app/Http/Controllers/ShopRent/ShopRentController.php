@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ShopRent;
 
 use App\BLL\ShopRent\ShopDemandGenerateBll;
+use App\Bll\ShopRent\ShopDueBll;
 use App\Exceptions\CustomException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShopRent\AddShopRentRequest;
@@ -318,5 +319,73 @@ class ShopRentController extends Controller
         }
     }
     
+    public function shopDue(Request $request){
+        try{
+            list($from,$upto) = FyearFromUptoDate(getFy());
+            $rules = [
+                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",
+                "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
+            ];
+            
+            $validator = Validator::make($request->all(), $rules);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $currentDate = Carbon::now()->format("Y-m-d");
+            $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
+            $objConsumerDueBll = new ShopDueBll($request->id,$currentDate,$demandUpto);
+            $objConsumerDueBll->getConsumerDue();
+            return responseMsg(true,"Consumer Due",camelCase(remove_null($objConsumerDueBll->_GRID)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){
+            return responseMsg(false,"Server Error","");
+        }
+    }
+
+    // public function offlinePayment(Request $request){
+    //     try{
+    //         list($from,$upto) = FyearFromUptoDate(getFy());
+    //         $rule=[
+    //             "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",
+    //             "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
+    //             "paymentType"=>"required|in:FULL,PART",
+    //             "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
+    //             "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",
+    //             "chequeNo"=>"required_unless:paymentMode,ONLINE,CASH",
+    //             "chequeDate"=>"required_unless:paymentMode,ONLINE,CASH",                
+    //             "bankName"=>"required_unless:paymentMode,ONLINE,CASH",
+    //             "branchName"=>"required_unless:paymentMode,ONLINE,CASH",
+    //         ];
+    //         $validator = Validator::make($request->all(),$rule);
+    //         if($validator->fails()){
+    //             return validationError($validator);
+    //         }
+    //         $currentDate = Carbon::now()->format("Y-m-d");
+    //         $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
+
+    //         $objConsumerDueBll = new ShopDueBll($request->id,$currentDate,$demandUpto);
+    //         $objConsumerDueBll->getConsumerDue();
+    //         $demandPayableAmount = $objConsumerDueBll->_GRID["payableAmount"];
+    //         if($demandPayableAmount <=0){
+    //             throw new CustomException("All Demand Are Clear");
+    //         } 
+    //         $applicationPaymentBll = new ConsumerPaymentBll($request);
+
+    //         $this->begin();           
+    //         $responseData = ($applicationPaymentBll->payNow());
+    //         $tran = ConsumerTransaction::find($responseData["tranId"]);
+    //         $coll = ConsumerDemandsCollection::where("transaction_id",$responseData["tranId"])->get();
+    //         $this->commit();
+    //         return responseMsg(true,"Payment Successfully Done",$responseData);
+    //     }catch(CustomException $e){
+    //         $this->rollBack();
+    //         return responseMsg(false,$e->getMessage(),"");
+    //     }
+    //     catch(Exception $e){
+    //         $this->rollBack();
+    //         return responseMsg(false,"Internal Server Error","");
+    //     }
+    // }
 
 }

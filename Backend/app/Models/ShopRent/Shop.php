@@ -63,7 +63,7 @@ class Shop extends ParamModel
     }
 
     public function getLastTran(){
-        return $this->hasMany(ShopTransaction::class,"shop","id")
+        return $this->hasMany(ShopTransaction::class,"shop_id","id")
             ->where("lock_status",false)
             ->whereIn("payment_status",[1,2])
             ->orderBy("tran_date","DESC")

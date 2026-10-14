@@ -29,4 +29,12 @@ class ShopDemand extends ParamModel
         'lock_status',
     ];
 
+    public function getDueDemand($shopId){
+        return self::where("shop_id",$shopId)
+                ->where("lock_status",false)
+                ->where("is_full_paid",false)
+                ->orderBy("demand_upto","ASC")
+                ->get();
+    }
+
 }
