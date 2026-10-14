@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ShopRent;
 
 use App\BLL\ShopRent\ShopDemandGenerateBll;
 use App\Bll\ShopRent\ShopDueBll;
+use App\Bll\ShopRent\ShopPaymentBll;
 use App\Exceptions\CustomException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ShopRent\AddShopRentRequest;
@@ -13,9 +14,11 @@ use App\Models\ShopRent\AreaMaster;
 use App\Models\ShopRent\ParamModel;
 use App\Models\ShopRent\SamitiMaster;
 use App\Models\ShopRent\Shop;
+use App\Models\ShopRent\ShopCollection;
 use App\Models\ShopRent\ShopDemand;
 use App\Models\ShopRent\ShopOwner;
 use App\Models\ShopRent\ShopRent;
+use App\Models\ShopRent\ShopTransaction;
 use App\Models\ShopRent\ShopTypeMaster;
 use App\Models\ShopRent\YojnaMaster;
 use App\Trait\ShopRent\ShopTrait;
@@ -343,49 +346,50 @@ class ShopRentController extends Controller
         }
     }
 
-    // public function offlinePayment(Request $request){
-    //     try{
-    //         list($from,$upto) = FyearFromUptoDate(getFy());
-    //         $rule=[
-    //             "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",
-    //             "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
-    //             "paymentType"=>"required|in:FULL,PART",
-    //             "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
-    //             "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",
-    //             "chequeNo"=>"required_unless:paymentMode,ONLINE,CASH",
-    //             "chequeDate"=>"required_unless:paymentMode,ONLINE,CASH",                
-    //             "bankName"=>"required_unless:paymentMode,ONLINE,CASH",
-    //             "branchName"=>"required_unless:paymentMode,ONLINE,CASH",
-    //         ];
-    //         $validator = Validator::make($request->all(),$rule);
-    //         if($validator->fails()){
-    //             return validationError($validator);
-    //         }
-    //         $currentDate = Carbon::now()->format("Y-m-d");
-    //         $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
+    public function offlinePayment(Request $request){
+        try{
+            list($from,$upto) = FyearFromUptoDate(getFy());
+            $rule=[
+                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",
+                "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
+                "paymentType"=>"required|in:FULL,PART",
+                "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
+                "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",
+                "chequeNo"=>"required_unless:paymentMode,ONLINE,CASH",
+                "chequeDate"=>"required_unless:paymentMode,ONLINE,CASH",                
+                "bankName"=>"required_unless:paymentMode,ONLINE,CASH",
+                "branchName"=>"required_unless:paymentMode,ONLINE,CASH",
+            ];
+            $validator = Validator::make($request->all(),$rule);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $currentDate = Carbon::now()->format("Y-m-d");
+            $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
 
-    //         $objConsumerDueBll = new ShopDueBll($request->id,$currentDate,$demandUpto);
-    //         $objConsumerDueBll->getConsumerDue();
-    //         $demandPayableAmount = $objConsumerDueBll->_GRID["payableAmount"];
-    //         if($demandPayableAmount <=0){
-    //             throw new CustomException("All Demand Are Clear");
-    //         } 
-    //         $applicationPaymentBll = new ConsumerPaymentBll($request);
+            $objConsumerDueBll = new ShopDueBll($request->id,$currentDate,$demandUpto);
+            $objConsumerDueBll->getConsumerDue();
+            $demandPayableAmount = $objConsumerDueBll->_GRID["payableAmount"];
+            if($demandPayableAmount <=0){
+                throw new CustomException("All Demand Are Clear");
+            } 
+            $applicationPaymentBll = new ShopPaymentBll($request);
 
-    //         $this->begin();           
-    //         $responseData = ($applicationPaymentBll->payNow());
-    //         $tran = ConsumerTransaction::find($responseData["tranId"]);
-    //         $coll = ConsumerDemandsCollection::where("transaction_id",$responseData["tranId"])->get();
-    //         $this->commit();
-    //         return responseMsg(true,"Payment Successfully Done",$responseData);
-    //     }catch(CustomException $e){
-    //         $this->rollBack();
-    //         return responseMsg(false,$e->getMessage(),"");
-    //     }
-    //     catch(Exception $e){
-    //         $this->rollBack();
-    //         return responseMsg(false,"Internal Server Error","");
-    //     }
-    // }
+            $this->begin();           
+            $responseData = ($applicationPaymentBll->payNow());
+            $tran = ShopTransaction::find($responseData["tranId"]);
+            $coll = ShopCollection::where("transaction_id",$responseData["tranId"])->get();
+            // dd($tran,$coll);
+            $this->commit();
+            return responseMsg(true,"Payment Successfully Done",$responseData);
+        }catch(CustomException $e){
+            $this->rollBack();
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){
+            $this->rollBack();
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
 
 }

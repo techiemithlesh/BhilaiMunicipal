@@ -12,6 +12,7 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         Route::post("dtl","shopDtl");
         Route::post("generate-demand","generateDemand");
         Route::post("demand-history","getAllDemands");
-        Route::post("due","shopDue");
+        Route::post("due","shopDue");        
+        Route::post("pay-due","offlinePayment");
     });
 });
