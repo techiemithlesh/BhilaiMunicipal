@@ -12,18 +12,22 @@ use App\Models\ShopRent\AreaMaster;
 use App\Models\ShopRent\ParamModel;
 use App\Models\ShopRent\SamitiMaster;
 use App\Models\ShopRent\Shop;
+use App\Models\ShopRent\ShopDemand;
 use App\Models\ShopRent\ShopOwner;
 use App\Models\ShopRent\ShopRent;
 use App\Models\ShopRent\ShopTypeMaster;
 use App\Models\ShopRent\YojnaMaster;
+use App\Trait\ShopRent\ShopTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ShopRentController extends Controller
 {
+    use ShopTrait;
 
     private $_MODULE_ID;
     private $_Conn;
@@ -36,11 +40,7 @@ class ShopRentController extends Controller
     private $_Shop;
     private $_ShopOwner;
     private $_ShopRent;
-
-    // private $_ConsumerWastCollectionLog;
-    // private $_ConsumerDeactivation;
-    // private $_ConsumerConnection;
-    // private $_ConnectionDetail;
+    private $_ShopDemand;
 
     function __construct()
     {
@@ -56,12 +56,7 @@ class ShopRentController extends Controller
         $this->_Shop = new Shop();
         $this->_ShopOwner = new ShopOwner();
         $this->_ShopRent = new ShopRent();
-
-        // $this->_ConsumerTransaction = new ConsumerTransaction();
-        // $this->_ConsumerWastCollectionLog = new ConsumerWastCollectionLog();
-        // $this->_ConsumerDeactivation = new ConsumerDeactivation();
-        // $this->_ConsumerConnection = new ConsumerConnection();
-        // $this->_ConnectionDetail = new ConnectionDetail();
+        $this->_ShopDemand = new ShopDemand();
 
         $this->_MODULE_ID = Config::get("SystemConstant.MODULE.SHOP");
     }
@@ -168,5 +163,160 @@ class ShopRentController extends Controller
             $this->rollBack();
             return responseMsg(false,"Internal Server Error","");
         }
-    }    
+    }   
+    
+    public function searchShop(Request $request){
+        try{
+            $shop = $this->_Shop->readConnection()->select(
+                "shops.id",  
+                "shops.consumer_no",
+                "shops.shop_no",
+                "shops.reg_no",
+                "shops.holding_no",
+                "shops.address",
+                "shops.pin_code",
+                "shops.apply_date",
+                "shops.allotment_date",
+                "wm.ward_no",
+                "yo.yojna_name",
+                "am.area_name",
+                "w.owner_name",
+                "w.guardian_name",
+                "w.mobile_no",
+            )
+            ->join(DB::raw("(
+                SELECT shop_id,
+                       STRING_AGG(owner_name, ',') AS owner_name,
+                       STRING_AGG(guardian_name, ',') AS guardian_name,
+                       STRING_AGG(CAST(mobile_no AS VARCHAR), ',') AS mobile_no
+                FROM shop_owners
+                WHERE lock_status = false
+                GROUP BY shop_id
+            ) AS w"), "w.shop_id", "=", "shops.id")
+            ->join("ulb_ward_masters as wm", "wm.id", "=", "shops.ward_mstr_id")
+            ->leftJoin("yojna_masters AS yo","yo.id","=","shops.yojna_id")
+            ->leftJoin("area_masters AS am","am.id","=","shops.area_id")
+            ->where("shops.lock_status", false);
+
+            if($request->keyWord){
+                $shop->where(function($where)use($request){
+                    $where->where("shops.consumer_no","ILIKE","%".$request->keyWord."%")
+                    ->orWhere("shops.shop_no","ILIKE","%".$request->keyWord."%")
+                    ->orWhere("shops.holding_no","ILIKE","%".$request->keyWord."%")
+                    ->orWhere("w.owner_name","ILIKE","%".$request->keyWord."%")
+                    ->orWhere("w.mobile_no","ILIKE","%".$request->keyWord."%");
+                });
+            }
+            if($request->wardId){
+                if(!is_array($request->wardId)){
+                    $request->merge(["wardId",[$request->wardId]]);
+                }
+                $shop->whereIn("wm.id",$request->wardId);
+            }
+            $list = $shop;
+            $data = paginator($list,$request);
+            return responseMsg(true,"Shop Fetched",camelCase(remove_null($data)));
+
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
+    public function shopDtl(Request $request){
+        try{
+            $rule=[
+                "id"=>"Required|digits_between:1,9223372036854775807"
+            ];
+            $validator = Validator::make($request->all(),$rule);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $shop = $this->_Shop->find($request->id);            
+            if(!$shop){
+                throw new CustomException("Property Not Found");
+            }
+            $this->adjustShopValue($shop);
+
+            $shop->owners = $shop->getOwners();
+            $shop->tran_dtls = $shop->getTrans();
+            $shop->shop_rents = $shop->getAllRent()->each(fn($item,$index)=>$item->is_current = $shop->current_rate_id==$item->id);
+
+            $user = Auth()->user();
+            if($user->getTable()=="users"){
+                $role = $user->getRoleDetailsByUserId()->first();
+                $shop->UserPermission = $role?->getRolePermission()->where("ulb_id",$user->ulb_id)->where("module_id",$this->_MODULE_ID)->first();             
+            }
+            return responseMsg(true,"Shop Detail",camelCase(remove_null($shop)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
+    public function generateDemand(Request $request)
+    {
+        try {
+            $rules = [
+                "id" => "required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",             
+            ];
+            $validator = Validator::make($request->all(), $rules);
+
+            if ($validator->fails()) {
+                return validationError($validator);
+            }
+
+            $user = Auth()->user();
+            $request->merge(["userId" => $user->id]);
+            list($curentFyearFromDate,$curentFyearLastDate) = FyearFromUptoDate(getFy());
+            $request->merge(["currentDate"=>$curentFyearLastDate]);
+            
+            $this->begin();
+            
+            $objDemandBll = new ShopDemandGenerateBll($request);
+            $objDemandBll->generateDemand();
+            $this->commit();
+
+            return responseMsg(true, "Demand Generated", "");
+        } catch (CustomException $e) {
+            $this->rollback();
+            return responseMsg(false, $e->getMessage(), "");
+        } catch (Exception $e) {
+            $this->rollback();
+            return responseMsg(false, "Server Error", "");
+        }
+    }
+
+    public function getAllDemands(Request $request){
+        try{
+            $rule=[
+                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id"
+            ];
+            $validator = Validator::make($request->all(),$rule);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $allDemand = $this->_ShopDemand->readConnection()
+                    ->where("shop_id",$request->id)
+                    ->where("lock_status",false)
+                    ->orderBy("demand_from","DESC"); 
+            $summaryOrm = clone $allDemand;
+            $summary = $summaryOrm->get();
+            $data = paginator($allDemand,$request);
+            $data["summary"]=[
+                "totalDue"=>$summary->sum("balance"),
+            ];
+            return responseMsg(true,"Shop Demand History",camelCase(remove_null($data)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){
+            return responseMsg(false,"Server Error","");
+        }
+    }
+    
+
 }
