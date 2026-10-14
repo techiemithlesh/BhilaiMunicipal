@@ -5,5 +5,13 @@
   "save": "Save",
   "cancel": "Cancel",
   "print" : "Print",
-  "Hindi":"Hindi"
+  "Hindi":"Hindi",
+
+  "Penalty Charge":"Penalty",
+  "or visit":"or visit",
+  "can also verify at":"",
+
+  "Shop Received From":"Received From Shri / Smt.",
+  "Shop Total Demand":"Total Demand",
+  "Shop Total Demand (In Words)":"Total Demand (In Words)"
 }

@@ -370,6 +370,10 @@ export const swmConsumerDailyVisitingLogApi = `${BASE_URL}/api/swm/daily-visitin
 export const shopRentMasterDataApi = `${BASE_URL}/api/shop-rent/get-master-data`;
 export const shopRentAddApi = `${BASE_URL}/api/shop-rent/add`;
 export const shopRentSearchApi = `${BASE_URL}/api/shop-rent/search`;
+export const shopRentDtlApi = `${BASE_URL}/api/shop-rent/dtl`;
+export const shopRentGenerateDemandApi = `${BASE_URL}/api/shop-rent/generate-demand`;
+export const shopRentDemandHistoryApi = `${BASE_URL}/api/shop-rent/demand-history`;
+export const shopRentDueApi = `${BASE_URL}/api/shop-rent/due`;
 
 // swm report
 

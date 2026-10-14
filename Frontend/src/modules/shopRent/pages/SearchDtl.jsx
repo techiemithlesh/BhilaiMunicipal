@@ -88,7 +88,10 @@ const SearchDtl = () => {
       }
     } catch (error) {
       console.error("Shop rent search failed", error);
-      toast.error("Unable to search shop renters.");
+      const reason = error?.response
+        ? `HTTP ${error.response.status}`
+        : error?.message || "no response from server";
+      toast.error(`Unable to search shop renters (${reason}).`);
       setTableData([]);
       setTotalPages(1);
       setTotalItems(0);
@@ -159,6 +162,7 @@ const SearchDtl = () => {
         "Consumer No.",
         "Shop No.",
         "Area",
+        "Yojna Name",
         "Owner Name",
         "Mobile No",
         "Address",
@@ -172,6 +176,7 @@ const SearchDtl = () => {
           <td className="px-3 py-2 border">{row.consumerNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.shopNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.areaName ?? ""}</td>
+          <td className="px-3 py-2 border">{row.yojnaName ?? ""}</td>
           <td className="px-3 py-2 border">{ownerText(row)}</td>
           <td className="px-3 py-2 border">{row.mobileNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.address ?? "NA"}</td>
