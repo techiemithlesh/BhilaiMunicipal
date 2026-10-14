@@ -369,6 +369,7 @@ export const swmConsumerDailyVisitingLogApi = `${BASE_URL}/api/swm/daily-visitin
 // shop rent
 export const shopRentMasterDataApi = `${BASE_URL}/api/shop-rent/get-master-data`;
 export const shopRentAddApi = `${BASE_URL}/api/shop-rent/add`;
+export const shopRentSearchApi = `${BASE_URL}/api/shop-rent/search`;
 
 // swm report
 

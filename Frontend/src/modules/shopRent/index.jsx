@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import AdminLayout from "../../layout/AdminLayout";
 import ProtectedRoute from "../../components/common/ProtectedRoute";
 import AddShopRent from "./pages/AddShopRent";
+import SearchDtl from "./pages/SearchDtl";
 
 function index() {
   return (
@@ -21,6 +22,14 @@ function index() {
             element={
               <ProtectedRoute>
                 <AddShopRent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <SearchDtl />
               </ProtectedRoute>
             }
           />
