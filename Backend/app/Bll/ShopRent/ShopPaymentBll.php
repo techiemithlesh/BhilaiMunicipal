@@ -14,6 +14,7 @@ use App\Models\ShopRent\TransactionFineRebateDetail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 
 class ShopPaymentBll
@@ -49,7 +50,7 @@ class ShopPaymentBll
             $this->_REQ->merge(["amount"=>$this->_Demand["payableAmount"]]);
         }
 
-        $user = Auth()->user();
+        $user = Auth::user();
 
         if($this->_REQ->userId && $this->_REQ->typeOfUser=="citizens"){
             $user = Citizen::find($this->_REQ->userId);
@@ -172,7 +173,6 @@ class ShopPaymentBll
         $paidTotalSgstTax = collect($paidDemand)->sum("paid_sgst_tax");
         $fromDate = collect($paidDemand)->min("demand_from");
         $uptoDate = collect($paidDemand)->max("demand_upto");
-        // dd($paidDemand);
         $metaData=[
             "fromDate"=>$fromDate,
             "uptoDate"=>$uptoDate,
@@ -191,12 +191,8 @@ class ShopPaymentBll
         if($paidTotalServiceTax>0){
             $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalServiceTax),"head_name"=>"Service Tax"]);
         }
-        if($paidTotalCgstTax>0){
-            $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalCgstTax),"head_name"=>"CGST"]);
-        }
-        if($paidTotalSgstTax>0){
-            $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalSgstTax),"head_name"=>"SGST"]);
-        }
+        $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalCgstTax),"head_name"=>"CGST"]);
+        $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalSgstTax),"head_name"=>"SGST"]);
         
         $objShopTran = new ShopTransaction();
         $objShopCollection = new ShopCollection();

@@ -20,4 +20,7 @@ class ShopCollection extends ParamModel
         'penalty',
         'lock_status',
     ];
+    public function getDemand(){
+        return $this->belongsTo(ShopDemand::class,"shop_demand_id","id");
+    }
 }

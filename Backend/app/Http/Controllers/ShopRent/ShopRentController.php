@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ShopRent;
 
+use App\Bll\ShopRent\PaymentReceiptBll;
 use App\BLL\ShopRent\ShopDemandGenerateBll;
 use App\Bll\ShopRent\ShopDueBll;
 use App\Bll\ShopRent\ShopPaymentBll;
@@ -25,6 +26,7 @@ use App\Trait\ShopRent\ShopTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -45,6 +47,7 @@ class ShopRentController extends Controller
     private $_ShopOwner;
     private $_ShopRent;
     private $_ShopDemand;
+    private $_ShopTransaction;
 
     function __construct()
     {
@@ -61,6 +64,7 @@ class ShopRentController extends Controller
         $this->_ShopOwner = new ShopOwner();
         $this->_ShopRent = new ShopRent();
         $this->_ShopDemand = new ShopDemand();
+        $this->_ShopTransaction = new ShopTransaction();
 
         $this->_MODULE_ID = Config::get("SystemConstant.MODULE.SHOP");
     }
@@ -377,9 +381,6 @@ class ShopRentController extends Controller
 
             $this->begin();           
             $responseData = ($applicationPaymentBll->payNow());
-            $tran = ShopTransaction::find($responseData["tranId"]);
-            $coll = ShopCollection::where("transaction_id",$responseData["tranId"])->get();
-            // dd($tran,$coll);
             $this->commit();
             return responseMsg(true,"Payment Successfully Done",$responseData);
         }catch(CustomException $e){
@@ -388,6 +389,26 @@ class ShopRentController extends Controller
         }
         catch(Exception $e){
             $this->rollBack();
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
+    public function getPaymentReceipt(Request $request){
+        try{
+            $rules = [
+                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_ShopTransaction->getConnectionName().".".$this->_ShopTransaction->getTable().",id",
+            ];
+            $validator = Validator::make($request->all(),$rules);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+            $receiptBll = new PaymentReceiptBll($request->id); 
+            $receiptBll->generateReceipt();
+            return responseMsg(true,"Payment Receipt",camelCase(remove_null($receiptBll->_GRID)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){
             return responseMsg(false,"Internal Server Error","");
         }
     }

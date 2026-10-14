@@ -8,6 +8,7 @@ use App\Models\Property\PropertyNotice;
 use App\Models\Property\PropTransaction;
 use App\Models\ShopRent\Shop;
 use App\Models\ShopRent\ShopRent;
+use App\Models\ShopRent\ShopTransaction;
 use App\Models\SWM\Consumer;
 use App\Models\SWM\ConsumerConnection;
 use App\Models\SWM\ConsumerTransaction;
@@ -22,6 +23,7 @@ use App\Observers\Property\PropertyNoticeObserver;
 use App\Observers\Property\PropTransactionObserver;
 use App\Observers\ShopRent\ShopObserver;
 use App\Observers\ShopRent\ShopRentObserver;
+use App\Observers\ShopRent\ShopTransactionObserver;
 use App\Observers\SWM\ConsumerConnectionObserver;
 use App\Observers\SWM\ConsumerObserver;
 use App\Observers\SWM\ConsumerTransactionObserver;
@@ -67,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         //Shop Rent
         Shop::Observe(ShopObserver::class);
         ShopRent::Observe(ShopRentObserver::class);
+        ShopTransaction::observe(ShopTransactionObserver::class);
 
         app()->singleton('requestToken', function () {
             return 'REQ_' . now()->format('YmdHisv') . '_' . bin2hex(random_bytes(5));

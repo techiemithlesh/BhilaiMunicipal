@@ -132,6 +132,7 @@ class ShopDueBll
             "additionalTaxList"=>$this->_additionalTaxList,
 
             "shopNo"=>$this->_Shop->shop_no??"",
+            "consumer_no"=>$this->_Shop->consumer_no??"",
             "wardNo" =>$this->_Shop->ward_no??"N/A",
             "holdingNo" => $this->_Shop->holding_no??"",
             "areaName"=>$this->_Shop->area_name??"",
