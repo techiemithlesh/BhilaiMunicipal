@@ -4,6 +4,7 @@ import AdminLayout from "../../layout/AdminLayout";
 import ProtectedRoute from "../../components/common/ProtectedRoute";
 import AddShopRent from "./pages/AddShopRent";
 import SearchDtl from "./pages/SearchDtl";
+import ShopDetails from "./pages/ShopDetails";
 
 function index() {
   return (
@@ -30,6 +31,14 @@ function index() {
             element={
               <ProtectedRoute>
                 <SearchDtl />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dtl/:id"
+            element={
+              <ProtectedRoute>
+                <ShopDetails />
               </ProtectedRoute>
             }
           />
