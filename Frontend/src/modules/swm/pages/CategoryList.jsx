@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getToken } from '../../../utils/auth';
 import { swmCategoryListApi, swmCategoryLockUnlockApi } from '../../../api/endpoints';
 import axios from 'axios';
-import { Spinner } from '@nextui-org/react';
+import { useLoading } from "../../../contexts/LoadingContext";
 import CommonTable from '../../../components/common/CommonTable';
 import PermissionWrapper from '../../../components/common/PermissionWrapper';
 import { FaBan, FaEdit, FaUnlock } from 'react-icons/fa';
@@ -11,7 +11,7 @@ import AddEditCategoryModal from '../components/AddEditCategoryModal';
 
 function CategoryList() {
     const [dataList, setDataList] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { setIsLoadingGable } = useLoading();
     const [selectedItem, setSelectedItem] = useState(null);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [totalPage, setTotalPage] = useState(1);
@@ -24,7 +24,7 @@ function CategoryList() {
 
 
     const fetchData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmCategoryListApi,
@@ -45,7 +45,7 @@ function CategoryList() {
         } catch (error) {
           console.error("Error fetching menu list:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
@@ -59,7 +59,7 @@ function CategoryList() {
       };
     
       const ActiveDeactivate = async (item, status) => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmCategoryLockUnlockApi,
@@ -83,12 +83,12 @@ function CategoryList() {
         } catch (error) {
           console.error("active deactivate menu update error:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
       const fetchAllData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmCategoryListApi,
@@ -107,7 +107,7 @@ function CategoryList() {
         } catch (error) {
           console.error("Error fetching all menus:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
@@ -165,9 +165,6 @@ function CategoryList() {
     );
     return (
         <>
-      {isLoading ? (
-        <Spinner />
-      ) : (
         <PermissionWrapper>
             <CommonTable
               data={dataList}
@@ -194,7 +191,6 @@ function CategoryList() {
               }
             />            
         </PermissionWrapper>
-      )}
 
       {isAddEditModalOpen && (
         <AddEditCategoryModal

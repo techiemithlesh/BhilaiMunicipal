@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { getToken } from '../../../utils/auth';
 import { toastMsg } from '../../../utils/utils';
-import { Button, Spinner } from '@nextui-org/react';
+import { Button } from "@nextui-org/react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { motion } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
 import { modalVariants } from "../../../utils/motionVariable";
@@ -14,7 +15,7 @@ function DeactivateConsumerModal({ id, onSubmit, onClose }) {
     const [form, setForm] = useState({});
     const [formError, setFormError] = useState({}); // Fixed: Initialized as an object instead of an array
     const [isFrozen, setIsFrozen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const { setIsLoadingGable } = useLoading();
     const [document, setDocument] = useState([]);
     const token = getToken();
 
@@ -68,6 +69,7 @@ function DeactivateConsumerModal({ id, onSubmit, onClose }) {
             }
 
             setIsFrozen(true);
+            setIsLoadingGable(true);
             try {
                 const response = await axios.post(swmConsumerDeactivateApi, formData, {
                     headers: {
@@ -91,111 +93,101 @@ function DeactivateConsumerModal({ id, onSubmit, onClose }) {
                 toastMsg("An API error occurred.", "error");
             } finally {
                 setIsFrozen(false);
+                setIsLoadingGable(false);
             }
         }
     };
 
     return (
         <div className="z-50 fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 p-4">
-            {isLoading ? (
-                <Spinner />
-            ) : (
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    variants={modalVariants}
-                    transition={{ duration: 0.3 }}
-                    className="flex flex-col bg-white shadow-xl p-6 rounded-xl w-full max-w-6xl max-h-[95vh]"
-                >
-                    <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                        <h2 className="font-bold text-blue-600 text-lg">
-                            Deactivate Consumer
-                        </h2>
-                        <button onClick={onClose}>
-                            <FaTimes size={20} className="text-gray-500 hover:text-red-500" />
-                        </button>
-                    </div>
-                    
-                    <div className="relative flex-grow pr-2 overflow-y-auto">
-                        <div className={`${isFrozen ? "pointer-events-none filter blur-sm" : ""} w-full space-y-4`}>
-                            <div className="gap-4 grid grid-cols-4">
-                                <div>
-                                    <label className="block mb-2 font-semibold text-sm">
-                                        Supporting Document <span className="text-red-500">*</span>
-                                    </label>
-                                    <FileUpload
-                                        className="pt-1"
-                                        name="document"
-                                        files={document}
-                                        setFiles={setDocument}
-                                        allowMultiple={false}
-                                        acceptedFileTypes={[
-                                            "image/png",
-                                            "image/jpeg",
-                                            "image/jpg",
-                                            "image/bmp",
-                                            "application/pdf",
-                                        ]}
-                                    />
-                                    {formError?.document && (
-                                        <span className="text-red-400 text-sm">
-                                            {formError?.document}
-                                        </span>
-                                    )}
-                                </div>
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={modalVariants}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col bg-white shadow-xl p-6 rounded-xl w-full max-w-6xl max-h-[95vh]"
+            >
+                <div className="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 className="font-bold text-blue-600 text-lg">
+                        Deactivate Consumer
+                    </h2>
+                    <button onClick={onClose}>
+                        <FaTimes size={20} className="text-gray-500 hover:text-red-500" />
+                    </button>
+                </div>
+                
+                <div className="relative flex-grow pr-2 overflow-y-auto">
+                    <div className={`${isFrozen ? "pointer-events-none" : ""} w-full space-y-4`}>
+                        <div className="gap-4 grid grid-cols-4">
+                            <div>
+                                <label className="block mb-2 font-semibold text-sm">
+                                    Supporting Document <span className="text-red-500">*</span>
+                                </label>
+                                <FileUpload
+                                    className="pt-1"
+                                    name="document"
+                                    files={document}
+                                    setFiles={setDocument}
+                                    allowMultiple={false}
+                                    acceptedFileTypes={[
+                                        "image/png",
+                                        "image/jpeg",
+                                        "image/jpg",
+                                        "image/bmp",
+                                        "application/pdf",
+                                    ]}
+                                />
+                                {formError?.document && (
+                                    <span className="text-red-400 text-sm">
+                                        {formError?.document}
+                                    </span>
+                                )}
+                            </div>
 
-                                <div className="mb-4">
-                                    <label className="block mb-1 font-semibold text-sm">
-                                        Remarks <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={form?.remarks || ""}
-                                        name="remarks"
-                                        onChange={handleChange}
-                                        className="p-2 border rounded w-full"
-                                        required
-                                        disabled={isFrozen}
-                                    />
-                                    {formError?.remarks && (
-                                        <span className="text-red-400 text-sm">
-                                            {formError?.remarks}
-                                        </span>
-                                    )}
-                                </div>
+                            <div className="mb-4">
+                                <label className="block mb-1 font-semibold text-sm">
+                                    Remarks <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form?.remarks || ""}
+                                    name="remarks"
+                                    onChange={handleChange}
+                                    className="p-2 border rounded w-full"
+                                    required
+                                    disabled={isFrozen}
+                                />
+                                {formError?.remarks && (
+                                    <span className="text-red-400 text-sm">
+                                        {formError?.remarks}
+                                    </span>
+                                )}
                             </div>
                         </div>
-
-                        {isFrozen && (
-                            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 rounded">
-                                <Spinner label="Processing..." color="primary" />
-                            </div>
-                        )}
                     </div>
+                </div>
 
-                    <div className="flex justify-end mt-4 pt-4 border-t">
-                        <Button
-                            color="primary"
-                            className="px-6"
-                            isDisabled={!isModalFormValid() || isFrozen}
-                            onPress={handleSubmit}
-                            isLoading={isFrozen}
-                        >
-                            Proceed
-                        </Button>
-                        <Button
-                            color="danger"
-                            variant="light"
-                            onPress={onClose}
-                            disabled={isFrozen}
-                            className="ml-3"
-                        >
-                            Close
-                        </Button>
-                    </div>
-                </motion.div>
-            )}
+                <div className="flex justify-end mt-4 pt-4 border-t">
+                    <Button
+                        color="primary"
+                        className="px-6"
+                        isDisabled={!isModalFormValid() || isFrozen}
+                        onPress={handleSubmit}
+                    >
+                        Proceed
+                    </Button>
+                    <Button
+                        color="danger"
+                        variant="light"
+                        onPress={onClose}
+                        disabled={isFrozen}
+                        className="ml-3"
+                    >
+                        Close
+                    </Button>
+                </div>
+            </motion.div>
         </div>
     );
 }

@@ -155,7 +155,7 @@ class ShopRentController extends Controller
             $objDemandBll->generateDemand();
             
             $shop = $this->_Shop->find($shopId);
-            $consumerNo = $shop->consumer_no??"";dd($_REQUEST);
+            $consumerNo = $shop->consumer_no??"";
             $this->commit();
             return responseMsg(true,"Application Submitted ",remove_null(camelCase(["shopId"=>$shopId,"consumerNo"=>$consumerNo])));
             

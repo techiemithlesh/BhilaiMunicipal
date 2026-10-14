@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaPlus, FaTrash } from "react-icons/fa";
 import FormCard from "../../../components/common/FormCard";
-import DetailsTable from "../../../components/common/DetailsTable";
+import OwnerDetailsCard from "../../../components/common/OwnerDetailsCard";
+import { useLoading } from "../../../contexts/LoadingContext";
 import {
     swmAddConsumerApi,
     swmMasterDataApi,
@@ -21,19 +21,17 @@ import toast from "react-hot-toast";
 import SuccessModal from "../../../components/common/SuccessModal";
 import LocationPicker from "../../../components/common/LocationPicker";
 import ConnectionDetails from "../components/ConnectionDetails";
-import { Button, Input, Select, SelectItem } from "@nextui-org/react";
 
 function AddConsumer({ mstrData, formDetails }) {
     const navigate = useNavigate();
     const token = getToken();
+    const { setIsLoadingGable } = useLoading();
     const [loc, setLoc] = useState(null);
 
 
     const [masterData, setMasterData] = useState(null);
     const [subCategoryList, setSubCategoryList] = useState([]);
     const [rates, setRates] = useState({});
-    const [subCategoryLoading, setSubCategoryLoading] = useState(false);
-    const [rateLoading, setRateLoading] = useState(false);
     const [validationError, setValidationError] = useState({});
     const [applicantCounter, setApplicantCounter] = useState(1);
     const [isModalOpen, setModalOpen] = useState(false);
@@ -70,6 +68,7 @@ function AddConsumer({ mstrData, formDetails }) {
                 hasCompostingMachineProvision: false,
                 ownerDtl: [
                     {
+                        id: 1,
                         ownerName: "",
                         guardianName: "",
                         relationType: "",
@@ -95,12 +94,7 @@ function AddConsumer({ mstrData, formDetails }) {
         );
     });
 
-    const relationTypeList = [
-        { value: "S/O", label: "S/O" },
-        { value: "W/O", label: "W/O" },
-        { value: "D/O", label: "D/O" },
-        { value: "C/O", label: "C/O" },
-    ];
+    const relationTypeList = ["S/O", "W/O", "D/O", "C/O"];
 
     // -------------------- Load Master Data --------------------
     useEffect(() => {
@@ -123,6 +117,7 @@ function AddConsumer({ mstrData, formDetails }) {
             setMasterData(savedMasterData);
         } else if (token) {
             (async () => {
+                setIsLoadingGable(true);
                 try {
                     let data = mstrData ? JSON.parse(mstrData) : null;
                     if (!data) {
@@ -138,6 +133,8 @@ function AddConsumer({ mstrData, formDetails }) {
                     }
                 } catch (error) {
                     console.error("Error fetching master data:", error);
+                } finally {
+                    setIsLoadingGable(false);
                 }
             })();
         }
@@ -150,7 +147,7 @@ function AddConsumer({ mstrData, formDetails }) {
                 formData?.categoryTypeMasterId &&
                 formData?.subCategoryTypeMasterId
             ) {
-                setRateLoading(true);
+                setIsLoadingGable(true);
                 try {
                     const response = await axios.post(
                         swmReviewTaxApi,
@@ -166,7 +163,7 @@ function AddConsumer({ mstrData, formDetails }) {
                 } catch (error) {
                     toast.error("Error fetching rate");
                 } finally {
-                    setRateLoading(false);
+                    setIsLoadingGable(false);
                 }
             }
         };
@@ -191,7 +188,7 @@ function AddConsumer({ mstrData, formDetails }) {
         }
 
         try {
-            setSubCategoryLoading(true);
+            setIsLoadingGable(true);
             const response = await axios.post(
                 swmSubCategoryListApi,
                 { categoryTypeMasterId, all: "all" },
@@ -205,7 +202,7 @@ function AddConsumer({ mstrData, formDetails }) {
         } catch (error) {
             console.error("Error fetching subcategory:", error);
         } finally {
-            setSubCategoryLoading(false);
+            setIsLoadingGable(false);
         }
     };
 
@@ -213,6 +210,7 @@ function AddConsumer({ mstrData, formDetails }) {
     const validateHoldingNo = async (holdingNo) => {
         if (!holdingNo) return;
 
+        setIsLoadingGable(true);
         try {
             const response = await axios.post(
                 validateHoldingNoApi,
@@ -242,44 +240,9 @@ function AddConsumer({ mstrData, formDetails }) {
             }
         } catch (error) {
             console.error("Error validating holding no:", error);
+        } finally {
+            setIsLoadingGable(false);
         }
-    };
-
-    // -------------------- Validation Regex --------------------
-    const regexRules = {
-        ownerName: {
-            charRegex: /^[A-Za-z,.\s]$/,
-            regex: /^[A-Za-z,.\s]*$/,
-            finalRegex: /^[A-Za-z,.\s]{2,50}$/,
-        },
-        guardianName: {
-            charRegex: /^[A-Za-z,.\s]$/,
-            regex: /^[A-Za-z,.\s]*$/,
-            finalRegex: /^[A-Za-z,.\s]{2,50}$/,
-        },
-        mobileNo: {
-            charRegex: /^[0-9]$/,
-            regex: /^[0-9]{0,10}$/,
-            finalRegex: /^[0-9]{10}$/,
-        },
-        email: {
-            charRegex: /^[A-Za-z0-9@._-]$/,
-            regex: /^[A-Za-z0-9@._-]*$/,
-            finalRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        },
-    };
-
-    const getValidationHandlers = (fieldName) => {
-        const { charRegex, regex } = regexRules[fieldName] || {};
-        return {
-            onBeforeInput: (e) => {
-                if (charRegex && !charRegex.test(e.data)) e.preventDefault();
-            },
-            onPaste: (e) => {
-                const pasted = e.clipboardData.getData("text");
-                if (regex && !regex.test(pasted)) e.preventDefault();
-            },
-        };
     };
 
     // -------------------- Applicant Handlers --------------------
@@ -406,6 +369,7 @@ function AddConsumer({ mstrData, formDetails }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsFormSubmit(true);
+        setIsLoadingGable(true);
         try {
             const payload = { ...formData };//,latitude:loc?.lat,longitude:loc?.lng
             const response = await axios.post(swmAddConsumerApi, payload, {
@@ -424,6 +388,7 @@ function AddConsumer({ mstrData, formDetails }) {
             console.error("Error submitting form:", error);
         } finally {
             setIsFormSubmit(false);
+            setIsLoadingGable(false);
         }
     };
     // console.log("loc",loc,loc?.length);
@@ -555,160 +520,47 @@ function AddConsumer({ mstrData, formDetails }) {
             placeholder: "Enter Pin",
         },
     ];
-    // -------------------- Table Config --------------------
-    const applicantColumns = [
-        "Owner Name",
-        "Guardian Name",
-        "Relation",
-        "Mobile No.",
-        "Email ID",
-        "Action",
+    // -------------------- Owner fields --------------------
+    const ownerFields = [
+        {
+            name: "ownerName",
+            label: "Owner Name",
+            required: true,
+            maxLength: 50,
+            sanitize: (v) => v.replace(/[^A-Za-z,.\s]/g, ""),
+        },
+        {
+            name: "guardianName",
+            label: "Guardian Name",
+            required: true,
+            maxLength: 50,
+            sanitize: (v) => v.replace(/[^A-Za-z,.\s]/g, ""),
+        },
+        {
+            name: "relationType",
+            label: "Relation",
+            type: "select",
+            options: relationTypeList,
+            required: true,
+        },
+        {
+            name: "mobileNo",
+            label: "Mobile No",
+            type: "tel",
+            required: true,
+            maxLength: 10,
+            sanitize: (v) => v.replace(/\D/g, ""),
+        },
+        {
+            name: "email",
+            label: "Email ID",
+            type: "email",
+            sanitize: (v) => v.replace(/[^A-Za-z0-9@._-]/g, ""),
+        },
     ];
 
-    const applicantRenderers = {
-        "Owner Name": (_, row, index) => {
-            const error = validationError?.[`ownerDtl.${index}.ownerName`];
-            return (
-                    <Input 
-                        type="text"
-                        isRequired={true}
-                        value={row.ownerName || ""}
-                        {...getValidationHandlers("ownerName")}
-                        onChange={(e) =>
-                            handleApplicantChange(row.id, "ownerName", e.target.value)
-                        }
-                        placeholder="Owner Name"
-                        errorMessage={error}
-                        size="sm"
-                        variant="bordered"
-                        className="w-full"
-                    />
-            )
-        },
-
-        "Guardian Name": (_, row, index) => {
-            const error = validationError?.[`ownerDtl.${index}.guardianName`];
-            return (
-            <Input
-                type="text"
-                isRequired={true}
-                value={row.guardianName || ""}
-                {...getValidationHandlers("guardianName")}
-                onChange={(e) =>
-                handleApplicantChange(row.id, "guardianName", e.target.value)
-                }
-                placeholder="Guardian Name"
-                errorMessage={error}
-                size="sm"
-                variant="bordered"
-                className="w-full"
-            />
-            );
-        },
-
-        Relation: (_, row, index) => {
-            const error = validationError?.[`ownerDtl.${index}.relationType`];
-            return (
-            <Select
-                isRequired={true}
-                placeholder="Select Relation"
-                selectedKeys={row.relationType ? [String(row.relationType)] : []}
-                onChange={(e) =>
-                handleApplicantChange(row.id, "relationType", e.target.value)
-                }
-                errorMessage={error}
-                size="sm"
-                variant="bordered"
-                className="w-full"
-            >
-                {(relationTypeList || []).map((r) => (
-                <SelectItem key={String(r.value || r.id)} value={String(r.value || r.id)}>
-                    {r.label || r.name}
-                </SelectItem>
-                ))}
-            </Select>
-            );
-        },
-
-        "Mobile No.": (_, row, index) => {
-            const error = validationError?.[`ownerDtl.${index}.mobileNo`];
-            return (
-            <Input
-                labelPlacement="outside"
-                type="text"
-                isRequired={true}
-                value={row.mobileNo || ""}
-                {...getValidationHandlers("mobileNo")}
-                onChange={(e) =>
-                handleApplicantChange(row.id, "mobileNo", e.target.value)
-                }
-                placeholder="Mobile No."
-                errorMessage={error}
-                size="sm"
-                variant="bordered"
-                className="w-full"
-            />
-            );
-        },
-
-        "Email ID": (_, row, index) => {
-            const error = validationError?.[`ownerDtl.${index}.email`];
-            return (
-            <Input
-                type="email"
-                value={row.email || ""}
-                {...getValidationHandlers("email")}
-                onChange={(e) =>
-                handleApplicantChange(row.id, "email", e.target.value)
-                }
-                placeholder="Email ID"
-                errorMessage={error}
-                size="sm"
-                variant="bordered"
-                className="w-full"
-            />
-            );
-        },
-
-        Action: (_, row, idx) => (
-            <div className="flex justify-center gap-2 items-center">
-            {formData?.ownerDtl?.length > 1 && (
-                <Button
-                isIconOnly
-                color="danger"
-                size="sm"
-                onClick={() => handleRemoveApplicant(row.id)}
-                title="Delete"
-                type="button"
-                >
-                <FaTrash />
-                </Button>
-            )}
-            {idx === (formData?.ownerDtl?.length || 0) - 1 && (
-                <Button
-                isIconOnly
-                color="success"
-                size="sm"
-                onClick={handleAddApplicant}
-                title="Add"
-                type="button"
-                className="text-white"
-                >
-                <FaPlus />
-                </Button>
-            )}
-            </div>
-        ),
-    };
-
-    if (!masterData) {
-        return (
-            <div className="flex flex-col gap-6 p-6 text-gray-700 text-lg">
-                <h2 className="font-semibold text-xl">Loading...</h2>
-                <p>Please wait while we load your application details.</p>
-            </div>
-        );
-    }
+    // Master data is still loading, the global overlay is on screen.
+    if (!masterData) return null;
 
     if (isModalOpen) {
         return (
@@ -765,11 +617,13 @@ function AddConsumer({ mstrData, formDetails }) {
                 onChange={handleChange}
             />
 
-            <DetailsTable
-                title="Owner Details"
-                columns={applicantColumns}
-                data={formData.ownerDtl}
-                renderers={applicantRenderers}
+            <OwnerDetailsCard
+                owners={formData.ownerDtl}
+                fields={ownerFields}
+                errors={validationError}
+                onChange={handleApplicantChange}
+                onAdd={handleAddApplicant}
+                onRemove={handleRemoveApplicant}
             />
             <ConnectionDetails
                 dateOfEffect = {formData?.dateOfEffective}
@@ -782,42 +636,22 @@ function AddConsumer({ mstrData, formDetails }) {
                 validationError={validationError}
             />
             <div className="text-green-600 text-center">
-                {rateLoading
-                    ? (
-                        <div className="flex justify-center items-center h-12">
-                            <span className="inline-block border-4 border-t-transparent border-blue-600 rounded-full w-6 h-6 animate-spin"></span>
-                            <span className="ml-2 text-blue-600 text-sm">
-                                Loading options...
-                            </span>
-                        </div>
-                    ) : (
-                        <>
-                            Monthly Amount: 
-                            {formData?.connectionDtl?.reduce((acc, curr) => acc + (Number(curr?.rate) || 0), 0).toFixed(2)}
-                        </>
-                    )
-                }
+                Monthly Amount:
+                {formData?.connectionDtl?.reduce((acc, curr) => acc + (Number(curr?.rate) || 0), 0).toFixed(2)}
             </div>
             {/* <div className="flex justify-center items-center">
                 <LocationPicker onSelect={setLoc} />                
             </div> */}
-            <div className="flex justify-center items-center">
-                {isFormSubmit ? (
-                    <button
-                        type="button"
-                        className="rounded-full text-white px-6 py-2 bg-gray-500 hover:bg-gray-700"
-                    >
-                        Loading....
-                    </button>
-                ) : (
-                    <button
-                        type="submit"
-                        className="rounded-full text-white px-6 py-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                        Submit
-                    </button>
-
-                )}
+            <div className="text-center">
+                <button
+                    type="submit"
+                    className={`items-center px-4 py-2 rounded text-white ${
+                        isFormSubmit ? "btn-secondary" : "btn-primary"
+                    }`}
+                    disabled={isFormSubmit}
+                >
+                    Submit
+                </button>
             </div>
         </form>
     );

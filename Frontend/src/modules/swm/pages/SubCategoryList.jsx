@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getToken } from '../../../utils/auth';
 import { swmSubCategoryListApi, swmSubCategoryLockUnlockApi } from '../../../api/endpoints';
 import { FaBan, FaEdit, FaUnlock } from 'react-icons/fa';
-import { Spinner } from '@nextui-org/react';
+import { useLoading } from "../../../contexts/LoadingContext";
 import PermissionWrapper from '../../../components/common/PermissionWrapper';
 import CommonTable from '../../../components/common/CommonTable';
 import axios from 'axios';
@@ -11,7 +11,7 @@ import AddEditSubCategoryModal from '../components/AddEditSubCategoryModal';
 
 function SubCategoryList() {
     const [dataList, setDataList] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { setIsLoadingGable } = useLoading();
     const [selectedItem, setSelectedItem] = useState(null);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [totalPage, setTotalPage] = useState(1);
@@ -24,7 +24,7 @@ function SubCategoryList() {
 
 
     const fetchData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmSubCategoryListApi,
@@ -45,7 +45,7 @@ function SubCategoryList() {
         } catch (error) {
           console.error("Error fetching menu list:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
@@ -58,7 +58,7 @@ function SubCategoryList() {
       };
     
       const ActiveDeactivate = async (item, status) => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmSubCategoryLockUnlockApi,
@@ -82,12 +82,12 @@ function SubCategoryList() {
         } catch (error) {
           console.error("active deactivate menu update error:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
       const fetchAllData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(
             swmSubCategoryListApi,
@@ -106,7 +106,7 @@ function SubCategoryList() {
         } catch (error) {
           console.error("Error fetching all menus:", error);
         } finally {
-          setIsLoading(false);
+          setIsLoadingGable(false);
         }
       };
     
@@ -215,9 +215,6 @@ function SubCategoryList() {
     );
     return (
         <>
-      {isLoading ? (
-        <Spinner />
-      ) : (
         <PermissionWrapper>
             <CommonTable
               data={dataList}
@@ -244,7 +241,6 @@ function SubCategoryList() {
               }
             />            
         </PermissionWrapper>
-      )}
 
       {isAddEditModalOpen && (
         <AddEditSubCategoryModal

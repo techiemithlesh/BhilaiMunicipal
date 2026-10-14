@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { FaPlus, FaTimes, FaTrash } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { Spinner } from "@nextui-org/react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import toast from "react-hot-toast";
 
 import FormCard from "../../../components/common/FormCard";
@@ -29,11 +29,9 @@ function EditConsumer({ id, onClose, onSuccess }) {
   const [masterData, setMasterData] = useState(null);
   const [subCategoryList, setSubCategoryList] = useState([]);
   const [rates, setRates] = useState({});
-  const [subCategoryLoading, setSubCategoryLoading] = useState(false);
-  const [rateLoading, setRateLoading] = useState(false);
   const [applicantCounter, setApplicantCounter] = useState(1);
   const [isFormSubmit, setIsFormSubmit] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { setIsLoadingGable } = useLoading();
   const [isModalOpen, setModalOpen] = useState(false);
   const [submitResponse, setSubmitResponse] = useState({});
   const [validationError, setValidationError] = useState({});
@@ -82,7 +80,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
   }, [id, token]);
 
   const fetchConsumer = async () => {
-    setIsLoading(true);
+    setIsLoadingGable(true);
     try {
       const response = await axios.post(
         swmConsumerDtlApi,
@@ -107,7 +105,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
     } catch (error) {
       console.error("Error fetching consumer:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingGable(false);
     }
   };
 
@@ -119,7 +117,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
     }
 
     try {
-      setSubCategoryLoading(true);
+      setIsLoadingGable(true);
       const response = await axios.post(
         swmSubCategoryListApi,
         { categoryTypeMasterId, all: "all" },
@@ -133,7 +131,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
     } catch (error) {
       console.error("Error fetching subcategory:", error);
     } finally {
-      setSubCategoryLoading(false);
+      setIsLoadingGable(false);
     }
   };
 
@@ -170,7 +168,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
   useEffect(() => {
     const fetchRates = async () => {
       if (formData?.categoryTypeMasterId && formData?.subCategoryTypeMasterId) {
-        setRateLoading(true);
+        setIsLoadingGable(true);
         try {
           const response = await axios.post(swmReviewTaxApi, formData, {
             headers: { Authorization: `Bearer ${token}` },
@@ -181,7 +179,7 @@ function EditConsumer({ id, onClose, onSuccess }) {
         } catch {
           toast.error("Error fetching rate");
         } finally {
-          setRateLoading(false);
+          setIsLoadingGable(false);
         }
       }
     };
@@ -485,7 +483,6 @@ function EditConsumer({ id, onClose, onSuccess }) {
             type: "select",
             error: validationError?.subCategoryTypeMasterId || "",
             value: formData.subCategoryTypeMasterId || "",
-            loading: subCategoryLoading,
             required: true,
             options: subCategoryList?.map((item) => ({
                 label: item.subCategoryType,
@@ -725,96 +722,79 @@ function EditConsumer({ id, onClose, onSuccess }) {
 
   return (
     <div className="z-50 fixed inset-0 flex justify-center items-center bg-gray-500 bg-opacity-75 p-4">
-      {isLoading ? (
-        <Spinner />
-      ) : (
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          variants={modalVariants}
-          transition={{ duration: 0.5 }}
-          //   className="flex flex-col bg-white shadow-lg p-6 rounded-lg w-full max-w-6xl max-h-[80vh] overflow-y-auto"
-          className="flex flex-col bg-white shadow-xl p-6 rounded-xl w-full max-w-6xl max-h-[95vh]"
-        >
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">
-                    Update
-                </h2>
-                <button onClick={onClose}>
-                    <FaTimes size={20} />
-                </button>
-            </div>
-            <div className="relative flex-grow p-2 overflow-y-auto scrollbar-hide">
-                <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
-                    <FormCard
-                    title="Connection Details"
-                    formFields={formFields1}
-                    onChange={handleChange}
-                    />
-                    <div className="flex justify-center mt-3">
-                        <button
-                            onClick={handelBasicEdit}
-                            disabled={(!(formData?.userPermission?.canAppEditBasic || false)) || isBasicEditSubmit}
-                            className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canAppEditBasic || false)) || isBasicEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
-                        >
-                            {isBasicEditSubmit ? "Submitting..." : "Edit"}
-                        </button>
-                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
-                    <DetailsTable
-                        title="Owner Details"
-                        columns={applicantColumns}
-                        data={formData.ownerDtl || []}
-                        renderers={applicantRenderers}
-                    />
-                    <div className="flex justify-center mt-3">
-                        <button
-                            onClick={handelOwnerEdit}
-                            disabled={(!(formData?.userPermission?.canAppEditOwner || false)) || isOwnerEditSubmit}
-                            className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canAppEditOwner || false)) || isOwnerEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
-                        >
-                            {isOwnerEditSubmit ? "Submitting..." : "Edit"}
-                        </button>
-                    </div>
-                </div>
-                <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
-                    <FormCard
-                    title="Area Details"
-                    formFields={areaFields}
-                    onChange={handleChange}
-                    />
-                    <div className="text-green-600 text-center">
-                        {rateLoading
-                            ?(
-                                <div className="flex justify-center items-center h-12">
-                                    <span className="inline-block border-4 border-t-transparent border-blue-600 rounded-full w-6 h-6 animate-spin"></span>
-                                    <span className="ml-2 text-blue-600 text-sm">
-                                        Loading options...
-                                    </span>
-                                </div>
-                            ):(
-                            <>
-                                Monthly Amount: {rates?.ratePerMonth}
-                            </>
-                            )
-                        }
-                    </div>
-                    <div className="flex justify-center mt-3">
-                        <button
-                            onClick={handelRangeEdit}
-                            disabled={(!(formData?.userPermission?.canSwmEditCategory || false)) || isRangeEditSubmit}
-                            className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canSwmEditCategory || false)) || isRangeEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
-                        >
-                            {isRangeEditSubmit ? "Submitting..." : "Edit"}
-                        </button>
-                    </div>
-                </div>
-            </div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
+        variants={modalVariants}
+        transition={{ duration: 0.5 }}
+        //   className="flex flex-col bg-white shadow-lg p-6 rounded-lg w-full max-w-6xl max-h-[80vh] overflow-y-auto"
+        className="flex flex-col bg-white shadow-xl p-6 rounded-xl w-full max-w-6xl max-h-[95vh]"
+      >
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-lg">
+                  Update
+              </h2>
+              <button onClick={onClose}>
+                  <FaTimes size={20} />
+              </button>
+          </div>
+          <div className="relative flex-grow p-2 overflow-y-auto scrollbar-hide">
+              <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
+                  <FormCard
+                  title="Connection Details"
+                  formFields={formFields1}
+                  onChange={handleChange}
+                  />
+                  <div className="flex justify-center mt-3">
+                      <button
+                          onClick={handelBasicEdit}
+                          disabled={(!(formData?.userPermission?.canAppEditBasic || false)) || isBasicEditSubmit}
+                          className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canAppEditBasic || false)) || isBasicEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
+                      >
+                          {isBasicEditSubmit ? "Submitting..." : "Edit"}
+                      </button>
+                  </div>
+              </div>
+              <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
+                  <DetailsTable
+                      title="Owner Details"
+                      columns={applicantColumns}
+                      data={formData.ownerDtl || []}
+                      renderers={applicantRenderers}
+                  />
+                  <div className="flex justify-center mt-3">
+                      <button
+                          onClick={handelOwnerEdit}
+                          disabled={(!(formData?.userPermission?.canAppEditOwner || false)) || isOwnerEditSubmit}
+                          className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canAppEditOwner || false)) || isOwnerEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
+                      >
+                          {isOwnerEditSubmit ? "Submitting..." : "Edit"}
+                      </button>
+                  </div>
+              </div>
+              <div className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl">
+                  <FormCard
+                  title="Area Details"
+                  formFields={areaFields}
+                  onChange={handleChange}
+                  />
+                  <div className="text-green-600 text-center">
+                      Monthly Amount: {rates?.ratePerMonth}
+                  </div>
+                  <div className="flex justify-center mt-3">
+                      <button
+                          onClick={handelRangeEdit}
+                          disabled={(!(formData?.userPermission?.canSwmEditCategory || false)) || isRangeEditSubmit}
+                          className={`rounded-full text-white px-6 py-2 ${((!(formData?.userPermission?.canSwmEditCategory || false)) || isRangeEditSubmit) ? "  bg-gray-400 hover:bg-gray-500" : " bg-blue-600 hover:bg-blue-700"}`}
+                      >
+                          {isRangeEditSubmit ? "Submitting..." : "Edit"}
+                      </button>
+                  </div>
+              </div>
+          </div>
 
-        </motion.div>
-      )}
+      </motion.div>
     </div>
   );
 }

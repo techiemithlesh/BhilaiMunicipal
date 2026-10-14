@@ -4,14 +4,14 @@ import axios from 'axios';
 import { swmFeedbackListApi, swmFeedbackLockUnlockApi } from '../../../api/endpoints';
 import toast from 'react-hot-toast';
 import { FaBan, FaEdit, FaUnlock } from 'react-icons/fa';
-import { Spinner } from '@nextui-org/react';
+import { useLoading } from "../../../contexts/LoadingContext";
 import PermissionWrapper from '../../../components/common/PermissionWrapper';
 import CommonTable from '../../../components/common/CommonTable';
 import AddEditFeedbackModal from '../components/AddEditFeedbackModal';
 
 function FeedBackMstrList() {
     const [dataList, setDataList] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { setIsLoadingGable } = useLoading();
     const [selectedItem, setSelectedItem] = useState(null);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [totalPage, setTotalPage] = useState(1);
@@ -23,7 +23,7 @@ function FeedBackMstrList() {
     const token = getToken();
 
     const fetchData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
             const response = await axios.post(
                 swmFeedbackListApi,
@@ -44,7 +44,7 @@ function FeedBackMstrList() {
         } catch (error) {
             console.error("Error fetching menu list:", error);
         } finally {
-            setIsLoading(false);
+            setIsLoadingGable(false);
         }
     };
 
@@ -58,7 +58,7 @@ function FeedBackMstrList() {
     };
 
     const ActiveDeactivate = async (item, status) => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
             const response = await axios.post(
                 swmFeedbackLockUnlockApi,
@@ -82,12 +82,12 @@ function FeedBackMstrList() {
         } catch (error) {
             console.error("active deactivate menu update error:", error);
         } finally {
-            setIsLoading(false);
+            setIsLoadingGable(false);
         }
     };
 
     const fetchAllData = async () => {
-        setIsLoading(true);
+        setIsLoadingGable(true);
         try {
             const response = await axios.post(
                 swmFeedbackListApi,
@@ -106,7 +106,7 @@ function FeedBackMstrList() {
         } catch (error) {
             console.error("Error fetching all menus:", error);
         } finally {
-            setIsLoading(false);
+            setIsLoadingGable(false);
         }
     };
 
@@ -164,9 +164,6 @@ function FeedBackMstrList() {
     );
     return (
         <>
-            {isLoading ? (
-                <Spinner />
-            ) : (
                 <PermissionWrapper>
                     <CommonTable
                         data={dataList}
@@ -193,7 +190,6 @@ function FeedBackMstrList() {
                         }
                     />
                 </PermissionWrapper>
-            )}
 
             {isAddEditModalOpen && (
                 <AddEditFeedbackModal

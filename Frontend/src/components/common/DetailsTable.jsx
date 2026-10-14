@@ -1,4 +1,4 @@
-const DetailsTable = ({ title, columns, data, renderers = {} }) => {
+const DetailsTable = ({ title, columns, data, renderers = {}, requiredColumns = [] }) => {
   return (
     <div className="bg-white border border-[#003366] rounded-md overflow-hidden font-sans">
       <div className="flex items-center gap-2 bg-gradient-to-r from-blue-700 to-blue-400 shadow-md p-3 rounded-t-md font-bold text-white text-lg uppercase tracking-wide">
@@ -15,6 +15,9 @@ const DetailsTable = ({ title, columns, data, renderers = {} }) => {
                   className="px-4 py-1 border-white border-r font-semibold text-center text-sm"
                 >
                   {col}
+                  {requiredColumns.includes(col) && (
+                    <span className="ml-1 text-red-500">*</span>
+                  )}
                 </th>
               ))}
             </tr>

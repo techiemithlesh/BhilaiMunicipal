@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import { getToken } from "../../../utils/auth";
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
@@ -19,6 +20,12 @@ function GenerateDemandModal({ onClose, onSuccess, lastConnectionDtl, id }) {
   const [imageFiles, setImageFiles] = useState([]);
   const [validationError, setValidationError] = useState({});
   const [isFrozen, setIsFrozen] = useState(false);
+  const { setIsLoadingGable } = useLoading();
+  useEffect(() => {
+    if (!isFrozen) return;
+    setIsLoadingGable(true);
+    return () => setIsLoadingGable(false);
+  }, [isFrozen]);
 
   const formFields = [
     {
@@ -146,7 +153,7 @@ function GenerateDemandModal({ onClose, onSuccess, lastConnectionDtl, id }) {
         <div className="relative flex-grow overflow-y-auto">
           <div
             className={`${
-              isFrozen ? "pointer-events-none filter blur-sm" : ""
+              isFrozen ? "pointer-events-none" : ""
             }`}
           >
             {/* The form card now correctly uses the form state and handleSubmit */}
@@ -196,14 +203,6 @@ function GenerateDemandModal({ onClose, onSuccess, lastConnectionDtl, id }) {
               Cancel
             </button>
           </div>
-
-          {isFrozen && (
-            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 backdrop-blur-sm">
-              <div className="font-semibold text-gray-800 text-lg">
-                Processing...
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

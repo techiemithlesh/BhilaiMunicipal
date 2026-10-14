@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
+import { useLoading } from "../../../contexts/LoadingContext";
 import { handleGeneratePdf } from '../../../utils/common';
 import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
@@ -7,6 +8,12 @@ import DemandReceiptDtl from './DemandReceiptDtl';
 
 function DemandReceiptModal({ id, onClose }) {
     const [isFrozen, setIsFrozen] = useState(false);
+    const { setIsLoadingGable } = useLoading();
+    useEffect(() => {
+      if (!isFrozen) return;
+      setIsLoadingGable(true);
+      return () => setIsLoadingGable(false);
+    }, [isFrozen]);
     const printRef = useRef();
 
     // Print in same tab (no new window)
@@ -51,20 +58,13 @@ function DemandReceiptModal({ id, onClose }) {
         <div className="relative flex-grow print:overflow-visible overflow-y-auto">
           <div
             className={`${
-              isFrozen ? "pointer-events-none filter blur-sm" : ""
+              isFrozen ? "pointer-events-none" : ""
             }`}
           >
             <div className="overflow-x-auto" ref={printRef}>
               <DemandReceiptDtl id={id} setIsFrozen={setIsFrozen} />
             </div>
           </div>
-          {isFrozen && (
-            <div className="z-10 absolute inset-0 flex justify-center items-center bg-white/60 backdrop-blur-sm">
-              <div className="font-semibold text-gray-800 text-lg">
-                Processing...
-              </div>
-            </div>
-          )}
         </div>
       </motion.div>
     </div>

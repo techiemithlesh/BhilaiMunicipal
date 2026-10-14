@@ -27,6 +27,8 @@ export default function FormCard({
             renderValue,
             selectedList,
             onBlur,
+            accept,
+            hint,
             isHidden = false, // Default to false
             error,
             ...rest
@@ -191,6 +193,20 @@ export default function FormCard({
                     </label>
                   ))}
                 </div>
+              ) : type === "file" ? (
+                <Input
+                  label={label}
+                  labelPlacement="outside"
+                  variant="bordered"
+                  isRequired={required}
+                  isDisabled={isDisabled}
+                  className="w-full"
+                  classNames={{ inputWrapper: "bg-white", label: "text-sm" }}
+                  type="file"
+                  accept={accept}
+                  description={hint}
+                  onChange={(e) => onChange(name, e.target.files?.[0] || null)}
+                />
               ) : (
                 <Input
                   label={label}

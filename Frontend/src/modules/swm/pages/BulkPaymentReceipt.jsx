@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLoading } from "../../../contexts/LoadingContext";
 import axios from "axios";
 import Select from "react-select";
 import { getToken } from "../../../utils/auth";
@@ -19,7 +20,7 @@ const BulkPaymentReceipt = () => {
   const [wardId, setWardId] = useState([]);
   const [wards, setWards] = useState([]);
   const [receipts, setReceipts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { setIsLoadingGable } = useLoading();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -46,7 +47,7 @@ const BulkPaymentReceipt = () => {
 
   // ✅ Fetch receipt list
   const fetchReceipts = async (pageNo = 1) => {
-    setLoading(true);
+    setIsLoadingGable(true);
     try {
       const res = await axios.post(
         swmConsumerBulkPaymentReceiptApi,
@@ -70,7 +71,7 @@ const BulkPaymentReceipt = () => {
     } catch (error) {
       console.error("Error fetching receipts:", error);
     } finally {
-      setLoading(false);
+      setIsLoadingGable(false);
     }
   };
 
@@ -174,9 +175,7 @@ const BulkPaymentReceipt = () => {
       </form>
 
       {/* Receipt List */}
-      {loading ? (
-        <p className="text-center text-gray-600">Loading receipts...</p>
-      ) : receipts.length > 0 ? (
+      {receipts.length > 0 ? (
         <>
           <div ref={printRef}>
             {receipts.map((item, index) => (
