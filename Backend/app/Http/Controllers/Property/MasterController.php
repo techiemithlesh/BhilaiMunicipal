@@ -1009,6 +1009,8 @@ class MasterController extends Controller
                 ->where("rt.lock_status", false)
                 ->orderBy("rt.effective_from", "ASC")
                 ->orderBy("rt.zone_id", "ASC")
+                ->orderBy("rt.road_type_id", "DESC")
+                ->orderBy("rt.construction_type_master_id", "ASC")
                 ->get();
 
             $responseMatrix = $rawData->groupBy(function ($item) {
