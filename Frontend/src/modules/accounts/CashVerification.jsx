@@ -110,7 +110,7 @@ export default function CashVerification() {
                 ]}
                 onSearchSubmit={handleSearchSubmit} 
                 tableHeaders={[
-                    "#", "Employee Name", "Property", "GB SAF", "Water", "Trade", 
+                    "#", "Employee Name", "Property", "Water", "Trade","SWM","Shop", 
                     "Total Amount", "Status", "Verified Amount", "Action",
                 ]}
                 tableData={tableData}
@@ -127,9 +127,10 @@ export default function CashVerification() {
                             {row.name ?? ""}
                         </td>
                         <td className="px-3 py-2 border">{row.propertyAmount ?? 0}</td>
-                        <td className="px-3 py-2 border">{row.gbSaf ?? 0}</td>
                         <td className="px-3 py-2 border">{row.waterAmount ?? 0}</td>
                         <td className="px-3 py-2 border">{row.tradeAmount ?? 0}</td>
+                        <td className="px-3 py-2 border">{row.swmAmount ?? 0}</td>                        
+                        <td className="px-3 py-2 border">{row.shopAmount ?? 0}</td>
                         <td className="px-3 py-2 border">{row.totalAmount ?? "NA"}</td>
                         <td className="px-3 py-2 border text-center">
                             {row.totalAmount == row.totalVerifiedAmount ? 

@@ -152,7 +152,8 @@ class ShopPaymentBll
 
         $paidDemand = [];
         $demandList = collect($this->_DemandList)->sortBy("demand_upto");
-        $advanceAmount = $this->_Demand["advanceAmount"];
+        $advanceAmount = $this->_Demand["advanceAmount"];        
+        $additionalTaxList = collect($this->_Demand["additionalTaxList"]);
         
 
         $remainAmount = ($this->_REQ->amount + $advanceAmount ) ;
@@ -240,6 +241,12 @@ class ShopPaymentBll
             }        
             $shopDemand->update();
             $test->push($shopDemand);
+        }
+        # update Additional Tax
+        foreach($additionalTaxList as $tax){
+            $tax->transaction_id = $tranId;
+            $tax->paid_status =true;
+            $tax->update();
         }
 
         #insert penalty and rebates

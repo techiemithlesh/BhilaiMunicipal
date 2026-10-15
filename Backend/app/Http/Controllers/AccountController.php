@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Bll\Property\TransactionDeactivationBll;
+use App\Bll\ShopRent\TransactionDeactivationBll as ShopRentTransactionDeactivationBll;
+use App\Bll\SWM\TransactionDeactivationBll as SWMTransactionDeactivationBll;
 use App\Bll\Trade\TransactionDeactivationBll as TradeTransactionDeactivationBll;
 use App\Bll\Water\TransactionDeactivationBll as WaterTransactionDeactivationBll;
 use App\Exceptions\CustomException;
@@ -18,6 +20,14 @@ use App\Models\Property\PropTransaction;
 use App\Models\Property\PropTransactionDeactivation;
 use App\Models\Property\RejectedSafDetail;
 use App\Models\Property\SafDetail;
+use App\Models\ShopRent\ChequeDetail as ShopRentChequeDetail;
+use App\Models\ShopRent\Shop;
+use App\Models\ShopRent\ShopTransaction;
+use App\Models\ShopRent\ShopTransactionDeactivation;
+use App\Models\SWM\ChequeDetail as SWMChequeDetail;
+use App\Models\SWM\Consumer as SWMConsumer;
+use App\Models\SWM\ConsumerTransaction;
+use App\Models\SWM\ConsumerTransactionDeactivation;
 use App\Models\Trade\ActiveTradeLicense;
 use App\Models\Trade\ChequeDetail as TradeChequeDetail;
 use App\Models\Trade\RejectedTradeLicense;
@@ -69,6 +79,14 @@ class AccountController extends Controller
     private $_TradeLicenseLog;
     private $_TradeTransactionDeactivation;
 
+    private $_SwmTransaction;
+    private $_SwmConsumer;
+    private $_SwmTransactionDeactivation;
+
+    private $_ShopTransaction;
+    private $_Shop;
+    private $_ShopTransactionDeactivation;
+
     function __construct()
     {
         $this->_SystemConstant = Config::get("SystemConstant");
@@ -97,22 +115,36 @@ class AccountController extends Controller
         $this->_RejectedTradeLicense = new RejectedTradeLicense();
         $this->_TradeLicenseLog = new TradeLicenseLog();
         $this->_TradeTransactionDeactivation = new TradeTransactionDeactivation();
+
+        $this->_SwmTransaction = new ConsumerTransaction();
+        $this->_SwmConsumer = new SWMConsumer();
+        $this->_SwmTransactionDeactivation = new ConsumerTransactionDeactivation();
+
+        $this->_ShopTransaction = new ShopTransaction();
+        $this->_Shop = new Shop();
+        $this->_ShopTransactionDeactivation = new ShopTransactionDeactivation();
     }
 
     private function begin(){
         DB::connection($this->_PropTransaction->getConnectionName())->beginTransaction();
         DB::connection($this->_WaterTransaction->getConnectionName())->beginTransaction();
         DB::connection($this->_TradeTransaction->getConnectionName())->beginTransaction();
+        DB::connection($this->_SwmTransaction->getConnectionName())->beginTransaction();
+        DB::connection($this->_ShopTransaction->getConnectionName())->beginTransaction();
     }
     private function rollBack(){
         DB::connection($this->_PropTransaction->getConnectionName())->rollBack();
         DB::connection($this->_WaterTransaction->getConnectionName())->rollBack();
         DB::connection($this->_TradeTransaction->getConnectionName())->rollBack();
+        DB::connection($this->_SwmTransaction->getConnectionName())->rollBack();
+        DB::connection($this->_ShopTransaction->getConnectionName())->rollBack();
     }
     private function commit(){
         DB::connection($this->_PropTransaction->getConnectionName())->commit();
         DB::connection($this->_WaterTransaction->getConnectionName())->commit();
         DB::connection($this->_TradeTransaction->getConnectionName())->commit();
+        DB::connection($this->_SwmTransaction->getConnectionName())->commit();
+        DB::connection($this->_ShopTransaction->getConnectionName())->commit();
     }
 
     public function userList(Request $request){
@@ -128,30 +160,45 @@ class AccountController extends Controller
             }
             $propTran = $this->_PropTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);
             $waterTran = $this->_WaterTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);
-            $tradeTran = $this->_TradeTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);
+            $tradeTran = $this->_TradeTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);            
+            $swmTran = $this->_SwmTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);
+            $shopTran = $this->_ShopTransaction->where("lock_status",false)->whereIn("payment_status",[1,2])->where("user_type","!=","ONLINE")->whereBetween("tran_date",[$request->fromDate,$request->uptoDate]);
             if($request->userId){
                 $propTran->where("user_id",$request->userId);
                 $waterTran->where("user_id",$request->userId);
                 $tradeTran->where("user_id",$request->userId);
+                $swmTran->where("user_id",$request->userId);
+                $shopTran->where("user_id",$request->userId);
             }
+            
             $propTran = $propTran->get();
             $waterTran = $waterTran->get();
             $tradeTran = $tradeTran->get();
+            $swmTran = $swmTran->get();
+            $shopTran = $shopTran->get();
             
             $userIds = $propTran->pluck("user_id");
             $userIds = $userIds->merge($waterTran->pluck("user_id"));
             $userIds = $userIds->merge($tradeTran->pluck("user_id"));
+            $userIds = $userIds->merge($swmTran->pluck("user_id"));
+            $userIds = $userIds->merge($shopTran->pluck("user_id"));
             $uniqueId = $userIds->unique();
+
             $data = $this->_User->whereIn("id",$uniqueId->toArray())
                     ->orderBy("id","ASC")
                     ->get()
-                    ->map(function($item)use($propTran,$waterTran,$tradeTran){
+                    ->map(function($item)use($propTran,$waterTran,$tradeTran,$swmTran,$shopTran){
                         $prop = $propTran->where("user_id",$item->id);
                         $water = $waterTran->where("user_id",$item->id);
                         $trade = $tradeTran->where("user_id",$item->id);
+                        $swm = $swmTran->where("user_id",$item->id);
+                        $shop = $shopTran->where("user_id",$item->id);
+
                         $propVerified = $prop->where("verification_status",1);
                         $waterVerified = $water->where("verification_status",1);
                         $tradeVerified = $trade->where("verification_status",1);
+                        $swmVerified = $swm->where("verification_status",1);
+                        $shopVerified = $shop->where("verification_status",1);
 
                         $item->property_amount = roundFigure($prop->sum("payable_amt"));
                         $item->property_verified_amount = roundFigure($propVerified->sum("payable_amt"));
@@ -165,9 +212,17 @@ class AccountController extends Controller
                         $item->trade_verified_amount = roundFigure($tradeVerified->sum("payable_amt"));
                         $item->trade_count = ($trade->count());
 
-                        $item->total_amount = roundFigure($item->property_amount + $item->water_amount + $item->trade_amount);
-                        $item->total_verified_amount = roundFigure($item->property_verified_amount + $item->water_verified_amount + $item->trade_verified_amount);
-                        $item->total_app = ($item->property_count + $item->water_count + $item->trade_count);
+                        $item->swm_amount = roundFigure($swm->sum("payable_amt"));
+                        $item->swm_verified_amount = roundFigure($swmVerified->sum("payable_amt"));
+                        $item->swm_count = ($swm->count());
+
+                        $item->shop_amount = roundFigure($shop->sum("payable_amt"));
+                        $item->shop_verified_amount = roundFigure($shopVerified->sum("payable_amt"));
+                        $item->shop_count = ($shop->count());
+
+                        $item->total_amount = roundFigure($item->property_amount + $item->water_amount + $item->trade_amount + $item->swm_amount + $item->shop_amount);
+                        $item->total_verified_amount = roundFigure($item->property_verified_amount + $item->water_verified_amount + $item->trade_verified_amount + $item->swm_verified_amount + $item->shop_verified_amount);
+                        $item->total_app = ($item->property_count + $item->water_count + $item->trade_count + $item->swm_count + $item->shop_count);
                         $item->user_img = $item->user_img ? url("/")."/".$item->user_img : null;
                         return $item;
                     });
@@ -276,14 +331,50 @@ class AccountController extends Controller
                             $item->branch_name = $cheque?->branch_name;
                             return $item;
                         });
+            $swmTran = $this->_SwmTransaction->where("lock_status",false)
+                        ->whereIn("payment_status",[1,2])
+                        ->where("user_id",$user->id)->where("user_type","!=","ONLINE")
+                        ->whereBetween("tran_date",[$request->fromDate,$request->uptoDate])
+                        ->orderBy("id","ASC")
+                        ->get()
+                        ->map(function($item) use($allUser){
+                            $item->verified_by_user_name = $allUser->where("id",$item->verified_by)->first()?->name;
+                            $app = $this->_SwmConsumer->find($item->consumer_id);
+                            $item->app_no = $app?->consumer_no;
+                            $cheque = $item->getChequeDtl();
+                            $item->cheque_no = $cheque?->cheque_no;
+                            $item->cheque_date = $cheque?->cheque_date;
+                            $item->bank_name = $cheque?->bank_name;
+                            $item->branch_name = $cheque?->branch_name;
+                            return $item;
+                        });
+            $shopTran = $this->_ShopTransaction->where("lock_status",false)
+                        ->whereIn("payment_status",[1,2])
+                        ->where("user_id",$user->id)->where("user_type","!=","ONLINE")
+                        ->whereBetween("tran_date",[$request->fromDate,$request->uptoDate])
+                        ->orderBy("id","ASC")
+                        ->get()
+                        ->map(function($item) use($allUser){
+                            $item->verified_by_user_name = $allUser->where("id",$item->verified_by)->first()?->name;
+                            $app = $this->_Shop->find($item->shop_id);
+                            $item->app_no = $app?->consumer_no;
+                            $cheque = $item->getChequeDtl();
+                            $item->cheque_no = $cheque?->cheque_no;
+                            $item->cheque_date = $cheque?->cheque_date;
+                            $item->bank_name = $cheque?->bank_name;
+                            $item->branch_name = $cheque?->branch_name;
+                            return $item;
+                        });
             $paymentModeSummary = Collect(Config::get("SystemConstant.PAYMENT_MODE"))
-                                ->map(function($item)use($propTran,$waterTran,$tradeTran){
+                                ->map(function($item)use($propTran,$waterTran,$tradeTran,$swmTran,$shopTran){
                                     $prop = $propTran->where("payment_mode",$item);
                                     $water = $waterTran->where("payment_mode",$item);
                                     $trade = $tradeTran->where("payment_mode",$item);
+                                    $swm = $swmTran->where("payment_mode",$item);
+                                    $shop = $shopTran->where("payment_mode",$item);
                                     return [
                                         "mode"=>$item,
-                                        "amount"=>roundFigure($prop->sum("payable_amt") + $water->sum("payable_amt") + $trade->sum("payable_amt")),
+                                        "amount"=>roundFigure($prop->sum("payable_amt") + $water->sum("payable_amt") + $trade->sum("payable_amt") + $swm->sum("payable_amt") + $shop->sum("payable_amt")),
                                     ];
                                 });
             $data=[
@@ -292,15 +383,19 @@ class AccountController extends Controller
                 "property"=>$propTran,
                 "water"=>$waterTran,
                 "trade"=>$tradeTran,
+                "swm"=>$swmTran,                
+                "shop"=>$shopTran,
                 "propertyAmount"=>roundFigure($propTran->sum("payable_amt")),
                 "waterAmount"=>roundFigure($waterTran->sum("payable_amt")),
                 "tradeAmount"=>roundFigure($tradeTran->sum("payable_amt")),
-                "totalAmount"=>roundFigure($propTran->sum("payable_amt") + $waterTran->sum("payable_amt") + $tradeTran->sum("payable_amt")),
+                "swmAmount"=>roundFigure($swmTran->sum("payable_amt")),
+                "shopAmount"=>roundFigure($shopTran->sum("payable_amt")),
+                "totalAmount"=>roundFigure($propTran->sum("payable_amt") + $waterTran->sum("payable_amt") + $tradeTran->sum("payable_amt") + $swmTran->sum("payable_amt") + $shopTran->sum("payable_amt")),
             ];
             return responseMsg(true,"Data Fetched",camelCase(remove_null($data)));
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
-        }catch(Exception $e){
+        }catch(Exception $e){dd($e);
             return responseMsg(false,"Server Error !!!","");
         }
     }
@@ -314,6 +409,10 @@ class AccountController extends Controller
                 "water.*.id"=>"nullable|integer|exists:".$this->_WaterTransaction->getConnectionName().".".$this->_WaterTransaction->getTable().",id,lock_status,false,verification_status,0",
                 "trade"=>"nullable|array",
                 "trade.*.id"=>"nullable|integer|exists:".$this->_TradeTransaction->getConnectionName().".".$this->_TradeTransaction->getTable().",id,lock_status,false,verification_status,0",
+                "swm"=>"nullable|array",
+                "swm.*.id"=>"nullable|integer|exists:".$this->_SwmTransaction->getConnectionName().".".$this->_SwmTransaction->getTable().",id,lock_status,false,verification_status,0",
+                "shop"=>"nullable|array",
+                "shop.*.id"=>"nullable|integer|exists:".$this->_ShopTransaction->getConnectionName().".".$this->_ShopTransaction->getTable().",id,lock_status,false,verification_status,0",
             ];
             $validator = Validator::make($request->all(),$rules);
             if($validator->fails()){
@@ -354,6 +453,28 @@ class AccountController extends Controller
             if($request->trade){
                 foreach($request->trade as $val){
                     $tran = $this->_TradeTransaction->find($val["id"]);
+                    $tran->verification_status=1;
+                    $tran->verified_by = $user->id;
+                    $tran->verify_date = Carbon::now();
+                    $tran->update();
+
+                }
+            }
+            #SWM
+            if($request->swm){
+                foreach($request->swm as $val){
+                    $tran = $this->_SwmTransaction->find($val["id"]);
+                    $tran->verification_status=1;
+                    $tran->verified_by = $user->id;
+                    $tran->verify_date = Carbon::now();
+                    $tran->update();
+
+                }
+            }
+            #trade
+            if($request->shop){
+                foreach($request->shop as $val){
+                    $tran = $this->_ShopTransaction->find($val["id"]);
                     $tran->verification_status=1;
                     $tran->verified_by = $user->id;
                     $tran->verify_date = Carbon::now();
@@ -419,6 +540,26 @@ class AccountController extends Controller
                                                                     ->where('tran.user_type',"<>","ONLINE");
                                                               });
                     break;
+                case $configModule["SWM"] : $data = $this->_SwmTransaction->from("consumer_transactions as tran")
+                                                              ->join("cheque_details as cheque",function($join){
+                                                                    $join->on('cheque.transaction_id','tran.id')
+                                                                    ->where('cheque.lock_status', false);
+                                                              })
+                                                              ->leftJoin("users",function($join){
+                                                                    $join->on('users.id','tran.user_id')
+                                                                    ->where('tran.user_type',"<>","ONLINE");
+                                                              });
+                    break;
+                case $configModule["SHOP"] : $data = $this->_ShopTransaction->from("shop_transactions as tran")
+                                                              ->join("cheque_details as cheque",function($join){
+                                                                    $join->on('cheque.transaction_id','tran.id')
+                                                                    ->where('cheque.lock_status', false);
+                                                              })
+                                                              ->leftJoin("users",function($join){
+                                                                    $join->on('users.id','tran.user_id')
+                                                                    ->where('tran.user_type',"<>","ONLINE");
+                                                              });
+                    break;
                 
             }
             if($request->fromDate && $request->uptoDate){
@@ -469,6 +610,12 @@ class AccountController extends Controller
                             case $configModule["TRADE"]:
                                 $exists = $this->_TradeTransaction->where("lock_status",false)->where("id", $value)->exists();
                                 break;
+                            case $configModule["SWM"]:
+                                $exists = $this->_SwmTransaction->where("lock_status",false)->where("id", $value)->exists();
+                                break;
+                            case $configModule["SHOP"]:
+                                $exists = $this->_ShopTransaction->where("lock_status",false)->where("id", $value)->exists();
+                                break;
                         }
                         if ($request->moduleId && !$exists) {
                             $fail("The {$attribute} is invalid.");
@@ -513,6 +660,16 @@ class AccountController extends Controller
                     $tran = $this->_TradeTransaction->find($request->tranId);
                     $cheque = TradeChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
                     $objTranDeactivate = new TradeTransactionDeactivationBll($request->tranId);
+                    break;
+                case $configModule["SWM"]:
+                    $tran = $this->_SwmTransaction->find($request->tranId);
+                    $cheque = SWMChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
+                    $objTranDeactivate = new SWMTransactionDeactivationBll($request->tranId);
+                    break;
+                case $configModule["SHOP"]:
+                    $tran = $this->_ShopTransaction->find($request->tranId);
+                    $cheque = ShopRentChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
+                    $objTranDeactivate = new ShopRentTransactionDeactivationBll($request->tranId);
                     break;
                 default : throw new CustomException("Tran section Not Found");
             }
@@ -637,6 +794,38 @@ class AccountController extends Controller
                                 return $item;
                             });
                     break;
+                case $configModule["SWM"]:
+                    $data = $this->_SwmTransaction
+                            ->where("tran_no",$request->tranNo)
+                            ->where("lock_status",false)
+                            ->whereIn("payment_status",[1,2])
+                            ->get()
+                            ->map(function($item){
+                                $app = $this->_SwmConsumer->find($item->consumer_id);                                
+                                $item->app_no = $app?->consumer_no;
+                                $item->app_typ ="SWM";
+                                $item->ward_no = $app?->getWardOldWardNo()?->ward_no;
+                                $item->new_ward_no = $app?->getWardNewdWardNo()?->ward_no;
+                                
+                                return $item;
+                            });
+                    break;
+                case $configModule["SHOP"]:
+                    $data = $this->_ShopTransaction
+                            ->where("tran_no",$request->tranNo)
+                            ->where("lock_status",false)
+                            ->whereIn("payment_status",[1,2])
+                            ->get()
+                            ->map(function($item){
+                                $app = $this->_Shop->find($item->shop_id);
+                                $item->app_no = $app?->consumer_no;
+                                $item->app_typ ="Shop";
+                                $item->ward_no = $app?->getWardOldWardNo()?->ward_no;
+                                $item->new_ward_no = $app?->getWardNewdWardNo()?->ward_no;
+                                
+                                return $item;
+                            });
+                    break;
                 default : throw new CustomException("Tran section Not Found");
             }
             $data = $data->map(function($item){
@@ -674,6 +863,12 @@ class AccountController extends Controller
                                 break;
                             case $configModule["TRADE"]:
                                 $exists = $this->_TradeTransaction->where("id", $value)->where("lock_status",false)->where("verification_status",0)->exists();
+                                break;
+                            case $configModule["SWM"]:
+                                $exists = $this->_SwmTransaction->where("id", $value)->where("lock_status",false)->where("verification_status",0)->exists();
+                                break;
+                            case $configModule["SHOP"]:
+                                $exists = $this->_ShopTransaction->where("id", $value)->where("lock_status",false)->where("verification_status",0)->exists();
                                 break;
                         }
                         if ($request->moduleId && !$exists) {
@@ -717,6 +912,14 @@ class AccountController extends Controller
                     $tran = $this->_TradeTransaction->find($request->tranId);
                     $cheque = TradeChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
                     break;
+                case $configModule["SWM"]:
+                    $tran = $this->_SwmTransaction->find($request->tranId);
+                    $cheque = SwmChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
+                    break;
+                case $configModule["SHOP"]:
+                    $tran = $this->_ShopTransaction->find($request->tranId);
+                    $cheque = ShopRentChequeDetail::where("lock_status",false)->where("transaction_id",$tran->id)->first();
+                    break;
                 default : throw new CustomException("Tran section Not Found");
             }
             $tran->payment_mode = $request->paymentMode;
@@ -746,6 +949,20 @@ class AccountController extends Controller
                                 $cheque->transaction_id = $tran->id;
                             }
                             break;
+                        case $configModule["SWM"]:
+                            $cheque = SWMChequeDetail::where("transaction_id",$tran->id)->first();
+                            if(!$cheque){
+                                $cheque = new SWMChequeDetail();
+                                $cheque->transaction_id = $tran->id;
+                            }
+                            break;
+                        case $configModule["SHOP"]:
+                            $cheque = ShopRentChequeDetail::where("transaction_id",$tran->id)->first();
+                            if(!$cheque){
+                                $cheque = new ShopRentChequeDetail();
+                                $cheque->transaction_id = $tran->id;
+                            }
+                            break;
                     }                    
                 }
                 $cheque->lock_status = false;
@@ -764,7 +981,7 @@ class AccountController extends Controller
                 $cheque->save();
             }
             
-            // $this->commit();
+            $this->commit();
             return responseMsg(true,"Transaction Update","");
         }catch(CustomException $e){
             $this->rollback();
@@ -795,6 +1012,12 @@ class AccountController extends Controller
                                 break;
                             case $configModule["TRADE"]:
                                 $exists = $this->_TradeTransaction->where("id", $value)->where("lock_status",false)->whereIn("payment_status",[1,2])->exists();
+                                break;
+                            case $configModule["SWM"]:
+                                $exists = $this->_SwmTransaction->where("id", $value)->where("lock_status",false)->whereIn("payment_status",[1,2])->exists();
+                                break;
+                            case $configModule["SHOP"]:
+                                $exists = $this->_ShopTransaction->where("id", $value)->where("lock_status",false)->whereIn("payment_status",[1,2])->exists();
                                 break;
                         }
                         if ($request->moduleId && !$exists) {
@@ -853,6 +1076,16 @@ class AccountController extends Controller
                     $objTranDeactivate = new TradeTransactionDeactivationBll($request->tranId);
                     $logModal = $this->_TradeTransactionDeactivation;
                     break;
+                case $configModule["SWM"]:
+                    $relativePath="Uploads/SWMTranDeactivation";
+                    $objTranDeactivate = new SwmTransactionDeactivationBll($request->tranId);
+                    $logModal = $this->_SwmTransactionDeactivation;
+                    break;
+                case $configModule["SHOP"]:
+                    $relativePath="Uploads/ShopTranDeactivation";
+                    $objTranDeactivate = new ShopRentTransactionDeactivationBll($request->tranId);
+                    $logModal = $this->_ShopTransactionDeactivation;
+                    break;
                 default : throw new CustomException("Tran section Not Found");
             }
 
@@ -908,6 +1141,16 @@ class AccountController extends Controller
                     $orm = $this->_TradeTransactionDeactivation
                         ->from("trade_transaction_deactivations as tran_d")
                         ->join("trade_transactions as tran","tran.id","tran_d.transaction_id");
+                    break;
+                case $configModule["SWM"]:
+                    $orm = $this->_SwmTransactionDeactivation
+                        ->from("consumer_transaction_deactivations as tran_d")
+                        ->join("consumer_transactions as tran","tran.id","tran_d.transaction_id");
+                    break;
+                case $configModule["SHOP"]:
+                    $orm = $this->_ShopTransactionDeactivation
+                        ->from("shop_transaction_deactivations as tran_d")
+                        ->join("shop_transactions as tran","tran.id","tran_d.transaction_id");
                     break;
                 default : throw new CustomException("Tran section Not Found");
             }

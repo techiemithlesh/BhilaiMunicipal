@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,7 +14,7 @@ Route::get('/logo/{path}', function ($path) {
     }
 
     $mimeType = mime_content_type($fullPath);
-    $response = Response::file($fullPath, ['Content-Type' => $mimeType]);
+    $response = response()->file($fullPath, ['Content-Type' => $mimeType]);
 
     return $response;
 })->where('path', '.*\.(jpg|jpeg|png|gif|svg|pdf|css|js|woff2?|ttf|ico)$');
@@ -29,6 +28,6 @@ Route::match(["get","post"],'/documents/{path}', function($path){
 
     $mime = mime_content_type($path);
 
-    $response = Response::file($path, ['Content-Type' => $mime]);
+    $response = response()->file($path, ['Content-Type' => $mime]);
     return $response;
 })->where('path', '.*');

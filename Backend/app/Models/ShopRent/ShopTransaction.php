@@ -36,4 +36,8 @@ class ShopTransaction extends ParamModel
         'lock_status',
         'request_demand_amount',
     ];
+
+    public function getChequeDtl(){
+        return $this->belongsTo(ChequeDetail::class,"id","transaction_id")->where("lock_status",false)->orderBy("id","DESC")->first();
+    }
 }

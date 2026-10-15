@@ -35,6 +35,8 @@ const CollectionDetails = () => {
     property: [],
     water: [],
     trade: [],
+    swm:[],
+    shop:[],
   });
 
   const colors = ["bg-blue-200", "bg-green-200", "bg-yellow-200", "bg-red-200"];
@@ -57,6 +59,8 @@ const CollectionDetails = () => {
           property: updateCheckStatus(data?.property, false),
           water: updateCheckStatus(data?.water, false),
           trade: updateCheckStatus(data?.trade, false),
+          swm: updateCheckStatus(data?.swm, false),
+          shop: updateCheckStatus(data?.shop, false),
         });
       }
     } catch (err) {
@@ -79,6 +83,8 @@ const CollectionDetails = () => {
       property: updateCheckStatus(prev.property, checked),
       water: updateCheckStatus(prev.water, checked),
       trade: updateCheckStatus(prev.trade, checked),
+      swm: updateCheckStatus(prev.swm, checked),
+      shop: updateCheckStatus(prev.shop, checked),
     }));
   };
 
@@ -89,7 +95,7 @@ const CollectionDetails = () => {
       newArray[index] = { ...currentItem, isChecked: !currentItem.isChecked };
 
       // Logic to update the master "Check All" checkbox status
-      const allItems = [...newArray, ...prev.water, ...prev.trade];
+      const allItems = [...newArray, ...prev.water, ...prev.trade, ...prev.swm, ...prev.shop];
       const allChecked = allItems.every((item) => item.isChecked);
       setIsAllChecked(allChecked);
 
@@ -112,10 +118,12 @@ const CollectionDetails = () => {
       property: prepareCategoryPayload(collectionData.property),
       water: prepareCategoryPayload(collectionData.water),
       trade: prepareCategoryPayload(collectionData.trade),
+      swm:prepareCategoryPayload(collectionData.swm),
+      shop:prepareCategoryPayload(collectionData.shop),
     };
     //  validation if no items are selected
     const totalChecked =
-      payload.property.length + payload.water.length + payload.trade.length;
+      payload.property.length + payload.water.length + payload.trade.length + payload.swm + payload.shop;
     if (totalChecked === 0) {
       toast.error("Please select at least one transaction to verify.");
       return;
@@ -266,6 +274,20 @@ const CollectionDetails = () => {
           headers={commonHeaders}
           data={collectionData?.trade}
           renderRow={renderTableRows("trade")}
+        />
+        {/* swm */}
+        <SectionCard
+          title={`SWM Payment - Total No of Transaction: ${collectionData?.trade?.length}, Total Amount: ${responseData?.tradeAmount} `}
+          headers={commonHeaders}
+          data={collectionData?.swm}
+          renderRow={renderTableRows("swm")}
+        />
+        {/* shop */}
+        <SectionCard
+          title={`Shop Payment - Total No of Transaction: ${collectionData?.trade?.length}, Total Amount: ${responseData?.tradeAmount} `}
+          headers={commonHeaders}
+          data={collectionData?.shop}
+          renderRow={renderTableRows("shop")}
         />
       </div>
 
