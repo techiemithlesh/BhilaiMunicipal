@@ -51,7 +51,9 @@ class BhiliaTaxCalculator
     public bool $_IsChabutra = false;
     public bool $_IsShop = false;
     public bool $_IsComplex=false;
-    public $_REQUEST;
+    public bool $_IsSchool=false;
+    public bool $_Is12ASchool = false;
+    public $_REQ;
 
     // Direct Cached Collections
     public Collection $_mOccupancyTypeMaster;
@@ -71,7 +73,7 @@ class BhiliaTaxCalculator
 
     public function __construct($request)
     {
-        $this->_REQUEST = $request;
+        $this->_REQ = $request;
         $this->_FloorWiseTax = collect();
         $this->_FYearWiseTax = collect();
 
@@ -102,52 +104,60 @@ class BhiliaTaxCalculator
 
     public function setPropertyType(): void
     {
-        $this->_PropertyType = $this->_REQUEST->propTypeMstrId;
+        $this->_PropertyType = $this->_REQ->propTypeMstrId;
     }
 
     public function setUlb(): void
     {
-        $this->_ulbId = $this->_REQUEST->ulbId;
+        $this->_ulbId = $this->_REQ->ulbId;
         $this->_ulbTypeId = UlbMaster::find($this->_ulbId)?->ulb_type_id;
     }
 
     public function setRoadType(): void
     {
-        $this->_RoadTypeId = $this->_REQUEST->roadTypeMstrId;
+        $this->_RoadTypeId = $this->_REQ->roadTypeMstrId;
     }
 
     public function setIsWidow(): void
     {
-        $this->_IsWidow = $this->_REQUEST->isWidow ? true : false;
+        $this->_IsWidow = $this->_REQ->isWidow ? true : false;
     }
 
     public function setExArmy(): void
     {
-        $this->_IsExArmy = $this->_REQUEST->isExArmy ? true : false;
+        $this->_IsExArmy = $this->_REQ->isExArmy ? true : false;
     }
 
     public function setPhysicalDisable(): void
     {
-        $this->_IsPhysicalDisable = $this->_REQUEST->isDisabledPerson ? true : false;
+        $this->_IsPhysicalDisable = $this->_REQ->isDisabledPerson ? true : false;
     }
 
     public function setChabutra(): void
     {
-        $this->_IsChabutra = $this->_REQUEST->isChabutra ? true : false;
+        $this->_IsChabutra = $this->_REQ->isChabutra ? true : false;
     }
     public function setComplex(): void
     {
-        $this->_IsComplex = $this->_REQUEST->isComplex ? true : false;
+        $this->_IsComplex = $this->_REQ->isComplex ? true : false;
     }
 
     public function setShop(): void
     {
-        $this->_IsShop = $this->_REQUEST->isShopHolding ? true : false;
+        $this->_IsShop = $this->_REQ->isShopHolding ? true : false;
     }
 
     public function setIHSDP(): void
     {
-        $this->_IsIHSDP = $this->_REQUEST->isDp ? true : false;
+        $this->_IsIHSDP = $this->_REQ->isDp ? true : false;
+    }
+
+    public function setSchool(): void
+    {
+        $this->_IsSchool = $this->_REQ->isSchool ? true : false;
+        if($this->_IsSchool){
+            $this->_Is12ASchool = $this->_REQ->is12ASchool ? true : false;
+        }
     }
 
     public function loadParam(): void
@@ -178,7 +188,7 @@ class BhiliaTaxCalculator
 
     public function hasRwh(): void
     {
-        if (($this->_REQUEST["isWaterHarvesting"] ?? false) || $this->_isVacantLand) {
+        if (($this->_REQ["isWaterHarvesting"] ?? false) || $this->_isVacantLand) {
             $this->_hasRWH = true;
         }
     }
@@ -186,8 +196,8 @@ class BhiliaTaxCalculator
     public function setFromDate(): void
     {
         $this->_fromDate = $this->_isVacantLand 
-            ? $this->_REQUEST["landOccupationDate"] 
-            : collect($this->_REQUEST["floorDtl"])->min("dateFrom");
+            ? $this->_REQ["landOccupationDate"] 
+            : collect($this->_REQ["floorDtl"])->min("dateFrom");
 
         $this->_fromDate = Carbon::parse($this->_fromDate)->format("Y-m-01");
     }
@@ -242,21 +252,21 @@ class BhiliaTaxCalculator
         if ($this->_isVacantLand) {            
             ++$code;
             $mobileAndHordingTowerArea = 0;
-            if ($this->_REQUEST["isMobileTower"] ?? false) {
-                $mobileAndHordingTowerArea += (float) ($this->_REQUEST["towerArea"] ?? 0);
+            if ($this->_REQ["isMobileTower"] ?? false) {
+                $mobileAndHordingTowerArea += (float) ($this->_REQ["towerArea"] ?? 0);
             }
-            if ($this->_REQUEST["isHoardingBoard"] ?? false) {
-                $mobileAndHordingTowerArea += (float) ($this->_REQUEST["hoardingArea"] ?? 0);
+            if ($this->_REQ["isHoardingBoard"] ?? false) {
+                $mobileAndHordingTowerArea += (float) ($this->_REQ["hoardingArea"] ?? 0);
             }
 
-            $plotArea = $this->_REQUEST["areaOfPlot"];
+            $plotArea = $this->_REQ["areaOfPlot"];
             $floor = [
                 "code"=>"COD".str_pad($code,2,"0",STR_PAD_LEFT),
                 "floorName" => "VacantLand",
                 "areaOfPlot" => $plotArea,
                 "builtupArea" => $plotArea - ($mobileAndHordingTowerArea * 1.43),
                 "mobileAndHordingTowerArea" => $mobileAndHordingTowerArea,
-                "dateFrom" => $this->_REQUEST["landOccupationDate"],
+                "dateFrom" => $this->_REQ["landOccupationDate"],
                 "floorMasterId" => "0",
                 "usageTypeMasterId" => "1",
                 "constructionTypeMasterId" => 0,
@@ -271,7 +281,7 @@ class BhiliaTaxCalculator
             
             $this->_FloorWiseTax->push($floor);
         } else {
-            foreach ($this->_REQUEST["floorDtl"] as $val) {                
+            foreach ($this->_REQ["floorDtl"] as $val) {                
                 ++$code;
                 $val["tax"] = collect();
                 $val["code"]="COD".str_pad($code,2,"0",STR_PAD_LEFT);
@@ -385,7 +395,7 @@ class BhiliaTaxCalculator
                     $ratePercent = $ratePercentDtl->complex_rate_percent;
                 }
 
-                if (($sumTaxableArea <= 500 && $isResident && $isKacha) || ($this->_REQUEST->isDp ?? false)) {
+                if (($sumTaxableArea <= 500 && $isResident && $isKacha) || ($this->_REQ->isDp ?? false)) {
                     $ratePercent = 0;
                 }
 
@@ -418,6 +428,7 @@ class BhiliaTaxCalculator
                 $exArmyRebate = 0;
                 $chabootraRebate = 0;
                 $shopRebate = 0;
+                $schoolRebate=0;
 
                 if($this->_IsExArmy){
                     $exArmyRebate = $HoldingTax;
@@ -425,9 +436,14 @@ class BhiliaTaxCalculator
                     $chabootraRebate = $HoldingTax;
                 }elseif($this->_IsShop){
                     $shopRebate = $HoldingTax;
+                }elseif($this->_Is12ASchool){
+                    $schoolRebate = $HoldingTax;
+                }
+                elseif($this->_IsSchool){
+                   $schoolRebate = $HoldingTax/2;
                 }
 
-                $TotalTax = round((($HoldingTax + $compositeTax + $EducationCessTax)-($exArmyRebate + $chabootraRebate + $shopRebate)), 2);
+                $TotalTax = round((($HoldingTax + $compositeTax + $EducationCessTax)-($exArmyRebate + $chabootraRebate + $shopRebate + $schoolRebate)), 2);
 
                 $yearlyTax=[
                     "ruleSet"                   =>$key,
@@ -438,6 +454,7 @@ class BhiliaTaxCalculator
                     "usageFactor"               => $usageFactor,
                     "exArmyRebate"              =>$exArmyRebate,
                     "chabootraRebate"           =>$chabootraRebate,
+                    "schoolRebate"              =>$schoolRebate,
                     "HoldingTax"                => $HoldingTax,
                     "HoldingTaxQuarterly"       => round($HoldingTax / 4, 2),
                     "CompositeTax"              => $compositeTax,
