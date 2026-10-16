@@ -32,7 +32,7 @@ const TradePaymentReceipt = lazy(() => import("./modules/trade/pages/TradePaymen
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const SWMRoute = lazy(() => import("./modules/swm/index"));
 const ShopRentRoute = lazy(() => import("./modules/shopRent/index"));
-const SwmPaymentReceipt = lazy(() => import("./modules/swm/pages/SwmPaymentReceipt"));
+const ShopPaymentReceipt = lazy(() => import("./modules/shopRent/pages/ShopPaymentReceipt"));const SwmPaymentReceipt = lazy(() => import("./modules/swm/pages/SwmPaymentReceipt"));
 const SwmDemandReceipt = lazy(() => import("./modules/swm/pages/SwmDemandReceipt"));
 const TaxCalculator = lazy(() => import("./modules/property/component/TaxCalculator"));
 
@@ -85,6 +85,10 @@ function App() {
             <Route path="/water/*" element={<WaterRoute />} />
             <Route path="/accounts/*" element={<AccountsRoute />} />
             <Route path="/swm/*" element={<SWMRoute />} />
+            <Route
+              path="/shop-rent/payment-receipt/:id"
+              element={<ShopPaymentReceipt />}
+            />
             <Route path="/shop-rent/*" element={<ShopRentRoute />} />
             <Route
               path="/water-app/payment-receipt/:id"

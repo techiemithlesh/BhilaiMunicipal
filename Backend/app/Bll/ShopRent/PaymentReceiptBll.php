@@ -117,6 +117,5 @@ class PaymentReceiptBll
     public function generateReceipt(){
         $this->loadParam();
         $this->consumerReceipt();
-        dd($this);
     }
 }

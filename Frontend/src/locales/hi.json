@@ -176,5 +176,17 @@
   "can also verify at":"पर भी कर सकते हैं।",
   "Shop Received From":"के द्वारा प्राप्ती श्री / श्रीमती",
   "Shop Total Demand":"कुल डिमांड",
-  "Shop Total Demand (In Words)":"कुल डिमांड (शब्दों में)"
+  "Shop Total Demand (In Words)":"कुल डिमांड (शब्दों में)",
+  "SHOP RENT":"दुकान किराया",
+  "Payment Receipt":"शुल्क रसीद",
+  "Guardian Name":"अभिभावक का नाम",
+  "Shop Rent & Others":"दुकान किराए पर शुल्क एवं अन्य",
+  "Shop Rent Charge & Others (Receipt)":"दुकान किराए पर शुल्क एवं अन्य",
+  "SHOP RENT CHARGE DETAILS":"दुकान किराया शुल्क का विवरण",
+  "Due Period":"देय अवधि",
+  "Shop Amount":"रकम",
+  "Shop Total Amount":"कुल रकम",
+  "Shop Rent Charge Fee":"दुकान किराया शुल्क",
+  "Shop Sum of Rs.":"कुल रुपये :",
+  "This is a Computer generated Receipt and does not require physical signature.":"यह कंप्यूटर जनित रसीद है इस रसीद मे हस्ताक्षर की आवश्यकता नहीं है ।"
 }

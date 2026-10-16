@@ -14,6 +14,7 @@ import { getToken } from "../../../utils/auth";
 import { formatLocalDate } from "../../../utils/common";
 import ShopDemandHistoryModal from "../components/ShopDemandHistoryModal";
 import ShopGenerateDemandModal from "../components/ShopGenerateDemandModal";
+import ShopPaymentReceiptModal from "../components/ShopPaymentReceiptModal";
 
 // The API returns a relative storage path for the rent document. Only a full URL can be opened.
 const isUrl = (value) => /^https?:\/\//i.test(value || "");
@@ -27,6 +28,7 @@ function ShopDetails() {
   const [notFound, setNotFound] = useState("");
   const [isDemandHistoryOpen, setIsDemandHistoryOpen] = useState(false);
   const [isGenerateDemandOpen, setIsGenerateDemandOpen] = useState(false);
+  const [receiptTranId, setReceiptTranId] = useState(null);
 
   const fetchDetails = async () => {
     if (!token) return;
@@ -195,6 +197,7 @@ function ShopDetails() {
             { label: "Demand Amount" },
             { label: "Penalty" },
             { label: "Paid Amount" },
+            { label: "View" },
           ]}
           renderRow={(tran, idx) => (
             <tr key={tran.id ?? idx}>
@@ -207,6 +210,17 @@ function ShopDetails() {
               <td className="px-3 py-2 border">{tran.demandAmt}</td>
               <td className="px-3 py-2 border">{tran.penaltyAmt}</td>
               <td className="px-3 py-2 border">{tran.payableAmt}</td>
+              <td className="px-3 py-2 border">
+                {tran.id && (
+                  <button
+                    onClick={() => setReceiptTranId(tran.id)}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded font-medium text-white text-sm transition duration-200"
+                  >
+                    <FaEye className="text-base" />
+                    <span>View</span>
+                  </button>
+                )}
+              </td>
             </tr>
           )}
           data={appData.tranDtls || []}
@@ -222,6 +236,9 @@ function ShopDetails() {
 
       {isDemandHistoryOpen && (
         <ShopDemandHistoryModal id={appData.id} onClose={() => setIsDemandHistoryOpen(false)} />
+      )}
+      {receiptTranId && (
+        <ShopPaymentReceiptModal id={receiptTranId} onClose={() => setReceiptTranId(null)} />
       )}
       {isGenerateDemandOpen && (
         <ShopGenerateDemandModal
