@@ -8,8 +8,6 @@ use App\Models\DBSystem\DriverDetail;
 use App\Models\DBSystem\RoleTypeMstr;
 use App\Models\DBSystem\UlbMaster;
 use App\Models\DBSystem\UlbWardMaster;
-use App\Models\DBSystem\VehicleDetail;
-use App\Models\DBSystem\VehicleMovementLog;
 use App\Models\DBSystem\WorkflowMaster;
 use App\Models\SWM\CategoryTypeMaster;
 use App\Models\SWM\Consumer;
@@ -40,9 +38,6 @@ class ReportController extends Controller
     private $_UlbWardMaster;
     private $_ConsumerTransaction;
     private $_ConsumerWastCollectionLog;
-    private $_VehicleDetail;
-    private $_DriverDetail;
-    private $_VehicleMovementLog;
 
     function __construct()
     {
@@ -54,10 +49,6 @@ class ReportController extends Controller
         $this->_UlbMaster  = new UlbMaster();
         $this->_UlbWardMaster = new UlbWardMaster();
         $this->_User = new User();
-
-        $this->_VehicleDetail = new VehicleDetail();
-        $this->_DriverDetail = new DriverDetail();
-        $this->_VehicleMovementLog = new VehicleMovementLog();
 
         $this->_Consumer = new Consumer();
         $this->_CategoryTypeMaster = new CategoryTypeMaster();
@@ -98,8 +89,6 @@ class ReportController extends Controller
                 "w.guardian_name",
                 "w.mobile_no",
                 "c.rate",
-                "category_type_masters.category_type",
-                "sub_category_type_masters.sub_category_type",
             ];
 
             $summarySelect=[
@@ -115,8 +104,6 @@ class ReportController extends Controller
                         ->where("consumer_transactions.user_type","<>","ONLINE");
                     })
                     ->join("consumers","consumers.id","consumer_transactions.consumer_id")
-                    ->leftJoin("category_type_masters","category_type_masters.id","consumers.category_type_master_id")
-                    ->leftJoin("sub_category_type_masters","sub_category_type_masters.id","consumers.sub_category_type_master_id")
                     ->leftJoin(DB::raw("(
                                         select consumer_id,
                                             string_agg(owner_name,',') as owner_name, 
@@ -397,7 +384,7 @@ class ReportController extends Controller
                 ->from("consumers as c")
                 ->select(DB::raw("
                     c.id,c.consumer_no,c.address,c.ward_mstr_id,c.holding_no,
-                    ct.category_type,wm.ward_no,w.owner_name,w.guardian_name, w.mobile_no ,
+                    wm.ward_no,w.owner_name,w.guardian_name, w.mobile_no ,
                     (COALESCE(demands.arrear_tax,0) - COALESCE(priv_collection.total_priv_collection,0)) as arrear_tax,
                     COALESCE(demands.current_tax,0) as current_tax, 
                     ((COALESCE(demands.arrear_tax,0) - COALESCE(priv_collection.total_priv_collection,0)) + COALESCE(demands.current_tax,0)) as total_tax,
@@ -420,8 +407,7 @@ class ReportController extends Controller
                     COALESCE(penalty_rebate.rebate,0) as rebate,
                     COALESCE(penalty_rebate.penalty,0) as penalty
                 "))
-                ->join("ulb_ward_masters as wm","wm.id","c.ward_mstr_id")
-                ->join("category_type_masters as ct","ct.id","c.category_type_master_id")                
+                ->join("ulb_ward_masters as wm","wm.id","c.ward_mstr_id")              
                 ->leftJoin(DB::raw("(
                         select consumer_id,string_agg(owner_name,',') as owner_name , string_agg(guardian_name,',') as guardian_name, string_agg(cast(mobile_no as text),',') as mobile_no,
                         string_agg(email,',') as email
@@ -653,12 +639,11 @@ class ReportController extends Controller
             $orm = $this->_Consumer
                 ->select(DB::raw("
                     c.id,c.consumer_no,c.address,c.ward_mstr_id,c.holding_no,
-                    ct.category_type,wm.ward_no,w.owner_name,w.guardian_name, w.mobile_no ,
+                    wm.ward_no,w.owner_name,w.guardian_name, w.mobile_no ,
                     demands.demand_from,demands.demand_upto,demands.total_tax
                 "))
                 ->from("consumers as c")     
-                ->join("ulb_ward_masters as wm","wm.id","c.ward_mstr_id") 
-                ->join("category_type_masters as ct","ct.id","c.category_type_master_id")           
+                ->join("ulb_ward_masters as wm","wm.id","c.ward_mstr_id")           
                 ->join(DB::raw("
                     (
                         select consumer_id, sum(balance) as total_tax,
@@ -683,18 +668,6 @@ class ReportController extends Controller
                     $request->merge(["wardId"=>[$request->wardId]]);
                 }
                 $orm->whereIn("c.ward_mstr_id",$request->wardId);
-            }
-            if($request->meterTypeId){
-                if(!is_array($request->meterTypeId)){
-                    $request->merge(["meterTypeId",[$request->meterTypeId]]);
-                }
-                $orm->whereIn("meter_status.meter_type_id",$request->meterTypeId);
-            }
-            if($request->propertyTypeId){
-                if(!is_array($request->propertyTypeId)){
-                    $request->merge(["propertyTypeId"=>[$request->propertyTypeId]]);
-                }
-                $orm->whereIn("c.property_type_id",$request->propertyTypeId);
             }
             $summaryQuery = clone $orm;
             $orm->orderBy("c.ward_mstr_id");
@@ -1119,36 +1092,6 @@ class ReportController extends Controller
         }catch (CustomException $e) {
             return responseMsg(false, $e->getMessage(), '');
         } catch (Exception $e) {
-            return responseMsg(false, 'Internal Server Error!!', '');
-        }
-    }
-
-    public function getVehicleTodayLog(Request $request){
-        try{
-            $date = Carbon::parse($request->date)->format("Y-m-d");
-            $vehicle = $this->_VehicleDetail->where("lock_status",false)->get();
-            $log = $this->_VehicleMovementLog
-                    ->select("vehicle_movement_logs.*","vehicle_driver_maps.vehicle_id","vehicle_driver_maps.driver_id")
-                    ->join("vehicle_driver_maps","vehicle_driver_maps.id","vehicle_movement_logs.vehicle_driver_map_id")
-                    ->where("vehicle_movement_logs.lock_status",false)
-                    ->where(DB::raw("vehicle_movement_logs.created_at::date"),$date)
-                    ->orderBy("vehicle_movement_logs.id","ASC")
-                    ->get();
-            $data = $vehicle->map(function($item)use($log){
-                $path = $log->where("vehicle_id",$item->id)->sortBy('id');
-                $last = $path->last();
-                $driver = $this->_DriverDetail->find($last?->driver_id);
-                $item->type = "truck";
-                $item->path = $path;
-                $item->latitude = $last?->latitude;
-                $item->longitude = $last?->longitude;
-                $item->driver_name = $driver?->driver_name;                
-                return $item;
-            });
-            return responseMsg(true,"Vehicle Movement",camelCase(remove_null($data)));
-        }catch (CustomException $e) {
-            return responseMsg(false, $e->getMessage(), '');
-        } catch (Exception $e) {dd($e);
             return responseMsg(false, 'Internal Server Error!!', '');
         }
     }

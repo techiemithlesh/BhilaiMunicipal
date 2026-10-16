@@ -9,6 +9,8 @@ use App\Bll\Trade\TransactionDeactivationBll as TradeTransactionDeactivationBll;
 use App\Bll\Water\TransactionDeactivationBll as WaterTransactionDeactivationBll;
 use App\Exceptions\CustomException;
 use App\Http\Controllers\Property\ReportController as PropertyReportController;
+use App\Http\Controllers\SWM\ReportController as SwmReportController;
+use App\Http\Controllers\ShopRent\ReportController as ShopReportController;
 use App\Http\Controllers\Trade\ReportController as TradeReportController;
 use App\Http\Controllers\Water\ReportController as WaterReportController;
 use App\Models\DBSystem\ModuleMaster;
@@ -1196,27 +1198,40 @@ class AccountController extends Controller
             $propertyReports = new PropertyReportController();
             $tradeReports = new TradeReportController();
             $waterReports = new WaterReportController();
+            $swmReports = new SwmReportController();
+            $shopReports = new ShopReportController();
+
             $propResponse = $propertyReports->collectionSummary($request);
             $tradeResponse = $tradeReports->collectionSummary($request);
             $waterResponse = $waterReports->collectionSummary($request);
+            $swmResponse = $swmReports->collectionSummary($request);
+            $shopResponse = $shopReports->collectionSummary($request);
 
             $propertyPaymentListResponse = $propertyReports->getPaymentMode($request);
             $waterPaymentListResponse = $waterReports->getPaymentMode($request);
             $tradePaymentListResponse = $tradeReports->getPaymentMode($request);
+            $swmPaymentListResponse = $swmReports->getPaymentMode($request);
+            $shopPaymentListResponse = $shopReports->getPaymentMode($request);
 
             $propertyPaymentListResponse = $propertyPaymentListResponse->original["status"]?$propertyPaymentListResponse->original["data"]:collect();
             $waterPaymentListResponse = $waterPaymentListResponse->original["status"]?$waterPaymentListResponse->original["data"]:collect();
             $tradePaymentListResponse = $tradePaymentListResponse->original["status"]?$tradePaymentListResponse->original["data"]:collect();
+            $swmPaymentListResponse = $swmPaymentListResponse->original["status"]?$swmPaymentListResponse->original["data"]:collect();
+            $shopPaymentListResponse = $shopPaymentListResponse->original["status"]?$shopPaymentListResponse->original["data"]:collect();
             
 
             $propTran = $propResponse->original["status"]?$propResponse->original["data"]:collect();
             $tradeTran = $tradeResponse->original["status"]?$tradeResponse->original["data"]:collect();
             $waterTran = $waterResponse->original["status"]?$waterResponse->original["data"]:collect();
+            $swmTran = $swmResponse->original["status"]?$swmResponse->original["data"]:collect();
+            $shopTran = $shopResponse->original["status"]?$shopResponse->original["data"]:collect();
             
             $paymentMode = collect()
                         ->merge($propertyPaymentListResponse->pluck("paymentMode"))
                         ->merge($waterPaymentListResponse->pluck("paymentMode"))
                         ->merge($tradePaymentListResponse->pluck("paymentMode"))
+                        ->merge($swmPaymentListResponse->pluck("paymentMode"))
+                        ->merge($shopPaymentListResponse->pluck("paymentMode"))
                         ->unique()
                         ->sort();
 
@@ -1258,14 +1273,34 @@ class AccountController extends Controller
                 ];
             });
 
-            $paymentModeWise = $paymentMode->map(function($val)use($propTran,$tradeTran,$waterTran){  
-                $propAmount = $propTran->where("paymentMode",$val);
-                $tradeAmount = $tradeTran->where("paymentMode",$val);  
-                $waterAmount = $waterTran->where("paymentMode",$val);           
+            $swm = $paymentMode->map(function($val)use($swmTran){  
+                $list = $swmTran->where("paymentMode",$val);              
                 return[
                         "key"=>$val,
-                        "amount"=>roundFigure($propAmount->sum("payableAmt") + $tradeAmount->sum("payableAmt") + $waterAmount->sum("payableAmt")),
-                        "count"=>($propAmount->count() + $tradeAmount->count()),
+                        "amount"=>roundFigure($list->sum("payableAmt")),
+                        "count"=>$list->count(),
+                ];
+            });
+
+            $shop = $paymentMode->map(function($val)use($shopTran){  
+                $list = $shopTran->where("paymentMode",$val);              
+                return[
+                        "key"=>$val,
+                        "amount"=>roundFigure($list->sum("payableAmt")),
+                        "count"=>$list->count(),
+                ];
+            });
+            
+            $paymentModeWise = $paymentMode->map(function($val)use($propTran,$tradeTran,$waterTran,$swmTran,$shopTran){  
+                $propAmount = $propTran->where("paymentMode",$val);
+                $tradeAmount = $tradeTran->where("paymentMode",$val);  
+                $waterAmount = $waterTran->where("paymentMode",$val);  
+                $swmAmount = $swmTran->where("paymentMode",$val);                   
+                $shopAmount = $shopTran->where("paymentMode",$val);           
+                return[
+                        "key"=>$val,
+                        "amount"=>roundFigure($propAmount->sum("payableAmt") + $tradeAmount->sum("payableAmt") + $waterAmount->sum("payableAmt") + $swmAmount->sum("payableAmt") + $shopAmount->sum("payableAmt")),
+                        "count"=>($propAmount->count() + $tradeAmount->count() + $waterAmount->count() + $swmAmount->count() + $shopAmount->count()),
                     ];
             });
             $data=[
@@ -1307,6 +1342,22 @@ class AccountController extends Controller
                             "amount"=>roundFigure($water->sum("amount")),
                         ]
                     ],
+                    [
+                        "title"=>"SWM Collection Description",
+                        "data"=>$swm->values(),
+                        "total"=>[
+                            "count"=>$swm->sum("count"),
+                            "amount"=>roundFigure($swm->sum("amount")),
+                        ]
+                    ],
+                    [
+                        "title"=>"Shop Collection Description",
+                        "data"=>$shop->values(),
+                        "total"=>[
+                            "count"=>$shop->sum("count"),
+                            "amount"=>roundFigure($shop->sum("amount")),
+                        ]
+                    ],
                 ],
             ];
             
@@ -1333,14 +1384,20 @@ class AccountController extends Controller
             $propertyReports = new PropertyReportController();
             $tradeReports = new TradeReportController();
             $waterReports = new WaterReportController();
+            $swmReports = new SwmReportController();
+            $shopReports = new ShopReportController();
 
             $propResponse = $propertyReports->collectionReport($request);
             $tradeResponse = $tradeReports->collectionReport($request);
             $waterResponse = $waterReports->collectionReport($request);
+            $swmResponse = $swmReports->collectionReport($request);
+            $shopResponse = $shopReports->collectionReport($request);
 
             $propTran = $propResponse->original["status"]?$propResponse->original["data"]:collect();
             $tradeTran = $tradeResponse->original["status"]?$tradeResponse->original["data"]:collect();
             $waterTran = $waterResponse->original["status"]?$waterResponse->original["data"]:collect();
+            $swmTran = $swmResponse->original["status"]?$swmResponse->original["data"]:collect();
+            $shopTran = $shopResponse->original["status"]?$shopResponse->original["data"]:collect();
 
             $fromDate = Carbon::parse($request->fromDate);
             $uptoDate = Carbon::parse( $request->uptoDate);
@@ -1352,6 +1409,8 @@ class AccountController extends Controller
                 $saf = $propTran->where("tranDate",$date)->where("safTran",TRUE);
                 $trade = $tradeTran->where("tranDate",$date);
                 $water = $waterTran->where("tranDate",$date);
+                $swm = $swmTran->where("tranDate",$date);
+                $shop = $shopTran->where("tranDate",$date);
                 $response->push([
                     "date"=> $fromDate->clone()->format("Y-m-d"),
                     "propertyAmount"=>roundFigure($prop->sum("payableAmt")),
@@ -1362,7 +1421,11 @@ class AccountController extends Controller
                     "totalWater"=>$water->count("id"),
                     "tradeAmount"=>roundFigure($trade->sum("payableAmt")),
                     "totalTrade"=>$trade->count("id"),
-                    "totalAmount"=>roundFigure($prop->sum("payableAmt") + $saf->sum("payableAmt") + $water->sum("payableAmt") +$trade->sum("payableAmt") ),
+                    "swmAmount"=>roundFigure($swm->sum("payableAmt")),
+                    "totalSwm"=>$swm->count("id"),
+                    "shopAmount"=>roundFigure($shop->sum("payableAmt")),
+                    "totalShop"=>$shop->count("id"),
+                    "totalAmount"=>roundFigure($prop->sum("payableAmt") + $saf->sum("payableAmt") + $water->sum("payableAmt") + $trade->sum("payableAmt") + $swm->sum("payableAmt") + $shop->sum("payableAmt")),
                 ]);
                 $fromDate = $fromDate->addDay();
             }
@@ -1382,6 +1445,10 @@ class AccountController extends Controller
                     "totalWater"=>$response->sum("totalWater"),
                     "tradeAmount"=>roundFigure($response->sum("tradeAmount")),
                     "totalTrade"=>$response->sum("totalTrade"),
+                    "swmAmount"=>roundFigure($response->sum("swmAmount")),
+                    "totalSwm"=>$response->sum("totalSwm"),
+                    "shopAmount"=>roundFigure($response->sum("shopAmount")),
+                    "totalShop"=>$response->sum("totalShop"),
                 ],                
             ];
             return responseMsg(true,"Date Wise Collection",camelCase(remove_null($data)));

@@ -26,6 +26,10 @@ function DateWiseCollection() {
         { label: "Total Water", key: "totalWater" },
         { label: "Trade", key: "tradeAmount" },
         { label: "Total Trade", key: "totalTrade" },
+        { label: "SWM", key: "swmAmount" },
+        { label: "Total SWM", key: "totalSwm" },
+        { label: "SHOP", key: "shopAmount" },
+        { label: "Total Shop", key: "totalShop" },
         { label: "Total", key: "totalAmount" },
     ];
 
@@ -46,6 +50,10 @@ function DateWiseCollection() {
             <td className="px-3 py-2 border">{item?.totalWater}</td>
             <td className="px-3 py-2 border">{item?.tradeAmount}</td>
             <td className="px-3 py-2 border">{item?.totalTrade}</td>
+            <td className="px-3 py-2 border">{item?.swmAmount}</td>
+            <td className="px-3 py-2 border">{item?.totalSwm}</td>
+            <td className="px-3 py-2 border">{item?.shopAmount}</td>
+            <td className="px-3 py-2 border">{item?.totalShop}</td>
             <td className="px-3 py-2 border">{item.totalAmount}</td>
         
         </tr>
@@ -65,6 +73,10 @@ function DateWiseCollection() {
             <td className="px-3 py-2 border">{totals.totalWater}</td>
             <td className="px-3 py-2 border">{totals.tradeAmount}</td>
             <td className="px-3 py-2 border">{totals.totalTrade}</td>
+            <td className="px-3 py-2 border">{totals.swmAmount}</td>
+            <td className="px-3 py-2 border">{totals.totalSwm}</td>
+            <td className="px-3 py-2 border">{totals.shopAmount}</td>
+            <td className="px-3 py-2 border">{totals.totalShop}</td>
             <td className="px-3 py-2 border">{totals.totalAmount}</td>
         </tr>
     );
@@ -79,6 +91,10 @@ function DateWiseCollection() {
             { content: summary?.totalWater },
             { content: summary?.tradeAmount },
             { content: summary?.totalTrade },
+            { content: summary?.swmAmount },
+            { content: summary?.totalSwm },
+            { content: summary?.shopAmount },
+            { content: summary?.totalShop },
             { content: summary?.totalAmount },
         ]; 
 
