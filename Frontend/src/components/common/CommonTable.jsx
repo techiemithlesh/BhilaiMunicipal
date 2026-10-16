@@ -19,6 +19,7 @@ export default function CommonTable({
   setPageNo = () => {},
   setItemsPerPage = () => {},
   isSearchInput = true,
+  isShopPerPageItem=true,
   search = "",
   setSearch = () => {},
   onSearch = () => {},
@@ -235,41 +236,44 @@ export default function CommonTable({
       </div>
 
       {/* Items per page and pagination links */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4 text-sm gap-2 md:gap-0">
-          
-          {/* Left side — items per page */}
-          <div className="flex items-center space-x-2 flex-wrap">
-            <span>Show</span>
-            <select
-              className="px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={itemsPerPage === totalItem ? "-1" : itemsPerPage}
-              onChange={(e) => {
-                const value = e.target.value;
-                const numValue = value === "-1" ? totalItem : Number(value);
-                setItemsPerPage(numValue);
-                setPageNo(1);
-              }}
-            >
-              {[10, 25, 50, 100, 500, 1000].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-              <option value="-1">All</option>
-            </select>
-            <span>items per page</span>
+        {isShopPerPageItem &&(
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4 text-sm gap-2 md:gap-0">
+            
+            {/* Left side — items per page */}
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span>Show</span>
+              <select
+                className="px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={itemsPerPage === totalItem ? "-1" : itemsPerPage}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === "-1" ? totalItem : Number(value);
+                  setItemsPerPage(numValue);
+                  setPageNo(1);
+                }}
+              >
+                {[10, 25, 50, 100, 500, 1000].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+                <option value="-1">All</option>
+              </select>
+              <span>items per page</span>
+            </div>
+
+            {/* Right side — pagination links */}
+            {links && (
+              <div
+                className="flex justify-end items-center gap-2 ml-auto w-full md:w-auto 
+                          overflow-x-auto md:overflow-visible whitespace-nowrap scrollbar-hide px-1"
+              >
+                {links}
+              </div>
+            )}
           </div>
 
-          {/* Right side — pagination links */}
-          {links && (
-            <div
-              className="flex justify-end items-center gap-2 ml-auto w-full md:w-auto 
-                        overflow-x-auto md:overflow-visible whitespace-nowrap scrollbar-hide px-1"
-            >
-              {links}
-            </div>
-          )}
-        </div>
+        )}
 
 
       {/* Table */}

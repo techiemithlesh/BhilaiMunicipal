@@ -165,7 +165,6 @@ function TeamSummary() {
   const headers = [
     { label: "#", key: "serial" },
     { label: "Tax Collector", key: "name" },
-    { label: "Ward No.", key: "permittedWard" },
     { label: "Total Consumer", key: "count" },
     { label: "Amount", key: "amount" },
   ];
@@ -176,7 +175,6 @@ function TeamSummary() {
         {(currentPage - 1) * perPage + index + 1}
       </td>
       <td className="px-3 py-2 border">{item.name}</td>
-      <td className="px-3 py-2 border">{item.permittedWard}</td>
       <td className="px-3 py-2 border">{item.count}</td>
       <td className="px-3 py-2 border">{item.amount}</td>
     </tr>
@@ -266,6 +264,7 @@ function TeamSummary() {
         fetchAllData={fetchAllData}
         filterComponent={filterComponent}
         isPaginator={false}
+        isShopPerPageItem={false}
       />
     </div>
   );

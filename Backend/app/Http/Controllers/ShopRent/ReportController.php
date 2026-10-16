@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ReportController extends Controller
 {
@@ -243,6 +244,54 @@ class ReportController extends Controller
             ];
             return responseMsg(true,"Transaction Summary Fetched",camelCase(remove_null($summary)));
         } catch (CustomException $e) {
+            return responseMsg(false, $e->getMessage(), '');
+        } catch (Exception $e) {
+            return responseMsg(false, 'Internal Server Error!!', '');
+        }
+    }
+
+    public function teamSummary(Request $request){
+        try{
+            $rule=[
+                "fromDate"=>"required|date",
+                "uptoDate"=>"required|date",
+                "tlId"=>"nullable|digits_between:1,9223372036854775807",
+                "userId"=>"nullable|digits_between:1,9223372036854775807",
+            ];
+            $request->merge(["all"=>true]);
+            $validator = Validator::make($request->all(),$rule);
+            if($validator->fails()){
+                return validationError($validator);
+            }
+
+            if(!$request->userId && $request->tlId){
+                $tcIds = $this->_User->where("lock_status",false)->where("report_to",$request->tlId)->get();
+                $request->merge(["userId"=>$tcIds->pluck("id")]);
+            }
+            $users = $this->_User->where("lock_status",false);
+
+            if($request->userId)
+            $users->whereIn("id",$request->userId);
+
+            $users = $users->get();
+            $collection = $this->collectionReport($request);
+            if(!$collection->original["status"]){
+                throw new CustomException($collection->original["message"]);
+            }
+            $collection = $collection->original["data"];
+
+            $data = $users->map(function($item)use($collection){
+                $userCollection = $collection->where("userId",$item->id);
+                $ward = $item->getUserWards()->get();
+                $item->permittedWard = $ward->pluck("ward_no")->implode(" , ");
+                $item->wardList = $ward;
+                $item->amount = roundFigure($userCollection->sum("payableAmt"));
+                $item->count = $userCollection->count("id");
+                return $item;
+            });
+
+            return responseMsg(true,"Team Summary Fetched",camelCase(remove_null($data)));
+        }catch (CustomException $e) {
             return responseMsg(false, $e->getMessage(), '');
         } catch (Exception $e) {
             return responseMsg(false, 'Internal Server Error!!', '');

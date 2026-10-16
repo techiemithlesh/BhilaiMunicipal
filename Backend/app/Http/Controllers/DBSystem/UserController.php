@@ -805,6 +805,90 @@ class UserController extends Controller
         }
     }
 
+    public function tlList(Request $request){
+        try{
+            $ulbId = $request->ulbId?? Auth()->user()->ulb_id;
+            $tlIds = $this->_modelUser->where("lock_status",false)
+                    ->whereNotNull("report_to")
+                    ->get()
+                    ->unique("report_to");
+
+            $userList = $this->_modelUser
+                        ->select("users.*")
+                        ->join("user_role_maps","user_role_maps.user_id","users.id")
+                        ->where("user_role_maps.lock_status",false)
+                        ->where("users.lock_status",false)
+                        ->where("users.ulb_id",$ulbId)
+                        ->whereIn("users.id",$tlIds->pluck("report_to"))
+                        ->orderBy("users.name","ASC") 
+                        ->get();            
+            return responseMsg(true,"TL list",$userList);
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){dd($e);
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
+    public function tlUserList(Request $request){
+        try{
+            $ulbId = $request->ulbId?? Auth()->user()->ulb_id;
+            $userList = $this->_modelUser
+                        ->select("users.*")
+                        ->join("user_role_maps","user_role_maps.user_id","users.id")
+                        ->where("user_role_maps.lock_status",false)
+                        ->where("users.lock_status",false)
+                        ->where("users.ulb_id",$ulbId)
+                        ->whereNotNull("users.report_to")
+                        ->where("users.report_to",$request->tlId)
+                        ->orderBy("users.name","ASC") 
+                        ->get();            
+            return responseMsg(true,"TC list",$userList);
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){dd($e);
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
+    public function getTcList(Request $request){
+        try{
+            $ulbId = $request->ulbId;
+            $data = $this->_modelUser->select("users.*",DB::raw("user_role.role_name,user_role.role_id"))
+                    ->join(DB::raw("(
+                        select user_role_maps.user_id,role_type_mstrs.role_name,user_role_maps.role_id
+                        from user_role_maps
+                        join role_type_mstrs on role_type_mstrs.id = user_role_maps.role_id
+                        where user_role_maps.lock_status = false AND role_type_mstrs.id = 3
+                    )as user_role"),"user_role.user_id","users.id");
+
+            if($request->key){
+                $data = $data->where(function($where) use($request){
+                    $where->orWhere("users.name","ILIKE","%".$request->key."%")
+                    ->orWhere("users.email","ILIKE","%".$request->key."%")
+                    ->orWhere("users.user_name","ILIKE","%".$request->key."%")
+                    ->orWhere("users.employee_code","ILIKE","%".$request->key."%");
+                });
+            }
+            if($ulbId){
+                $data->where("users.ulb_id",$ulbId);
+            }
+            $data = $data
+                ->where("users.lock_status",false)
+                ->get()
+                ->map(function($val){
+                    $val->user_img = $val->user_img ? url("/")."/".$val->user_img : null;
+                    $val->wardMaps = $val->getUserWards()->get();              
+                    return $val;
+                });
+            return responseMsg(true,"All Tc List",camelCase(remove_null($data)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }catch(Exception $e){dd($e);
+            return responseMsg(false,"Internal Server Error","");
+        }
+    }
+
     public function clearAllRedisData(){
         try{
             Redis::flushAll();

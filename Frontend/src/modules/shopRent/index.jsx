@@ -5,6 +5,9 @@ import ProtectedRoute from "../../components/common/ProtectedRoute";
 import AddShopRent from "./pages/AddShopRent";
 import SearchDtl from "./pages/SearchDtl";
 import ShopDetails from "./pages/ShopDetails";
+import CollectionReports from "./pages/CollectionReports";
+import PaymentModeSummary from "./pages/PaymentModeSummary";
+import TeamSummary from "./pages/TeamSummary";
 
 function index() {
   return (
@@ -42,6 +45,30 @@ function index() {
               </ProtectedRoute>
             }
           />
+          <Route
+              path="/report/collection"
+              element={
+                <ProtectedRoute>
+                  <CollectionReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/report/payment/mode/summary"
+              element={
+                <ProtectedRoute>
+                  <PaymentModeSummary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/report/team/summary"
+              element={
+                <ProtectedRoute>
+                  <TeamSummary />
+                </ProtectedRoute>
+              }
+            />
         </Routes>
       </AdminLayout>
     </Suspense>

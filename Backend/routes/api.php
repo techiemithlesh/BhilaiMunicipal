@@ -125,6 +125,10 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         Route::get("get-report-to","reportingList");
         Route::post("user-lock-unlock/{id}","userLockUnlock");
         Route::post("user-reset-password/{id}","resetPassword");
+
+        Route::post("get-tl-list","tlList");
+        Route::post("get-tl-tc-list","tlUserList");
+        Route::post("get-tc-list","getTcList")->withoutMiddleware(["auth:sanctum"]);
         
         Route::post("published/officer","getOfficerList")->withoutMiddleware(["auth:sanctum"]);
         Route::post("officer/list","getOfficerList");        

@@ -366,16 +366,6 @@ export const swmConsumerBulkPaymentReceiptApi = `${BASE_URL}/api/swm/bulk-paymen
 export const swmConsumerDemandGenerateApi = `${BASE_URL}/api/swm/generate-demand`;
 export const swmConsumerDailyVisitingLogApi = `${BASE_URL}/api/swm/daily-visiting-log`;
 
-// shop rent
-export const shopRentMasterDataApi = `${BASE_URL}/api/shop-rent/get-master-data`;
-export const shopRentAddApi = `${BASE_URL}/api/shop-rent/add`;
-export const shopRentSearchApi = `${BASE_URL}/api/shop-rent/search`;
-export const shopRentDtlApi = `${BASE_URL}/api/shop-rent/dtl`;
-export const shopRentGenerateDemandApi = `${BASE_URL}/api/shop-rent/generate-demand`;
-export const shopRentDemandHistoryApi = `${BASE_URL}/api/shop-rent/demand-history`;
-export const shopRentDueApi = `${BASE_URL}/api/shop-rent/due`;
-export const shopRentPaymentReceiptApi = `${BASE_URL}/api/shop-rent/payment-receipt`;
-
 // swm report
 
 export const swmPaymentModeListApi = `${BASE_URL}/api/swm/report/payment-mode`;
@@ -396,6 +386,22 @@ export const swmWastCollationApi = `${BASE_URL}/api/swm/report/consumer-wast-col
 export const swmWardWiseWastCollationApi = `${BASE_URL}/api/swm/report/ward-wise-wast-collection`;
 export const swmTodayWastCollationApi = `${BASE_URL}/api/swm/report/today-wast-collection`;
 export const swmDateWiseAddConsumersApi = `${BASE_URL}/api/swm/report/date-wise-consumer-add`;
+
+// shop rent
+export const shopRentMasterDataApi = `${BASE_URL}/api/shop-rent/get-master-data`;
+export const shopRentAddApi = `${BASE_URL}/api/shop-rent/add`;
+export const shopRentSearchApi = `${BASE_URL}/api/shop-rent/search`;
+export const shopRentDtlApi = `${BASE_URL}/api/shop-rent/dtl`;
+export const shopRentGenerateDemandApi = `${BASE_URL}/api/shop-rent/generate-demand`;
+export const shopRentDemandHistoryApi = `${BASE_URL}/api/shop-rent/demand-history`;
+export const shopRentDueApi = `${BASE_URL}/api/shop-rent/due`;
+export const shopRentPaymentReceiptApi = `${BASE_URL}/api/shop-rent/payment-receipt`;
+
+// shop rent report
+export const shopPaymentModeListApi = `${BASE_URL}/api/shop-rent/report/payment-mode`;
+export const shopRentCollectionApi = `${BASE_URL}/api/shop-rent/report/collection`;
+export const shopCollectionSummaryApi = `${BASE_URL}/api/shop-rent/report/collection-summary`;
+export const shopRentTeamSummaryApi = `${BASE_URL}/api/shop-rent/report/team-summary`;
 
 // Accounts
 export const cashUserListApi = `${BASE_URL}/api/account/cash-user/list`;
