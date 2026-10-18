@@ -65,6 +65,7 @@ class BhiliaTaxCalculator
     public Collection $_mRoadType;
     public Collection $_mUsageTypeMaster;
     public Collection $_mBuildingArvRates;
+    public Collection $_mVacantLandArvRates;
     public Collection $_mVacantArvRates;
     public Collection $_mArvRangRates;
     public Collection $_mUsageTypeRateMaster;
@@ -171,6 +172,7 @@ class BhiliaTaxCalculator
         $this->_mRoadType = (new RoadType())->getRoadTypeList();
         $this->_mUsageTypeMaster  = (new UsageTypeMaster())->getUsageTypeList();
         $this->_mBuildingArvRates = (new BuildingArvRateMaster())->getRate();
+        $this->_mVacantLandArvRates = (new VacantArvRateMaster())->getRate();
         $this->_mVacantArvRates = (new VacantArvRateMaster())->getRate();
         $this->_mArvRangRates = (new ArvRangRate())->getArvRangeTypeList();
         $this->_mUsageTypeRateMaster = (new UsageTypeRateMaster())->getRate();
@@ -653,6 +655,13 @@ class BhiliaTaxCalculator
             ->where("construction_type_master_id", $constructionTypeMasterId)
             ->where("usage_type_id", $usageTypeMasterId)
             ->first(fn($item) => $item["effective_from"] <= $floorTax["effectiveUpto"] && ($item["effective_upto"] === null || $item["effective_upto"] >= $floorTax["effectiveFrom"]));
+        if($floor["floorMasterId"]==9){
+            $arvRateDtl = $this->_mVacantLandArvRates
+            ->where("ulb_id", $this->_ulbId)
+            ->where("zone_id", $zoneMstrId)
+            ->where("usage_type_id", $usageTypeMasterId)
+            ->first(fn($item) => $item["effective_from"] <= $floorTax["effectiveUpto"] && ($item["effective_upto"] === null || $item["effective_upto"] >= $floorTax["effectiveFrom"]));
+        }
 
         $arvRate = $arvRateDtl->rate ?? 0;
 
@@ -666,7 +675,7 @@ class BhiliaTaxCalculator
         $afterWidowCess = $taxableARV - $widowCess;
         $taxableARV = $afterWidowCess;        
 
-        $arv10Percent = $taxableARV * 0.1;
+        $arv10Percent = $taxableARV * ($floor["floorMasterId"]==9 ? 0 : 0.1);
         $taxableARV = $taxableARV - $arv10Percent;
 
         $physicalDisableCess = 0;

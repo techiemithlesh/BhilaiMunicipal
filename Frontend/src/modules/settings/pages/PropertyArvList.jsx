@@ -84,18 +84,21 @@ function PropertyArvList() {
                 matrix.flatMap((row) => Object.keys(row.roadTypes || {}))
               )
             );
+            if(periodBlock?.isVacantRateApply){
+              roadTypes.push("Open Land");
+            }
 
             // Collect construction types map per road type
             const roadTypeStructure = {};
             roadTypes.forEach((road) => {
               const constructionTypes = Array.from(
                 new Set(
-                  matrix.flatMap((row) =>
-                    Object.keys(row.roadTypes?.[road] || {})
+                  matrix.flatMap((row) =>                    
+                  road!=="Open Land" ? Object.keys(row.roadTypes?.[road] || {}) : Object.keys(row.vacantRate?.[road] || {}) 
                   )
                 )
               );
-              roadTypeStructure[road] = constructionTypes.length > 0 ? constructionTypes : ['RCC', 'ACC', 'OTHER'];
+              roadTypeStructure[road] = constructionTypes.length > 0 ? constructionTypes : [""];
             });
 
             return (
@@ -180,7 +183,7 @@ function PropertyArvList() {
                             {/* Dynamically render values matching Road -> Construction -> Usage */}
                             {roadTypes.map((road) =>
                               roadTypeStructure[road].map((cType) => {
-                                const rates = row.roadTypes?.[road]?.[cType] || {};
+                                const rates = road!=="Open Land" ? (row.roadTypes?.[road]?.[cType] || {}) : (row.vacantRate || {}) ;
                                 return (
                                   <React.Fragment key={`${road}-${cType}`}>
                                     <td className="border border-gray-400 px-2 py-2 text-center">

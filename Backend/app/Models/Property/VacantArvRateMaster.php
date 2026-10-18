@@ -9,8 +9,9 @@ class VacantArvRateMaster extends ParamModel
 {
     use HasFactory;
     protected $fillable = [
-        "ulb_type_id",
-        "road_type_id",
+        "ulb_id",
+        "zone_id",
+        "usage_type_id",
         "rate",
         "effective_from",
         "effective_upto",

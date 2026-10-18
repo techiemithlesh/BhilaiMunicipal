@@ -16,6 +16,7 @@ use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\RoadType;
 use App\Models\Property\RoadTypeMaster;
 use App\Models\Property\UsageTypeMaster;
+use App\Models\Property\VacantArvRateMaster;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Exception;
@@ -43,6 +44,7 @@ class MasterController extends Controller
     private $_OwnershipTypeMaster;
     private $_ApartmentDetail;
     private $_BuildingArvRateMaster;
+    private $_VacantArvRateMaster;
     private $_UlbWardMaster;
     private $_UlbMaster;
     private $_SYSTEM_CONST;
@@ -62,7 +64,7 @@ class MasterController extends Controller
         $this->_UlbMaster = new UlbMaster(); 
         
         $this->_BuildingArvRateMaster = new BuildingArvRateMaster();
-        
+        $this->_VacantArvRateMaster = new VacantArvRateMaster();
         $this->_SYSTEM_CONST = Config::get("SystemConstant");
     }
 
@@ -1013,17 +1015,47 @@ class MasterController extends Controller
                 ->orderBy("rt.construction_type_master_id", "ASC")
                 ->get();
 
+            $vacantRawData = $this->_VacantArvRateMaster
+                ->select(
+                    "rt.*",
+                    "zm.zone_name",
+                    DB::raw("
+                        CASE WHEN rt.usage_type_id = 1 THEN 'Resident'
+                        ELSE 'Commercial'
+                        END AS usage_type
+                    ")
+                )
+                ->from("vacant_arv_rate_masters AS rt")
+                ->leftJoin("zone_masters AS zm", "zm.id", "rt.zone_id")
+                ->where("rt.ulb_id", $ulbId)
+                ->where("rt.lock_status", false)
+                ->orderBy("rt.effective_from", "ASC")
+                ->orderBy("rt.zone_id", "ASC")
+                ->get();
+
+            $vacantRawDataGroup = $vacantRawData->groupBy(function ($item) {
+                                $from = getFy($item->effective_from);
+                                $upto = getFy($item->effective_upto);
+                                return "{$from} To {$upto}";
+                            });
+
             $responseMatrix = $rawData->groupBy(function ($item) {
                                 $from = getFy($item->effective_from);
                                 $upto = getFy($item->effective_upto);
                                 return "{$from} To {$upto}";
-                            })->map(function ($periodRecords, $periodTitle) {
+                            })->map(function ($periodRecords, $periodTitle) use($vacantRawDataGroup) {
 
                                 $zones = $periodRecords->pluck('zone_id')->unique()->sort()->values();
+                                $vacantRate = $vacantRawDataGroup[$periodTitle]??collect([]);
 
-                                $matrixRows = $zones->map(function ($zoneId) use ($periodRecords) {
+                                $matrixRows = $zones->map(function ($zoneId) use ($periodRecords,$vacantRate) {
                                     $zoneRecords = $periodRecords->where('zone_id', $zoneId);                                    
                                     $zoneName = $periodRecords->where('zone_id', $zoneId)->first()?->zone_name;
+                                    $zoneVacantRate = $vacantRate->where('zone_id', $zoneId);
+                                    $vacantRate = [
+                                        'Resident' => $zoneVacantRate->where('usage_type', 'Resident')->first()->rate ?? null,
+                                        'Commercial' => $zoneVacantRate->where('usage_type', 'Commercial')->first()->rate ?? null,
+                                    ];
                                     // Group by Road Type -> Construction Type -> Usage Type
                                     $roadTypes = $zoneRecords->groupBy('road_type')->map(function ($roadRecords) {
                                         return $roadRecords->groupBy('construction_type')->map(function ($cRecords) {
@@ -1034,16 +1066,19 @@ class MasterController extends Controller
                                         });
                                     });
 
-                                    return [
+                                    $data= [
                                         'zone' => $zoneId,
                                         "zone_name"=>$zoneName,
-                                        'roadTypes' => $roadTypes
+                                        'roadTypes' => $roadTypes,
+                                        "vacantRate"=>$vacantRate,
                                     ];
+                                    return $data;
                                 });
 
                                 return [
                                     'period' => $periodTitle,
-                                    'matrix' => $matrixRows
+                                    'matrix' => $matrixRows,
+                                    "isVacantRateApply"=>$vacantRate->isNotEmpty() ? true : false,
                                 ];
                             })->values();
 
@@ -1051,7 +1086,7 @@ class MasterController extends Controller
 
         } catch (CustomException $e) {
             return responseMsg(false, $e->getMessage(), "");
-        } catch (Exception $e) {
+        } catch (Exception $e) {dd($e);
             return responseMsg(false, "Server Error!!", "");
         }
     }
