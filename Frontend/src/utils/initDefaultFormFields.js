@@ -5,6 +5,7 @@ export const defaultFormFields = {
   isWaterHarvesting: false,
   isWidow: false,
   isSchool: false,
+  is12ASchool: false,
   isComplex: false,
   isDp: false,
   isExArmy: false,

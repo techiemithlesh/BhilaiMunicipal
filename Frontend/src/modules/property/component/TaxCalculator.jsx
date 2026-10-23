@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { FaCalculator } from "react-icons/fa";
@@ -30,6 +30,7 @@ const initialForm = {
   isOldProperty: false,
   isDp: false,
   isSchool: false,
+  is12ASchool: false,
   isComplex: false,
   isChabutra: false,
   isShopHolding: false,
@@ -138,6 +139,8 @@ const TaxCalculator = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+      // 12A is a kind of school, so it is cleared whenever "School" is unchecked
+      ...(name === "isSchool" && !checked ? { is12ASchool: false } : {}),
     }));
     setTaxDtl(null);
   };
@@ -387,16 +390,30 @@ const TaxCalculator = () => {
               )}
 
               {checkboxFields.map(({ name, label }) => (
-                <label key={name} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name={name}
-                    checked={formData[name]}
-                    onChange={handleChange}
-                    className="w-4 h-4"
-                  />
-                  {label}
-                </label>
+                <Fragment key={name}>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      name={name}
+                      checked={formData[name]}
+                      onChange={handleChange}
+                      className="w-4 h-4"
+                    />
+                    {label}
+                  </label>
+                  {name === "isSchool" && formData.isSchool && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="is12ASchool"
+                        checked={formData.is12ASchool}
+                        onChange={handleChange}
+                        className="w-4 h-4"
+                      />
+                      Is 12A School?
+                    </label>
+                  )}
+                </Fragment>
               ))}
             </div>
           </div>

@@ -516,6 +516,9 @@ const AdditionalDetails = ({ formData }) => (
     />
     <Detail label="Belongs to IHSDP?" value={formData?.isDp} />
     <Detail label="Is School?" value={formData?.isSchool} />
+    {formData?.isSchool && (
+      <Detail label="Is 12A School?" value={formData?.is12ASchool} />
+    )}
     <Detail label="Is Complex?" value={formData?.isComplex} />
     <Detail label="Is Chabutra?" value={formData?.isChabutra} />
     <Detail

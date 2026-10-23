@@ -216,6 +216,11 @@ const CitizenSafAssessment = ({
       );
       return;
     }
+    // 12A is a kind of school, so it is cleared whenever "School" is unchecked
+    if (name === "isSchool" && updatedValue === false) {
+      dispatch(setFormData({ isSchool: false, is12ASchool: false }));
+      return;
+    }
 
     dispatch(setFormData({ [name]: updatedValue }));
 
@@ -952,6 +957,43 @@ const CitizenSafAssessment = ({
                 )}
               </div>
             </li>
+
+            {formData.isSchool && (
+              <li>
+                <div className="">
+                  <div className="flex items-center space-x-2 py-2">
+                    <label
+                      htmlFor="is12ASchool"
+                      className="text-sm font-normal text-gray-700"
+                    >
+                      If School is 12A? If Yes Than Check
+                    </label>
+                    <input
+                      type="checkbox"
+                      id="is12ASchool"
+                      name="is12ASchool"
+                      checked={formData.is12ASchool || false}
+                      onChange={(e) => {
+                        handleInputChange({
+                          target: {
+                            name: "is12ASchool",
+                            value: e.target.checked,
+                          },
+                        });
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      disabled={disabledFields?.is12ASchool}
+                    />
+                  </div>
+
+                  {error?.is12ASchool && (
+                    <span className="text-red-500 text-xs mt-1 block">
+                      {error?.is12ASchool}
+                    </span>
+                  )}
+                </div>
+              </li>
+            )}
 
             <li>
               <div className="">
