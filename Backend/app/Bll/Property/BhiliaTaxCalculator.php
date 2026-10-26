@@ -372,7 +372,9 @@ class BhiliaTaxCalculator
 
                 // Extract factors and evaluate conditions
                 $usageTypeFactorId = $allArv->pluck('usageTypeFactorId')->unique()->values();
+                $occupancyFactorId = $allArv->pluck('occupancyTypeMasterId')->unique()->values();
                 $isResident = $usageTypeFactorId->isNotEmpty() && $usageTypeFactorId->every(fn($id) => (int)$id === 1);
+                $isSelfOccupied = $occupancyFactorId->isNotEmpty() && $occupancyFactorId->every(fn($id) => (int)$id === 1);
 
                 // Fixed variable bug: changed $usageTypeFactorId to $constructionTypeId
                 $constructionTypeId = $allArv->pluck('constructionType')->unique()->values();
@@ -402,10 +404,12 @@ class BhiliaTaxCalculator
                 }
 
                 $usageTypeMasterId = $isResident ? 1 : 2;
+                $occupancyTypeMasterId = $isSelfOccupied ? 1 : 2;
 
                 // Match Usage Factor by effective financial year
                 $usageFactorDtl = $this->_mUsageTypeRateMaster
                                 ->where("usage_type_master_id", $usageTypeMasterId)
+                                ->where("occupancy_type_master_id", $occupancyTypeMasterId)
                                 ->first(fn($item) => $item->effective_from <= $startDateOfYear && ($item->effective_upto === null || $item->effective_upto >= $startDateOfYear));
 
                 $usageFactor = $usageFactorDtl->rate ?? 1.0;
@@ -438,10 +442,10 @@ class BhiliaTaxCalculator
                     $chabootraRebate = $HoldingTax;
                 }elseif($this->_IsShop){
                     $shopRebate = $HoldingTax;
-                }elseif($this->_Is12ASchool){
+                }elseif($this->_Is12ASchool && $year>="2016-2017"){
                     $schoolRebate = $HoldingTax;
                 }
-                elseif($this->_IsSchool){
+                elseif($this->_IsSchool && $year>="2016-2017"){
                    $schoolRebate = $HoldingTax/2;
                 }
 
