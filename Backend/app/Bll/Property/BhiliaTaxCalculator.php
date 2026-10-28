@@ -649,6 +649,7 @@ class BhiliaTaxCalculator
         $zoneMstrId = $floor["zoneMstrId"];
         $constructionTypeMasterId = $floor["constructionTypeMasterId"];
         $usageTypeMasterId = $floor["usageTypeMasterId"];
+        $occupancyTypeMasterId = $floor["occupancyTypeMasterId"];
 
         $usageTypeFactorId = $usageTypeMasterId==1 ? 1 : 2;
 
@@ -722,7 +723,8 @@ class BhiliaTaxCalculator
             "ARV"                   => $taxableARV,
             "usageType"             => $this->floorResCommOtherUsage($usageTypeMasterId),
             "constructionType"       => $constructionTypeMasterId,
-            "usageTypeFactorId"     => $usageTypeFactorId,            
+            "usageTypeFactorId"     => $usageTypeFactorId,  
+            "occupancyTypeMasterId"     => $occupancyTypeMasterId,            
             "isEducationCessFromHoldingTax"=>$isEducationCessFromHoldingTax,
         ];
         
