@@ -99,6 +99,7 @@ class BhiliaTaxCalculator
         $this->setChabutra();
         $this->setShop();
         $this->setIHSDP();
+        $this->setSchool();
         $this->setComplex();
 
     }
