@@ -423,7 +423,7 @@ class BhiliaTaxCalculator
                                 ->where("ulb_id",$this->_ulbId)
                                 ->first(fn($item) => $item->from_date <= $startDateOfYear && ($item->upto_date === null || $item->upto_date >= $startDateOfYear));
                 $compositeTax = round($compositeTaxDtl->tax ?? 0, 2);
-                if($this->_IsIHSDP){
+                if($this->_IsIHSDP || ($sumTaxableArea <= 500 && $isResident && $isKacha)){
                     $compositeTax = round($compositeTaxDtl->ihsdp_tax ?? 0, 2);
                 }
 
