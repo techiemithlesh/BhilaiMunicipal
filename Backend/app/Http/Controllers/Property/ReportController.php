@@ -868,33 +868,98 @@ class ReportController extends Controller
             if($request->uptoDate){
                 $uptoDate =$request->uptoDate;
             }
-            $select=["id","assessment_type","holding_type","zone_mstr_id","ward_mstr_id","new_ward_mstr_id","apply_date"];
-            $saf = $this->_SafDetail->select($select)->addSelect(DB::raw("'approve' as app_type"));
-            $active = $this->_ActiveSafDetail->select($select)->addSelect(DB::raw("'pending' as app_type"));
-            $rejected = $this->_RejectedSafDetail->select($select)->addSelect(DB::raw("'rejected' as app_type"));
+            $select=[
+                "saf.id",
+                "saf.saf_no",
+                "saf.holding_no",
+                "saf.assessment_type",
+                "saf.prop_address",
+                "saf.apply_date",
+                "saf.ward_mstr_id",
+                "saf.prop_type_mstr_id",
+                "wm.ward_no",
+                "wmn.ward_no as new_ward_no",                
+                "pm.property_type",
+                "w.owner_name",
+                "w.guardian_name",
+                "w.mobile_no",
+                "saf.saf_pending_status",
+                "saf.is_btc",
+                "saf.current_role_id",
+                "saf.payment_status",
+                "saf.is_doc_upload",
+            ];
+            $saf = $this->_SafDetail
+                    ->from("saf_details AS saf")
+                    ->select($select)
+                    ->addSelect(DB::raw("'approve' as app_type"))
+                    ->join("property_type_masters as pm","pm.id","saf.prop_type_mstr_id")
+                    ->join(DB::raw("(
+                        SELECT saf_detail_id,
+                            STRING_AGG(owner_name, ',') AS owner_name,
+                            STRING_AGG(guardian_name, ',') AS guardian_name,
+                            STRING_AGG(CAST(mobile_no AS VARCHAR), ',') AS mobile_no
+                        FROM saf_owner_details
+                        WHERE lock_status = false
+                        GROUP BY saf_detail_id
+                    ) AS w"), "w.saf_detail_id", "=", "saf.id")
+                    ->join("ulb_ward_masters as wm", "wm.id", "=", "saf.ward_mstr_id")
+                    ->leftJoin("ulb_ward_masters as wmn", "wmn.id", "=", "saf.new_ward_mstr_id");
+            $active = $this->_ActiveSafDetail
+                        ->from("active_saf_details AS saf")
+                        ->select($select)
+                        ->addSelect(DB::raw("'pending' as app_type"))                        
+                        ->join("property_type_masters as pm","pm.id","saf.prop_type_mstr_id")
+                        ->join(DB::raw("(
+                            SELECT saf_detail_id,
+                                STRING_AGG(owner_name, ',') AS owner_name,
+                                STRING_AGG(guardian_name, ',') AS guardian_name,
+                                STRING_AGG(CAST(mobile_no AS VARCHAR), ',') AS mobile_no
+                            FROM active_saf_owner_details
+                            WHERE lock_status = false
+                            GROUP BY saf_detail_id
+                        ) AS w"), "w.saf_detail_id", "=", "saf.id")
+                        ->join("ulb_ward_masters as wm", "wm.id", "=", "saf.ward_mstr_id")
+                        ->leftJoin("ulb_ward_masters as wmn", "wmn.id", "=", "saf.new_ward_mstr_id");
+            $rejected = $this->_RejectedSafDetail
+                        ->from("rejected_saf_details AS saf")
+                        ->select($select)
+                        ->addSelect(DB::raw("'rejected' as app_type"))                        
+                        ->join("property_type_masters as pm","pm.id","saf.prop_type_mstr_id")
+                        ->join(DB::raw("(
+                            SELECT saf_detail_id,
+                                STRING_AGG(owner_name, ',') AS owner_name,
+                                STRING_AGG(guardian_name, ',') AS guardian_name,
+                                STRING_AGG(CAST(mobile_no AS VARCHAR), ',') AS mobile_no
+                            FROM rejected_saf_owner_details
+                            WHERE lock_status = false
+                            GROUP BY saf_detail_id
+                        ) AS w"), "w.saf_detail_id", "=", "saf.id")
+                        ->join("ulb_ward_masters as wm", "wm.id", "=", "saf.ward_mstr_id")
+                        ->leftJoin("ulb_ward_masters as wmn", "wmn.id", "=", "saf.new_ward_mstr_id");
 
-            $saf->where("lock_status",false);
-            $active->where("lock_status",false);
-            $rejected->where("lock_status",false);
+            $saf->where("saf.lock_status",false);
+            $active->where("saf.lock_status",false);
+            $rejected->where("saf.lock_status",false);
 
-            $saf->whereBetween("apply_date",[$fromDate,$uptoDate]);
-            $active->whereBetween("apply_date",[$fromDate,$uptoDate]);
-            $rejected->whereBetween("apply_date",[$fromDate,$uptoDate]);
+            $saf->whereBetween("saf.apply_date",[$fromDate,$uptoDate]);
+            $active->whereBetween("saf.apply_date",[$fromDate,$uptoDate]);
+            $rejected->whereBetween("saf.apply_date",[$fromDate,$uptoDate]);
             if($request->wardId){
                 if(!is_array($request->wardId)){
                     $request->merge(["wardId"=>[$request->wardId]]);
                 }
-                $saf->whereIn("ward_mstr_id",$request->wardId);
-                $active->whereIn("ward_mstr_id",$request->wardId);
-                $rejected->whereIn("ward_mstr_id",$request->wardId);
+                $saf->whereIn("saf.ward_mstr_id",$request->wardId);
+                $active->whereIn("saf.ward_mstr_id",$request->wardId);
+                $rejected->whereIn("saf.ward_mstr_id",$request->wardId);
             }
             if($request->propertyTypeId){
                 if(!is_array($request->propertyTypeId)){
                     $request->merge(["propertyTypeId"=>[$request->propertyTypeId]]);
                 }
-                $saf->whereIn("prop_type_mstr_id",$request->propertyTypeId);
-                $active->whereIn("prop_type_mstr_id",$request->propertyTypeId);
-                $rejected->whereIn("prop_type_mstr_id",$request->propertyTypeId);
+                $saf->whereIn("saf.prop_type_mstr_id",$request->propertyTypeId);
+                $active->whereIn("saf.prop_type_mstr_id",$request->propertyTypeId);
+                $rejected->whereIn("saf.prop_type_mstr_id",$request->propertyTypeId);
             }
             $orm = $saf->union($active)->union($rejected)->orderBy("ward_mstr_id");
             if(!$request->all){

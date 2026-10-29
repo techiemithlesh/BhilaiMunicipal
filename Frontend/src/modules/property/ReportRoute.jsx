@@ -10,6 +10,7 @@ import WardWiseDcb from "./pages/WardWiseDcb";
 import PropertyWiseDcb from "./pages/PropertyWiseDcb";
 import DateWiseApplySaf from "./pages/DateWiseApplySaf";
 import MonthWiseCreatedProp from "./pages/MonthWiseCreatedProp";
+import DateWiseApplySafList from "./pages/DateWiseApplySafList";
 
 function ReportRoute() {
   return (
@@ -84,6 +85,14 @@ function ReportRoute() {
             element={
               <ProtectedRoute>
                 <DateWiseApplySaf />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/date/wise/applyList"
+            element={
+              <ProtectedRoute>
+                <DateWiseApplySafList />
               </ProtectedRoute>
             }
           />

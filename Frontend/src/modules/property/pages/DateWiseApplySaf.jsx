@@ -4,6 +4,7 @@ import axios from 'axios';
 import { dateWiseApplySafApi } from '../../../api/endpoints';
 import { formatLocalDate } from '../../../utils/common';
 import DataTableFullData from '../../../components/common/DataTableFullData';
+import { createSearchParams, Link } from 'react-router-dom';
 
 function DateWiseApplySaf() {
     const token = getToken();
@@ -30,8 +31,18 @@ function DateWiseApplySaf() {
                 {index + 1}
             </td>
             <td className="px-3 py-2 border">{formatLocalDate(item?.date)}</td>
-            <td className="px-3 py-2 border">{item?.totalProperty}</td>
-        
+            <td className="px-3 py-2 border">
+                <Link to={{
+                            pathname: "/property/report/date/wise/applyList",
+                            search: createSearchParams({
+                                fromDate:item?.date,
+                                toDate:item?.date,
+                            }).toString(),
+                        }}
+                >
+                {item?.totalProperty}
+                </Link>
+            </td>        
         </tr>
     );
 
@@ -41,7 +52,18 @@ function DateWiseApplySaf() {
                 Total
             </td>
             <td className="px-3 py-2 border">{totals.total}</td>
-            <td className="px-3 py-2 border">{totals.totalProperty}</td>
+            <td className="px-3 py-2 border">
+                <Link to={{
+                            pathname: "/property/report/date/wise/applyList",
+                            search: createSearchParams({
+                                fromDate:totals?.fromDate,
+                                toDate:totals?.uptoDate,
+                            }).toString(),
+                        }}
+                >
+                {totals.totalProperty}
+                </Link>
+            </td>
         </tr>
     );
 
@@ -53,7 +75,7 @@ function DateWiseApplySaf() {
             <p className="text-gray-800 font-semibold">
             Total Apply:{" "}
             <span className="text-green-700 font-bold">
-                ₹ {summary?.totalProperty}
+                 {summary?.totalProperty}
             </span>
             </p>
         </div>
