@@ -669,7 +669,10 @@ class BhiliaTaxCalculator
             ->first(fn($item) => $item["effective_from"] <= $floorTax["effectiveUpto"] && ($item["effective_upto"] === null || $item["effective_upto"] >= $floorTax["effectiveFrom"]));
         }
 
-        $arvRate = $arvRateDtl->rate ?? 0;
+        $arvRebatePercent = ($this->_mFloorMaster->firstWhere("id", $floor["floorMasterId"])->arv_rebate_percent ?? 0)/100;
+        $actualRate = ($arvRateDtl->rate ?? 0);
+        $arvRebate = ($arvRebatePercent * $actualRate);
+        $arvRate = ($actualRate - $arvRebate);
 
         $taxableARV = $yearlyARV = $buildupArea * $arvRate;
         $widowCess = $this->_IsWidow ? 12000 : 0 ;
@@ -714,6 +717,9 @@ class BhiliaTaxCalculator
             "uptoFYear"             => $uptoFYear,
             "uptoQtr"               => $uptoQtr,
             "arvRate"               => $arvRate,
+            "arvRebate"             => $arvRebate,
+            "actualRate"            =>$actualRate,
+            "arvRebatePercent"      =>$arvRebatePercent,
             "taxableArea"           => $buildupArea,
             "yearlyARV"             => $yearlyARV,
             "widowCess"             => $widowCess,
