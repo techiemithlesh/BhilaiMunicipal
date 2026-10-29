@@ -672,7 +672,7 @@ class BhiliaTaxCalculator
         $arvRebatePercent = ($this->_mFloorMaster->firstWhere("id", $floor["floorMasterId"])->arv_rebate_percent ?? 0)/100;
         $actualRate = ($arvRateDtl->rate ?? 0);
         $arvRebate = ($arvRebatePercent * $actualRate);
-        $arvRate = ($actualRate - $arvRebate);
+        $arvRate = roundFigure($actualRate - $arvRebate);
 
         $taxableARV = $yearlyARV = $buildupArea * $arvRate;
         $widowCess = $this->_IsWidow ? 12000 : 0 ;
