@@ -39,7 +39,7 @@ import DocUploadModal from "../components/DocUploadModal";
 import FieldVerificationView from "../components/FieldVerificationView";
 
 function Wf() {
-  const { safDtlId } = useParams();
+  const { from, safDtlId } = useParams();
   const [safDetails, setSafDetails] = useState(null);
   const [remarks, setRemarks] = useState([]);
   const [wfPermissions, setWfPermissions] = useState(null);
@@ -218,7 +218,7 @@ function Wf() {
 
       if (response?.data?.status) {
         toast.success(response?.data?.message);
-        navigate("/saf/inbox");
+        navigate(from === "btc" ? "/saf/btc/list" : "/saf/inbox");
       } else {
         toast.error(response?.data?.message || "Something went wrong");
       }

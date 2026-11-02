@@ -197,6 +197,7 @@ export const verificationDtlApi = `${BASE_URL}/api/property/field-verification-d
 export const updateSafApplicationApi = `${BASE_URL}/api/property/saf-edit-basic`;
 
 export const safInboxApi = `${BASE_URL}/api/property/inbox`;
+export const safBTCListApi = `${BASE_URL}/api/property/btc-list`;
 export const safPostNextLevelApi = `${BASE_URL}/api/property/post-next`;
 export const safForVerificationApi = `${BASE_URL}/api/property/get-saf-field-verification`;
 
