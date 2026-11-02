@@ -7,6 +7,7 @@ import useUserProfileAndWardMapped from "../hooks/UseUserProfile";
 import axios from "axios";
 import { logoutApi } from "../api/endpoints";
 import { FaBars } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import ProfileViewCard from "../components/specific/ProfileViewCard";
 import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/react";
 import ChangePassword from "../components/specific/ChangePassword";
@@ -102,7 +103,7 @@ const AdminHeader = ({ setIsSidebarOpen, isSidebarOpen, ulbData }) => {
         >
           <FaBars className="text-xl" />
         </button>
-        <a href="/" className="bg-white shadow rounded-full">
+        <Link to="/dashboard" className="bg-white shadow rounded-full">
           <img
             src={ulbData?.logoImg}
             alt={ulbData?.shortName}
@@ -110,7 +111,7 @@ const AdminHeader = ({ setIsSidebarOpen, isSidebarOpen, ulbData }) => {
             height={60}
             className=""
           />
-        </a>
+        </Link>
         <div className="hidden md:block">
           <h1 className="font-bold text-xl md:text-3xl">{ulbData?.ulbName}</h1>
           <p className="text-sm md:text-lg">{ulbData?.hindiUlbName}</p>

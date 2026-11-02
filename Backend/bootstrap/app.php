@@ -70,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
             "atomic.lock",
             "logResponse", // <-- ADDED HERE to apply to all API routes
         ])->prepend([
+            \App\Http\Middleware\CorsMiddleware::class,
             // Use prepend for middleware that must run very early in the API request cycle
             \App\Http\Middleware\SetUlbDatabaseConnections::class,
         ]);

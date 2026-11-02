@@ -1,5 +1,7 @@
 import { format } from "date-fns";
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { isAuthenticated } from "../utils/auth";
 
 const Header = ({ ulbData }) => {
   const [currentDateTime, setCurrentDateTime] = useState(
@@ -76,7 +78,7 @@ const Header = ({ ulbData }) => {
           <div className="flex items-center space-x-3">
             {/* <a href="/citizen/auth" className="hover:text-accent">Citizen Login</a>
             <span>|</span> */}
-            <a href="/login" className="hover:text-accent">Official Login</a>
+            <Link to="/login" className="hover:text-accent">Official Login</Link>
           </div>
           <span className="bg-white/10 shadow-md backdrop-blur-sm px-4 py-1 border border-white/20 rounded-xl font-medium text-white text-sm">
             {currentDateTime}
@@ -95,9 +97,9 @@ const Header = ({ ulbData }) => {
       >
         <div className="flex items-center space-x-5 px-4 md:px-6 py-2">
           <div className="flex items-center space-x-5">
-            <a href="/">
+            <Link to={isAuthenticated() ? "/dashboard" : "/"}>
               <img src={ulbData?.logoImg} alt={ulbData?.shortName} width={60} height={60} className="shadow rounded-full" />
-            </a>
+            </Link>
             <div>
               <h1 className="font-bold text-xl md:text-3xl">{ulbData?.ulbName}</h1>
               <p className="text-sm md:text-lg">{ulbData?.hindiUlbName}</p>
