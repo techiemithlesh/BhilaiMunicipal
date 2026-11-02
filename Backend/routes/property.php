@@ -84,7 +84,7 @@ Route::middleware(['auth:sanctum',"expireBearerToken","setUlb"])->group(function
         Route::post("saf-auto-forward-list","safListForAutoApprove");
         Route::post("saf-auto-forward","addAutoForwardAssistant");
         Route::post("inbox","inbox");
-        Route::post("inbox","inbox");
+        Route::post("btc-list","btcList");
         Route::post("outbox","outbox");
         Route::post("post-next","postNextLevel");
         Route::post("doc-list","getDocList");

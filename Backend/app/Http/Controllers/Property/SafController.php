@@ -39,6 +39,7 @@ use App\Models\Property\LevelRemark;
 use App\Models\Property\MemoDetail;
 use App\Models\Property\OccupancyTypeMaster;
 use App\Models\Property\OwnershipTypeMaster;
+use App\Models\Property\ParamModel;
 use App\Models\Property\PropertyDetail;
 use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\PropTransaction;
@@ -73,6 +74,7 @@ use Illuminate\Validation\Rule;
 class SafController extends Controller
 {
     use PropertyTrait;
+    private $_Conn;
 
     private $_SystemConstant;
     private $_OccupancyTypeMaster;
@@ -117,6 +119,7 @@ class SafController extends Controller
 
     function __construct()
     {
+        $this->_Conn = (new ParamModel())->resolveDynamicConnection();
         $this->_SystemConstant = Config::get("SystemConstant");
         $this->_MODULE_ID = $this->_SystemConstant["MODULE"]["PROPERTY"];
         $this->_OccupancyTypeMaster = new OccupancyTypeMaster();
@@ -161,13 +164,13 @@ class SafController extends Controller
     }
 
     private function begin(){
-        DB::connection("pgsql_property")->beginTransaction();
+        DB::connection($this->_Conn)->beginTransaction();
     }
     private function rollBack(){
-        DB::connection("pgsql_property")->rollBack();
+        DB::connection($this->_Conn)->rollBack();
     }
     private function commit(){
-        DB::connection("pgsql_property")->commit();
+        DB::connection($this->_Conn)->commit();
     }
 
     public function getSafMasterData(Request $request){
@@ -972,8 +975,71 @@ class SafController extends Controller
         }
     }
 
-    public function btcList(){
+    public function btcList(Request $request){
+        try{
+            $user = Auth()->user();
+            if($user->getTable()!="users"){
+                throw new CustomException("Another User Are Not Allow");
+            }
+            $role = $user->getRoleDetailsByUserId()->first();
+            $wardPermissionList = $user->getUserWards()->get();
+            $waredId = $wardPermissionList->unique("id")->pluck("id");
+            $latestRemarks = DB::connection($this->_Conn)->table('level_remarks')
+                            ->select(DB::raw('DISTINCT ON (saf_detail_id) saf_detail_id, sender_remarks AS remarks, created_at, receiving_date'))
+                            ->orderBy('saf_detail_id')
+                            ->orderBy('id', 'DESC');
+            $data = $this->metaDataList()
+                    ->addSelect(DB::raw("level_remarks.created_at as sending_date,level_remarks.receiving_date,level_remarks.remarks"))
+                    ->joinSub($latestRemarks, 'lr', function($join) {
+                        $join->on("lr.saf_detail_id", "=", "active_saf_details.id");
+                    })
+                    ->whereIn("active_saf_details.ward_mstr_id",$waredId)
+                    ->where("active_saf_details.ulb_id",$user->ulb_id)
+                    ->where("active_saf_details.is_btc",true)
+                    ->where("active_saf_details.payment_status",1);
+            if($request->key){
+                $data->where(function($where)use($request){
+                    $where->where("active_saf_details.saf_no","ILIKE","%".$request->key."%")
+                    ->orWhere("active_saf_details.saf_no","ILIKE","%".$request->key."%")
+                    ->orWhere("owners.owner_name","ILIKE","%".$request->key."%")
+                    ->orWhere("owners.mobile_no","ILIKE","%".$request->key."%");
 
+                });                
+            }
+            if($request->wardId){
+                if(!is_array($request->wardId)){
+                    $request->merge(["wardId"=>[$request->wardId]]);
+                }
+                $data->whereIn("active_saf_details.ward_mstr_id",$request->wardId);
+            }
+            if($request->fromDate || $request->uptoDate){
+                if($request->fromDate && $request->uptoDate){
+                    $data->whereBetween("active_saf_details.apply_date",[Carbon::parse($request->fromDate)->format("Y-m-d"),Carbon::parse($request->uptoDate)->format("Y-m-d")]);
+                }elseif($request->fromDate){
+                    $data->where("active_saf_details.apply_date",Carbon::parse($request->fromDate)->format("Y-m-d"));
+                }elseif($request->uptoDate){
+                    $data->where("active_saf_details.apply_date",Carbon::parse($request->uptoDate)->format("Y-m-d"));
+                }
+            }
+
+            
+            $list = paginator($data,$request);
+            $list["data"] = collect($list["data"])->map(function($item){                
+                $lastRemarks = LevelRemark::where("saf_detail_id",$item["id"])->orderBy("id","DESC")->first();
+                $item->receivingDate = Carbon::parse($lastRemarks->created_at??"")->format("Y-m-d H:i:s");
+                if($item->current_role_id == $item->initiator_role_id && !$lastRemarks ){
+                    $lastTran = $item->getLastTran();
+                    $item->receivingDate = Carbon::parse($lastTran->created_at??"")->format("Y-m-d H:i:s");
+                }
+                return $item;
+            });
+            return responseMsg(true,($role->role_name??"")." BTC Inbox",camelCase(remove_null($list)));
+        }catch(CustomException $e){
+            return responseMsg(false,$e->getMessage(),"");
+        }
+        catch(Exception $e){dd($e);
+            return responseMsg(false,"Internal Server Error","");
+        }
     }
 
     public function postNextLevel(RequestPostNextLevel $request){

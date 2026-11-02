@@ -23,6 +23,7 @@ use App\Models\Property\AppBasicUpdate;
 use App\Models\Property\AppOwnerUpdate;
 use App\Models\Property\DeactivateAppDetail;
 use App\Models\Property\NttPaymentRequest;
+use App\Models\Property\ParamModel;
 use App\Models\Property\PropertyAdditionalDocument;
 use App\Models\Property\PropertyDemand;
 use App\Models\Property\PropertyDetail;
@@ -54,6 +55,7 @@ class PropertyController extends Controller
      * State : open
      */
 
+    private $_Conn;
     private $_PropertyTypeMaster;
     private $_PropertyTax;
     private $_PropertyDetail;
@@ -76,6 +78,7 @@ class PropertyController extends Controller
     private $_NttPaymentRequest;
     function __construct()
     {
+        $this->_Conn = (new ParamModel())->resolveDynamicConnection();
         $this->_PropertyTypeMaster = new PropertyTypeMaster();
         $this->_PropertyTax = new PropertyTax();
         $this->_PropertyDetail = new PropertyDetail();
@@ -101,13 +104,13 @@ class PropertyController extends Controller
     }
 
     private function begin(){
-        DB::connection("pgsql_property")->beginTransaction();
+        DB::connection($this->_Conn)->beginTransaction();
     }
     private function rollBack(){
-        DB::connection("pgsql_property")->rollBack();
+        DB::connection($this->_Conn)->rollBack();
     }
     private function commit(){
-        DB::connection("pgsql_property")->commit();
+        DB::connection($this->_Conn)->commit();
     }
 
     public function searchProperty(Request $request){
