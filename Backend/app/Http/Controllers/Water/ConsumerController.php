@@ -164,6 +164,10 @@ class ConsumerController extends Controller
                 $connection->doc_path = $lastReading?->doc_path ? url("/documents")."/".$lastReading?->doc_path:"";
                 $connection->userName = $lastReading?->user_id ? $lastReading->getUser()->first()?->name:"";
             });
+            $application->additionalDocuments = $this->_ConsumerAdditionalDocument->where("consumer_id",$application->id)->where("lock_status",false)->get()->map(function($doc){
+                $doc->doc_path = $doc->doc_path ? url("/documents")."/".$doc->doc_path:"";
+                return $doc;
+            });
             if($user->getTable()=="users"){
                 $role = $user->getRoleDetailsByUserId()->first();
                 $application->UserPermission = $role?->getRolePermission()->where("ulb_id",$user->ulb_id)->where("module_id",$this->_MODULE_ID)->first();
