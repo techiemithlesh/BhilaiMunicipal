@@ -24,7 +24,7 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="flex gap-[10px] bg-white shadow-md p-4 border rounded-lg">
+      <div className="flex flex-col md:flex-row gap-[10px] bg-white shadow-md p-4 border rounded-lg">
         <ProfileCard user={profile} />
         <WardList wardMapped={wardMapped} />
       </div>

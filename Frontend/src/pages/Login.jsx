@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   clearAuth,
   getToken,
   getUserDetails,
+  isAuthenticated,
   setAuthToken,
 } from "../utils/auth";
 import toast from "react-hot-toast";
@@ -42,6 +43,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAuthenticated()) return;
     testHeartBeat();
   }, []);
 
@@ -164,6 +166,10 @@ const Login = () => {
   const closeModal = () => {
     setShowOtpModal(false);
   };
+
+  if (isAuthenticated()) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <Layout>

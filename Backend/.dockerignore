@@ -1,0 +1,12 @@
+.env
+.env.*
+.git
+.gitignore
+.phpunit.cache
+.phpunit.result.cache
+node_modules
+public/Uploads
+public/user
+public/citizen
+storage/logs/*
+vendor

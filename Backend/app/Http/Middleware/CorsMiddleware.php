@@ -15,30 +15,18 @@ class CorsMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $allowedOrigins = explode(',', env('ALLOWED_ORIGINS',"http://localhost"));
-
+        $allowedOrigins = array_filter(array_map('trim', explode(',', env('ALLOWED_ORIGINS', 'http://localhost'))));
         $origin = $request->headers->get('Origin');
-        $response = $next($request);
+        $isAllowed = $origin && in_array($origin, $allowedOrigins, true);
+        $response = $request->getMethod() === 'OPTIONS'
+            ? response()->json('OK', 200)
+            : $next($request);
 
-        if ($origin && in_array($origin, $allowedOrigins)) {
+        if ($isAllowed) {
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-Socket-ID, X-CSRF-TOKEN');
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        }
-
-        if ($request->getMethod() === 'OPTIONS') {
-            $response = response()->json('OK', 200);
-
-            if ($isAllowed) {
-                $response->headers->set('Access-Control-Allow-Origin', $origin);
-                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-Socket-ID');
-                $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            }
-
-            return $response;
-            return response()->json('OK', 200, $response->headers->all());
         }
 
         return $response;

@@ -1,0 +1,104 @@
+services:
+  frontend:
+    build:
+      context: ./Frontend
+      args:
+        VITE_REACT_APP_BACKEND_API: ""
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./Backend
+    env_file:
+      - ./Backend/.env
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:-}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      # Inside this container, host.docker.internal reaches PostgreSQL running on Windows.
+      DB_CONNECTION: pgsql
+      DB_HOST: host.docker.internal
+      DB_READ_HOST: host.docker.internal
+      DB_PROPERTY_HOST: host.docker.internal
+      DB_PROPERTY_READ_HOST: host.docker.internal
+      DB_WATER_HOST: host.docker.internal
+      DB_WATER_READ_HOST: host.docker.internal
+      DB_SWM_HOST: host.docker.internal
+      DB_SWM_READ_HOST: host.docker.internal
+      DB_TRADE_HOST: host.docker.internal
+      DB_TRADE_READ_HOST: host.docker.internal
+      DB_SHOP_RENT_HOST: host.docker.internal
+      DB_SHOP_RENT_READ_HOST: host.docker.internal
+      DB_DMC_PROPERTY_HOST: host.docker.internal
+      DB_DMC_PROPERTY_READ_HOST: host.docker.internal
+      DB_DMC_WATER_HOST: host.docker.internal
+      DB_DMC_WATER_READ_HOST: host.docker.internal
+      DB_DMC_TRADE_HOST: host.docker.internal
+      DB_DMC_TRADE_READ_HOST: host.docker.internal
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - backend_uploads:/var/www/html/public/Uploads
+      - backend_user_uploads:/var/www/html/public/user
+      - backend_citizen_uploads:/var/www/html/public/citizen
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --loglevel info --url http://frontend:80
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Disabled: use the PostgreSQL service already running on the Windows host.
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+  #     POSTGRES_DB: db_system
+  #   ports:
+  #     - "127.0.0.1:${DB_FORWARD_PORT:-5432}:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./Backend/docker/init-databases.sql:/docker-entrypoint-initdb.d/10-init-databases.sql:ro
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   restart: unless-stopped
+
+volumes:
+  backend_storage:
+  backend_uploads:
+  backend_user_uploads:
+  backend_citizen_uploads:
+  redis_data:

@@ -1,6 +1,6 @@
 # Deployment Plan — Bhilai Municipal Corporation Tax System
 
-Stack: Laravel 11.9 (PHP 8.2) API backend + React 18/Vite SPA frontend + PostgreSQL (3 named connections: main, water, property) + Laravel Reverb (WebSockets, beta) + Sanctum (SPA/token auth) + NTT Data payment gateway integration.
+Stack: Laravel 11.9 (PHP 8.2) API backend + React 18/Vite SPA frontend + PostgreSQL (9 named connections) + Laravel Reverb (WebSockets, beta) + Sanctum (SPA/token auth) + NTT Data payment gateway integration.
 
 Goals for this plan, in priority order: **(1) security, (2) smooth/zero-downtime operation, (3) horizontal scale behind a load balancer.**
 
@@ -17,7 +17,7 @@ These are concrete, verified facts, not assumptions — each one shapes a decisi
 | Session / cache / queue | All `database`-backed | Correct (shared via Postgres, so multi-server-safe) but slow under load — every session read/write and queue poll is a DB round trip, and it competes with the same Postgres instance serving the tax/payment queries. |
 | Realtime | Reverb on port 8085, no sticky-session or dedicated node plan | WebSocket connections are long-lived and stateful — a plain round-robin LB will break reconnects. |
 | CI/CD | None found | Every deploy today is manual — highest-risk part of "smooth running." |
-| Containerization | None (no Dockerfile) | Fine to skip if you provision servers directly, but makes horizontal scaling and rollback slower and more error-prone. |
+| Containerization | Local Docker Compose setup for the frontend, backend, and PostgreSQL | Provides a repeatable local environment; production deployment still needs separate hardening and operations work. |
 | DB read replicas | `pgsql_water` / `pgsql_property` connections already have a `read` host array in `config/database.php` | Good — the app is already structured to support read replicas, they're just not provisioned yet. |
 | Payment integration | `app/Bll/Payment/NttData.php` — a live gateway integration | Needs webhook signature verification, IP allowlisting, and zero payment-data logging (see §3). |
 | Frontend bundle | Fixed this session: was one 15MB chunk, now code-split (~1.9MB entry) | Good — reduces load on the LB/CDN and speeds up first paint under load. |
@@ -154,3 +154,41 @@ Key decisions and why:
 ### What's genuinely optional at this scale
 
 A municipal system for one city doesn't need Kubernetes, a service mesh, or multi-region failover — that's over-engineering for the traffic this app will actually see. The plan above (LB + 2–3 stateless app servers + managed Postgres with a replica + Redis + object storage) is the right amount of infrastructure for "smooth and secure," not the maximum amount possible.
+
+## 8. Local Docker Compose
+
+The repository includes a local Docker Compose setup for the React frontend and Laravel API. The backend connects to PostgreSQL already running on the Windows host, while Redis runs in Compose for the backend's ULB selection middleware. Named volumes persist Redis state and uploaded files.
+
+### Start the stack
+
+1. Ensure `Backend/.env` exists and its PostgreSQL database names, usernames, and passwords match the databases on your Windows PostgreSQL server. Compose reads these settings from `Backend/.env` and routes all database hosts to `host.docker.internal`.
+2. Ensure the Windows PostgreSQL server accepts connections from Docker. It must listen on a host interface reachable by Docker, and `pg_hba.conf` and the firewall must allow the Docker connection. Inside the Laravel container, `127.0.0.1` refers to the container, not Windows.
+3. Ensure `Frontend/.env` contains the public `VITE_` settings required by the frontend. If needed, copy `Frontend/.env.example` to `Frontend/.env` and fill in the ULB ID and any Reverb settings. The Docker frontend uses a relative `/api` URL, so the same frontend build works locally and through Cloudflare. Only public values belong in `VITE_` variables because Vite embeds them in the browser bundle.
+4. Build the images:
+
+   ```powershell
+   docker compose build
+   ```
+
+5. Generate an application key:
+
+   ```powershell
+   docker compose run --rm --no-deps backend php artisan key:generate --show
+   ```
+
+   Copy the printed value into `APP_KEY` in the root `.env`.
+6. Start the services in the foreground. The Cloudflare URL will appear in this terminal:
+
+   ```powershell
+   docker compose up --build
+   ```
+
+Wait for `cloudflared` to print `Your quick Tunnel has been created! Visit it at: https://...trycloudflare.com`, then open or share that URL. Keep this terminal open while sharing. Press Ctrl+C to stop the services. The local frontend is also available at `http://localhost:3000`; Nginx forwards its `/api` requests internally to Laravel. PostgreSQL stays on the Windows host at its configured port; Compose does not start a PostgreSQL container. If a port is already in use, change `FRONTEND_PORT` or `BACKEND_PORT` in the root `.env`. Compose does not run migrations or import database data.
+
+Use `docker compose down` to stop the stack. `docker compose down -v` removes the Redis and uploaded-file volumes. It does not affect the Windows PostgreSQL database.
+
+### PostgreSQL connection
+
+No database import is needed. The backend uses the database names and credentials in `Backend/.env` and connects directly to the existing Windows PostgreSQL server via `host.docker.internal`. Verify each configured database already exists on that server. The optional `postgres` Compose service is commented out in `compose.yaml`.
+
+Anyone with the public URL can reach the app on your machine and its configured backend. Only share it for trusted testing, keep authentication enabled, and do not expose sensitive production data. `APP_DEBUG` is disabled in the Compose backend. Press Ctrl+C to stop following logs; the Compose services keep running. Stop them with `docker compose down`. The quick-tunnel URL is temporary and changes when the tunnel restarts.
