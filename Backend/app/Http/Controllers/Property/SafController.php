@@ -972,6 +972,10 @@ class SafController extends Controller
         }
     }
 
+    public function btcList(){
+
+    }
+
     public function postNextLevel(RequestPostNextLevel $request){
         try{
             $user = Auth()->user();
@@ -1618,15 +1622,14 @@ class SafController extends Controller
             $oldDoc = $saf->getDocList()
                     ->where("doc_type_id",$doc_type_id)
                     ->where("saf_owner_detail_id",$request->ownerId)
-                    ->where("lock_status",false)->first();
+                    ->where("lock_status",false);
+            if(strToUpper($request->docName)=="OTHER" && trim($request->otherName)){
+                $oldDoc->where("doc_name",strToUpper(trim($request->otherName)));
+            }
+            $oldDoc = $oldDoc->first();
             $sms = "Document Uploaded";            
             #reupload
             if($oldDoc){
-                // $filePath = public_path($oldDoc->doc_path);
-                // if (file_exists($filePath)) {
-                //     // Delete the file
-                //     @unlink($filePath);
-                // }
                 if (!empty($oldDoc->doc_path) && Storage::disk($this->disk)->exists($oldDoc->doc_path)) {
                     Storage::disk($this->disk)->delete($oldDoc->doc_path);
                 }
@@ -1636,7 +1639,7 @@ class SafController extends Controller
                 $path = $request->document->storeAs($relativePath,$imageName, $this->disk);
                 $request->merge(["docPath"=>$path]);
                        
-                $oldDoc->doc_name = $request->docName;          
+                $oldDoc->doc_name = strToUpper($request->docName)=="OTHER" && strToUpper(trim($request->otherName)) ?  strToUpper(trim($request->otherName)) : $request->docName;          
                 $oldDoc->doc_path = $request->docPath;
                 $oldDoc->user_id = $user->id;
                 $oldDoc->update();
@@ -1650,7 +1653,7 @@ class SafController extends Controller
                 $this->_SafDocDetail->saf_detail_id = $saf->id;                
                 $this->_SafDocDetail->saf_owner_detail_id = $request->ownerId;             
                 $this->_SafDocDetail->doc_type_id = $doc_type_id;          
-                $this->_SafDocDetail->doc_name = $request->docName;          
+                $this->_SafDocDetail->doc_name = strToUpper($request->docName)=="OTHER" && strToUpper(trim($request->otherName)) ?  strToUpper(trim($request->otherName)) : $request->docName;          
                 $this->_SafDocDetail->doc_path = $request->docPath;
                 $this->_SafDocDetail->user_id = $user->id;
                 $this->_SafDocDetail->save();

@@ -23,6 +23,7 @@ function DocUploadModal({
   const [docCode, setDocCode] = useState("");
   const [selectedOwner, setSelectedOwner] = useState("");
   const [docName, setDocName] = useState("");
+  const [otherName,setOtherName] = useState("");
   const [document, setDocument] = useState([]);
   const [isFrozen, setIsFrozen] = useState(false);
   const [isModalPreviewOpen, setIsModalPreviewOpen] = useState(false);
@@ -69,7 +70,7 @@ function DocUploadModal({
   };
 
   const handleSubmit = async () => {
-    setIsFrozen(true);
+    
     if (!docCode) {
       toast.error("Document type is required.");
       return;
@@ -82,6 +83,7 @@ function DocUploadModal({
       toast.error("Please select a document file to upload.");
       return;
     }
+    setIsFrozen(true);
     try {
       const form = new FormData();
       form.append("id", id);
@@ -90,6 +92,7 @@ function DocUploadModal({
       form.append("document", document[0]?.file);
       if (selectedOwner?.id) form.append("ownerId", selectedOwner.id);
       if (ulbId) form.append("ulbId", ulbId);
+      if(docName.toUpperCase()=="OTHER") form.append("otherName", otherName);
 
       const response = await axios.post(docUploadApi, form, {
         headers: {
@@ -104,6 +107,7 @@ function DocUploadModal({
         setDocName("");
         setSelectedOwner("");
         setDocument([]);
+        setOtherName("");
         toast.success(response?.data?.message);
         fetchData();
       } else {
@@ -259,6 +263,17 @@ function DocUploadModal({
               isClearable
               menuPosition="fixed"
             />
+            {docName.toUpperCase()=="OTHER" &&(
+              <div>
+                <label className="block text-sm">Enter The Document Name</label>
+                <input 
+                  required
+                  value={otherName}
+                  onChange={(e) => setOtherName(e.target.value)}
+                  className="px-2 py-1 border rounded w-full"
+                />
+              </div>
+            )}
             <FileUpload
               className="pt-1"
               name="document"

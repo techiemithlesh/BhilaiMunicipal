@@ -252,51 +252,51 @@ class BhiliaTaxCalculator
     public function initFloorWiseTax(): void
     {
         $code=0;
-        if ($this->_isVacantLand) {            
-            ++$code;
-            $mobileAndHordingTowerArea = 0;
-            if ($this->_REQ["isMobileTower"] ?? false) {
-                $mobileAndHordingTowerArea += (float) ($this->_REQ["towerArea"] ?? 0);
-            }
-            if ($this->_REQ["isHoardingBoard"] ?? false) {
-                $mobileAndHordingTowerArea += (float) ($this->_REQ["hoardingArea"] ?? 0);
-            }
+        // if ($this->_isVacantLand) {            
+        //     ++$code;
+        //     $mobileAndHordingTowerArea = 0;
+        //     if ($this->_REQ["isMobileTower"] ?? false) {
+        //         $mobileAndHordingTowerArea += (float) ($this->_REQ["towerArea"] ?? 0);
+        //     }
+        //     if ($this->_REQ["isHoardingBoard"] ?? false) {
+        //         $mobileAndHordingTowerArea += (float) ($this->_REQ["hoardingArea"] ?? 0);
+        //     }
 
-            $plotArea = $this->_REQ["areaOfPlot"];
-            $floor = [
-                "code"=>"COD".str_pad($code,2,"0",STR_PAD_LEFT),
-                "floorName" => "VacantLand",
-                "areaOfPlot" => $plotArea,
-                "builtupArea" => $plotArea - ($mobileAndHordingTowerArea * 1.43),
-                "mobileAndHordingTowerArea" => $mobileAndHordingTowerArea,
-                "dateFrom" => $this->_REQ["landOccupationDate"],
-                "floorMasterId" => "0",
-                "usageTypeMasterId" => "1",
-                "constructionTypeMasterId" => 0,
-                "occupancyTypeMasterId" => 1,
-                "tax" => collect(),
-            ];
+        //     $plotArea = $this->_REQ["areaOfPlot"];
+        //     $floor = [
+        //         "code"=>"COD".str_pad($code,2,"0",STR_PAD_LEFT),
+        //         "floorName" => "VacantLand",
+        //         "areaOfPlot" => $plotArea,
+        //         "builtupArea" => $plotArea - ($mobileAndHordingTowerArea * 1.43),
+        //         "mobileAndHordingTowerArea" => $mobileAndHordingTowerArea,
+        //         "dateFrom" => $this->_REQ["landOccupationDate"],
+        //         "floorMasterId" => "0",
+        //         "usageTypeMasterId" => "1",
+        //         "constructionTypeMasterId" => 0,
+        //         "occupancyTypeMasterId" => 1,
+        //         "tax" => collect(),
+        //     ];
 
-            $floor["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $floor["usageTypeMasterId"])->usage_type ?? "";
-            $floor["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $floor["constructionTypeMasterId"])->construction_type ?? "";
-            $floor["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $floor["occupancyTypeMasterId"])->occupancy_name ?? "";
-            $floor["ruleSets"] = $this->setRuleSet($floor["dateFrom"], $floor["dateUpto"] ?? null, false);
+        //     $floor["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $floor["usageTypeMasterId"])->usage_type ?? "";
+        //     $floor["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $floor["constructionTypeMasterId"])->construction_type ?? "";
+        //     $floor["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $floor["occupancyTypeMasterId"])->occupancy_name ?? "";
+        //     $floor["ruleSets"] = $this->setRuleSet($floor["dateFrom"], $floor["dateUpto"] ?? null, false);
             
-            $this->_FloorWiseTax->push($floor);
-        } else {
-            foreach ($this->_REQ["floorDtl"] as $val) {                
-                ++$code;
-                $val["tax"] = collect();
-                $val["code"]="COD".str_pad($code,2,"0",STR_PAD_LEFT);
-                $val["ruleSets"] = $this->setRuleSet($val["dateFrom"], $val["dateUpto"] ?? null);
-                $val["zoneName"] = $this->_mZoneMaster->firstWhere("id", $val["zoneMstrId"])->zone_name ?? "";
-                $val["floorName"] = $this->_mFloorMaster->firstWhere("id", $val["floorMasterId"])->floor_name ?? "";
-                $val["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $val["usageTypeMasterId"])->usage_type ?? "";
-                $val["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $val["constructionTypeMasterId"])->construction_type ?? "";
-                $val["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $val["occupancyTypeMasterId"])->occupancy_name ?? "";
-                
-                $this->_FloorWiseTax->push($val);
-            }
+        //     $this->_FloorWiseTax->push($floor);
+        // } else {
+        // }
+        foreach ($this->_REQ["floorDtl"] as $val) {                
+            ++$code;
+            $val["tax"] = collect();
+            $val["code"]="COD".str_pad($code,2,"0",STR_PAD_LEFT);
+            $val["ruleSets"] = $this->setRuleSet($val["dateFrom"], $val["dateUpto"] ?? null);
+            $val["zoneName"] = $this->_mZoneMaster->firstWhere("id", $val["zoneMstrId"])->zone_name ?? "";
+            $val["floorName"] = $this->_mFloorMaster->firstWhere("id", $val["floorMasterId"])->floor_name ?? "";
+            $val["usageType"] = $this->_mUsageTypeMaster->firstWhere("id", $val["usageTypeMasterId"])->usage_type ?? "";
+            $val["constructionType"] = $this->_mConstructionTypeMaster->firstWhere("id", $val["constructionTypeMasterId"])->construction_type ?? "";
+            $val["occupancyType"] = $this->_mOccupancyTypeMaster->firstWhere("id", $val["occupancyTypeMasterId"])->occupancy_name ?? "";
+            
+            $this->_FloorWiseTax->push($val);
         }
     }
 

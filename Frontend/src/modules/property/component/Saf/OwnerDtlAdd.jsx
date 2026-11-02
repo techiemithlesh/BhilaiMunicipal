@@ -205,6 +205,7 @@ const OwnerDtlAdd = ({
               name="mobileNo"
               pattern="[6-9]{1}[0-9]{9}"
               placeholder="Enter Mobile No"
+              maxLength="10"
               required
               value={owner.mobileNo || ""}
               onChange={(e) => {

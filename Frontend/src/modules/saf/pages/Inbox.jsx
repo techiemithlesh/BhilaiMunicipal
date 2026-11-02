@@ -15,6 +15,8 @@ function Inbox() {
   const [totalItem, setTotalItem] = useState(1);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const token = getToken();
 
@@ -59,6 +61,8 @@ function Inbox() {
           page,
           perPage: itemsPerPage,
           key: search.trim() || null,
+          fromDate:fromDate,
+          uptoDate:toDate,
         },
         {
           headers: {
@@ -94,6 +98,8 @@ function Inbox() {
           page: 1,
           perPage: totalItem,
           key: search.trim() || null,
+          fromDate:fromDate,
+          uptoDate:toDate,
         },
         {
           headers: {
@@ -108,6 +114,29 @@ function Inbox() {
       setIsLoading(false);
     }
   };
+
+  const filterComponent = (
+    <div className="gap-4 grid grid-cols-1 md:grid-cols-4">
+      <div>
+        <label className="block text-sm">Apply From</label>
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          className="px-2 py-1 border rounded w-full"
+        />
+      </div>
+      <div>
+        <label className="block text-sm">Apply To</label>
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          className="px-2 py-1 border rounded w-full"
+        />
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -129,6 +158,7 @@ function Inbox() {
           setSearch={setSearch}
           onSearch={handleSearch}
           fetchAllData={fetchAllData}
+          filterComponent={filterComponent}
         />
       )}
     </>
