@@ -32,7 +32,7 @@ function DemandHistoryModal({ id, onClose, openPreviewModel }) {
     { label: "#", key: "serial" },
     { label: "Demand From", key: "demandFrom" },
     { label: "Demand Upto", key: "demandUpto" },
-    { label: "Demand Amount To", key: "amount" },
+    { label: "Demand Amount", key: "amount" },
     { label: "Balance", key: "balance" },
   ];
 
