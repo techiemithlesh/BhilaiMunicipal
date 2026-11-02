@@ -989,7 +989,7 @@ class SafController extends Controller
                             ->orderBy('saf_detail_id')
                             ->orderBy('id', 'DESC');
             $data = $this->metaDataList()
-                    ->addSelect(DB::raw("level_remarks.created_at as sending_date,level_remarks.receiving_date,level_remarks.remarks"))
+                    ->addSelect(DB::raw("lr.created_at as sending_date,lr.receiving_date,lr.remarks"))
                     ->joinSub($latestRemarks, 'lr', function($join) {
                         $join->on("lr.saf_detail_id", "=", "active_saf_details.id");
                     })
@@ -1037,7 +1037,7 @@ class SafController extends Controller
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
         }
-        catch(Exception $e){dd($e);
+        catch(Exception $e){
             return responseMsg(false,"Internal Server Error","");
         }
     }
