@@ -5,11 +5,11 @@ import { getMobileMenuListApi, mobileMenuLockUnlockApi } from "../../../api/endp
 import { getToken } from "../../../utils/auth";
 import { Spinner } from "@nextui-org/react";
 import axios from "axios";
-import * as FaIcons from "react-icons/fa";
-import * as MdIcons  from 'react-icons/md';
+import { FaCogs, FaUnlock } from "react-icons/fa";
 import toast from "react-hot-toast";
 import MenuMobileAddEditModal from "../components/MenuMobileAddEditModal";
 import { toTitleCase } from "../../../utils/common";
+import { getMenuIcon } from "../../../utils/menuIcons";
 
 function MobileMenuList() {
     const [menuList, setMenuList] = useState([]);
@@ -71,7 +71,7 @@ function MobileMenuList() {
                         <button className="bg-black text-white px-2 py-1 rounded text-xs"
                             onClick={() => ActiveDeactivate(item,false)}
                         >
-                            <FaIcons.FaUnlock className="inline mr-1" /> Active
+                            <FaUnlock className="inline mr-1" /> Active
                         </button>
                     </>
                 )}
@@ -89,8 +89,7 @@ function MobileMenuList() {
     };
 
     const getFaIcon = (iconName) => {
-      // Default to FaCogs if icon is not found
-      const IconComponent = MdIcons["Md"+toPascalCase(iconName)] || FaIcons[iconName] || FaIcons["FaCogs"];
+      const IconComponent = getMenuIcon(`Md${toPascalCase(iconName)}`, getMenuIcon(iconName, FaCogs));
       return <IconComponent />;
     };
 

@@ -160,17 +160,15 @@ function PaymentModeModal({ open, onClose, onSubmit, loading }) {
 }
 
 export default function PaymentModal({ id, open, onClose,onSuccess, apiUrl, token }) {
-  if (!open) return null;
-
   const [demandData, setDemandData] = useState({});
   const [isFrozen, setIsFrozen] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [showModeModal, setShowModeModal] = useState(false);
 
   useEffect(() => {
-    if (token && id) fetchData();
+    if (open && token && id) fetchData();
     // eslint-disable-next-line
-  }, [id, token]);
+  }, [id, open, token]);
 
   const fetchData = async () => {
     setIsFrozen(true);
@@ -237,6 +235,8 @@ export default function PaymentModal({ id, open, onClose,onSuccess, apiUrl, toke
       setIsPaying(false);
     }
   };
+
+  if (!open) return null;
 
   const {
     rate = {},

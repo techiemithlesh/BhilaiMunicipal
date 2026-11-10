@@ -1,6 +1,7 @@
 import { useState } from "react";
-import * as Icons from "react-icons/fa";
+import { FaEllipsisV, FaRegSquare } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { getMenuIcon } from "../../utils/menuIcons";
 
 const MenuCardTree = ({ menuItems }) => {
   const [activeMenuItems, setActiveMenuItems] = useState(menuItems);
@@ -47,10 +48,7 @@ const MenuCardTree = ({ menuItems }) => {
 
       <div className="gap-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mt-8">
         {activeMenuItems.map((item) => {
-          const Icon =
-            item.icon && Icons[item.icon]
-              ? Icons[item.icon]
-              : Icons.FaRegSquare;
+          const Icon = getMenuIcon(item.icon, FaRegSquare);
 
           const cleanedUrl = item.url?.trim().replace(/^\/+/, "") ?? "#";
 
@@ -67,7 +65,7 @@ const MenuCardTree = ({ menuItems }) => {
               {item.children && item.children.length > 0 && (
                 <>
                   <div className="top-2 right-2 absolute text-gray-500">
-                    <Icons.FaEllipsisV />
+                    <FaEllipsisV />
                   </div>
                   <div className="hidden group-hover:block top-10 right-2 z-50 absolute bg-white shadow p-2 border rounded w-40 text-left">
                     {item.children.map((child) => (

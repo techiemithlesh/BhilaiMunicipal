@@ -76,7 +76,6 @@ function AddConsumer({ mstrData, formDetails }) {
                         email: "",
                     },
                 ],
-                dateOfEffective:"",
                 connectionDtl:[
                     {
                         categoryTypeMasterId: "",

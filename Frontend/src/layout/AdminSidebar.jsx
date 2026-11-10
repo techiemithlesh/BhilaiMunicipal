@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
-import * as FaIcons from "react-icons/fa";
-import * as Fa6Icons from "react-icons/fa6";
-import * as GiCash from "react-icons/gi";
+import { FaCogs, FaChevronDown, FaChevronRight } from "react-icons/fa";
 import { hostInfo } from "../utils/common";
 import RecursiveMenu from "../components/specific/RecursiveMenu";
-
-const iconLibraries = {
-  Fa: FaIcons,
-  Fa6: Fa6Icons,
-  Gi: GiCash,
-};
+import { getMenuIcon } from "../utils/menuIcons";
 
 const getAnyIcon = (iconName) => {
-  if (!iconName) return <FaIcons.FaCogs />;
-  const prefix = iconName.slice(0, 2);
-  const lib = iconLibraries[prefix];
-  const IconComponent = lib?.[iconName] || FaIcons.FaCogs;
+  const IconComponent = getMenuIcon(iconName, FaCogs);
   return <IconComponent />;
 };
 
@@ -76,9 +66,9 @@ const AdminSidebar = ({
           className="hidden md:block text-gray-400 hover:text-white"
         >
           {isCollapsed ? (
-            <FaIcons.FaChevronRight />
+            <FaChevronRight />
           ) : (
-            <FaIcons.FaChevronDown />
+            <FaChevronDown />
           )}
         </button>
       </div>

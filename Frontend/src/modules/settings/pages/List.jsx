@@ -7,22 +7,11 @@ import { Spinner } from "@nextui-org/react";
 import axios from "axios";
 import MenuAddEditModal from "../components/MenuAddEditModal";
 import toast from "react-hot-toast";
-import * as FaIcons from "react-icons/fa";
-import * as Fa6Icons from "react-icons/fa6";
-import * as GiCash from "react-icons/gi";
-
-const iconLibraries = {
-  Fa: FaIcons,
-  Fa6: Fa6Icons,
-  Gi: GiCash,
-  // Add more mappings as needed
-};
+import { FaCogs, FaUnlock } from "react-icons/fa";
+import { getMenuIcon } from "../../../utils/menuIcons";
 
 const getAnyIcon = (iconName) => {
-  if (!iconName) return <FaIcons.FaCogs />;
-  const prefix = iconName.slice(0, 2);
-  const lib = iconLibraries[prefix];
-  const IconComponent = lib?.[iconName] || FaIcons.FaCogs;
+  const IconComponent = getMenuIcon(iconName, FaCogs);
   return <IconComponent />;
 };
 
@@ -85,19 +74,13 @@ export default function List() {
               className="bg-black px-2 py-1 rounded text-white text-xs"
               onClick={() => ActiveDeactivate(item, false)}
             >
-              <FaIcons.FaUnlock className="inline mr-1" /> Active
+              <FaUnlock className="inline mr-1" /> Active
             </button>
           </>
         )}
       </td>
     </tr>
   );
-
-  const getFaIcon = (iconName) => {
-    // Default to FaCogs if icon is not found
-    const IconComponent = FaIcons[iconName] || FaIcons["FaCogs"];
-    return <IconComponent />;
-  };
 
   const fetchData = async () => {
     setIsLoading(true);
