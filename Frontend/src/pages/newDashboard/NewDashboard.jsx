@@ -4,6 +4,14 @@ import { getToken } from "../../utils/auth";
 import {
   newDashboardSummaryApi,
   newDashboardAuthSummaryApi,
+  newDashboardAllPeriodsApi,
+  newDashboardAllChartApi,
+  newDashboardModuleOverviewApi,
+  newDashboardModuleDcbApi,
+  newDashboardAuthAllPeriodsApi,
+  newDashboardAuthAllChartApi,
+  newDashboardAuthModuleOverviewApi,
+  newDashboardAuthModuleDcbApi,
 } from "../../api/endpoints";
 import {
   FaBuilding,
@@ -54,6 +62,10 @@ import {
   formatCitizens,
   mergeAllModulesApiData,
   mergeModuleSpecificApiData,
+  mergeAllModulesPeriods,
+  mergeAllModulesChart,
+  mergeSingleModuleOverview,
+  mergeSingleModuleDcb,
 } from "./newDashboardData";
 
 // Icon resolver for module items
@@ -192,10 +204,12 @@ export default function NewDashboard() {
     { id: "WATER", label: "WATER", icon: <FaWater /> },
   ];
 
-  // Fetch live dashboard data from Laravel backend
+  // Fetch live dashboard data modularly from Laravel backend
   useEffect(() => {
     let isMounted = true;
-    const fetchLiveDashboard = async () => {
+    const abortController = new AbortController();
+
+    const fetchModularDashboard = async () => {
       setIsFetchingApi(true);
       try {
         const token = getToken();
@@ -206,30 +220,87 @@ export default function NewDashboard() {
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        const apiUrl = token ? newDashboardAuthSummaryApi : newDashboardSummaryApi;
 
-        const response = await axios.post(
-          apiUrl,
-          { fyear: selectedYear, tab: selectedTab },
-          { headers, timeout: 8000 }
-        );
+        const axiosConfig = {
+          headers,
+          timeout: 6000,
+          signal: abortController.signal,
+        };
 
-        if (response?.data?.status && response?.data?.data && isMounted) {
-          const apiData = response.data.data;
-          if (apiData.allModules) {
-            setAllModulesData((prev) => mergeAllModulesApiData(prev, apiData.allModules));
+        if (selectedTab === "ALL_MODULE") {
+          // Parallel fast queries for All Modules (Periods + Chart)
+          const periodsUrl = token ? newDashboardAuthAllPeriodsApi : newDashboardAllPeriodsApi;
+          const chartUrl = token ? newDashboardAuthAllChartApi : newDashboardAllChartApi;
+
+          const [periodsRes, chartRes] = await Promise.allSettled([
+            axios.post(periodsUrl, { fyear: selectedYear }, axiosConfig),
+            axios.post(chartUrl, { fyear: selectedYear, timeframe: chartTimeframe }, axiosConfig),
+          ]);
+
+          if (isMounted) {
+            let hasSuccess = false;
+            if (periodsRes.status === "fulfilled" && periodsRes.value?.data?.status) {
+              const pData = periodsRes.value.data.data?.periods;
+              if (pData) {
+                setAllModulesData((prev) => mergeAllModulesPeriods(prev, pData));
+                hasSuccess = true;
+              }
+            }
+            if (chartRes.status === "fulfilled" && chartRes.value?.data?.status) {
+              const cData = chartRes.value.data.data?.chartData;
+              if (cData) {
+                setAllModulesData((prev) => mergeAllModulesChart(prev, cData));
+                hasSuccess = true;
+              }
+            }
+            setApiStatus(hasSuccess ? "connected" : "fallback");
           }
-          if (apiData.modules) {
-            setModuleSpecificData((prev) => mergeModuleSpecificApiData(prev, apiData.modules));
+        } else {
+          // Tab is PROPERTY, WASTE, or WATER
+          const overviewUrl = token ? newDashboardAuthModuleOverviewApi : newDashboardModuleOverviewApi;
+          const dcbUrl = token ? newDashboardAuthModuleDcbApi : newDashboardModuleDcbApi;
+
+          // Step 1: Immediate fetch for Overview (Periods + Chart)
+          const overviewPromise = axios.post(
+            overviewUrl,
+            { module: selectedTab, fyear: selectedYear, timeframe: chartTimeframe },
+            axiosConfig
+          );
+
+          // Step 2: Parallel fetch for DCB
+          const dcbPromise = axios.post(
+            dcbUrl,
+            { module: selectedTab, fyear: selectedYear },
+            axiosConfig
+          );
+
+          const [overviewRes, dcbRes] = await Promise.allSettled([overviewPromise, dcbPromise]);
+
+          if (isMounted) {
+            let hasSuccess = false;
+            if (overviewRes.status === "fulfilled" && overviewRes.value?.data?.status) {
+              const oData = overviewRes.value.data.data;
+              if (oData) {
+                setModuleSpecificData((prev) => mergeSingleModuleOverview(prev, selectedTab, oData));
+                hasSuccess = true;
+              }
+            }
+            if (dcbRes.status === "fulfilled" && dcbRes.value?.data?.status) {
+              const dData = dcbRes.value.data.data?.dcb;
+              if (dData) {
+                setModuleSpecificData((prev) => mergeSingleModuleDcb(prev, selectedTab, dData));
+                hasSuccess = true;
+              }
+            }
+            setApiStatus(hasSuccess ? "connected" : "fallback");
           }
-          setApiStatus("connected");
-        } else if (isMounted) {
-          setApiStatus("fallback");
         }
       } catch (err) {
-        console.warn("Live Dashboard API fallback:", err.message);
-        if (isMounted) {
-          setApiStatus("fallback");
+        if (!axios.isCancel(err)) {
+          console.warn("Live Dashboard API fallback:", err.message);
+          if (isMounted) {
+            setApiStatus("fallback");
+          }
         }
       } finally {
         if (isMounted) {
@@ -239,11 +310,12 @@ export default function NewDashboard() {
       }
     };
 
-    fetchLiveDashboard();
+    fetchModularDashboard();
     return () => {
       isMounted = false;
+      abortController.abort();
     };
-  }, [selectedYear, selectedTab, isRefreshing]);
+  }, [selectedYear, selectedTab, chartTimeframe, isRefreshing]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

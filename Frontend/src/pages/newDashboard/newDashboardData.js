@@ -509,3 +509,108 @@ export const mergeModuleSpecificApiData = (defaultData, apiModules) => {
 
   return result;
 };
+
+// Merges live periods into ALL_MODULES_DATA
+export const mergeAllModulesPeriods = (defaultData, apiPeriods) => {
+  if (!apiPeriods) return defaultData;
+  const newPeriods = { ...defaultData.periods };
+
+  Object.keys(apiPeriods).forEach((pKey) => {
+    const apiPeriod = apiPeriods[pKey];
+    if (!apiPeriod) return;
+
+    const baseItems = defaultData.periods[pKey]?.items || [];
+    const newItems = baseItems.map((item) => {
+      const apiItem = apiPeriod.modules?.[item.id];
+      if (!apiItem) return item;
+      return {
+        ...item,
+        amount: apiItem.amount !== undefined ? apiItem.amount : item.amount,
+        citizens: apiItem.citizens !== undefined ? apiItem.citizens : item.citizens,
+      };
+    });
+
+    const totalCitizens = newItems.reduce((acc, curr) => acc + (curr.citizens || 0), 0);
+
+    newPeriods[pKey] = {
+      ...defaultData.periods[pKey],
+      dateRange: apiPeriod.date || defaultData.periods[pKey]?.dateRange,
+      netCollection:
+        apiPeriod.netCollection !== undefined
+          ? apiPeriod.netCollection
+          : defaultData.periods[pKey]?.netCollection,
+      totalCitizens: totalCitizens || defaultData.periods[pKey]?.totalCitizens,
+      items: newItems,
+    };
+  });
+
+  return {
+    ...defaultData,
+    periods: newPeriods,
+  };
+};
+
+// Merges chart data into ALL_MODULES_DATA
+export const mergeAllModulesChart = (defaultData, apiChartData) => {
+  if (!Array.isArray(apiChartData) || apiChartData.length === 0) return defaultData;
+  return {
+    ...defaultData,
+    chart: {
+      ...defaultData.chart,
+      month: apiChartData,
+    },
+  };
+};
+
+// Merges overview (periods + chart) for a single module
+export const mergeSingleModuleOverview = (defaultData, moduleKey, apiOverview) => {
+  if (!apiOverview || !defaultData[moduleKey]) return defaultData;
+  const currentMod = defaultData[moduleKey];
+
+  const newPeriods = { ...currentMod.periods };
+  if (apiOverview.periods) {
+    Object.keys(apiOverview.periods).forEach((pKey) => {
+      const p = apiOverview.periods[pKey];
+      if (!p) return;
+      newPeriods[pKey] = {
+        ...currentMod.periods[pKey],
+        dateRange: p.date || currentMod.periods[pKey]?.dateRange,
+        amount: p.amount !== undefined ? p.amount : currentMod.periods[pKey]?.amount,
+        citizens: p.citizens !== undefined ? p.citizens : currentMod.periods[pKey]?.citizens,
+      };
+    });
+  }
+
+  const newChart = { ...currentMod.chart };
+  if (Array.isArray(apiOverview.chartData) && apiOverview.chartData.length > 0) {
+    newChart.month = apiOverview.chartData.map((d) => ({
+      date: d.date,
+      collection: d.amount !== undefined ? d.amount : d.collection,
+      citizens: d.citizens !== undefined ? d.citizens : 0,
+    }));
+  }
+
+  return {
+    ...defaultData,
+    [moduleKey]: {
+      ...currentMod,
+      periods: newPeriods,
+      chart: newChart,
+    },
+  };
+};
+
+// Merges DCB for a single module
+export const mergeSingleModuleDcb = (defaultData, moduleKey, apiDcb) => {
+  if (!apiDcb || !defaultData[moduleKey]) return defaultData;
+  return {
+    ...defaultData,
+    [moduleKey]: {
+      ...defaultData[moduleKey],
+      dcb: {
+        ...defaultData[moduleKey].dcb,
+        ...apiDcb,
+      },
+    },
+  };
+};

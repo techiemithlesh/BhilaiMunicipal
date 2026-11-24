@@ -276,6 +276,17 @@ export const appliedSafApi = `${BASE_URL}/api/dashboard/property/applied-saf`;
 export const newDashboardSummaryApi = `${BASE_URL}/api/dashboard/summary`;
 export const newDashboardAuthSummaryApi = `${BASE_URL}/api/dashboard/auth-summary`;
 
+// Modular Fast Dashboard APIs
+export const newDashboardAllPeriodsApi = `${BASE_URL}/api/dashboard/all-modules/periods`;
+export const newDashboardAllChartApi = `${BASE_URL}/api/dashboard/all-modules/chart`;
+export const newDashboardModuleOverviewApi = `${BASE_URL}/api/dashboard/module/overview`;
+export const newDashboardModuleDcbApi = `${BASE_URL}/api/dashboard/module/dcb`;
+
+export const newDashboardAuthAllPeriodsApi = `${BASE_URL}/api/dashboard/auth/all-modules/periods`;
+export const newDashboardAuthAllChartApi = `${BASE_URL}/api/dashboard/auth/all-modules/chart`;
+export const newDashboardAuthModuleOverviewApi = `${BASE_URL}/api/dashboard/auth/module/overview`;
+export const newDashboardAuthModuleDcbApi = `${BASE_URL}/api/dashboard/auth/module/dcb`;
+
 export const tradePayDemandApi = `${BASE_URL}/api/trade/pay-demand`;
 export const tradePaymentReceiptApi = `${BASE_URL}/api/trade/payment-receipt`;
 
