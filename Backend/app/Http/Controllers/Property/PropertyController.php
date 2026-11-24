@@ -33,8 +33,10 @@ use App\Models\Property\PropertyOwnerDetail;
 use App\Models\Property\PropertyTax;
 use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\PropTransaction;
+use App\Models\SWM\Consumer;
 use App\Models\User;
 use App\Trait\Property\PropertyTrait;
+use App\Trait\SWM\ConsumerTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Exception;
@@ -48,6 +50,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PropertyController extends Controller
 {
+    use ConsumerTrait;
     use PropertyTrait;
     /**
      * Created by Sandeep Bara
@@ -76,6 +79,8 @@ class PropertyController extends Controller
     private $_MODULE_ID;
     private $_CommonClass ;
     private $_NttPaymentRequest;
+
+    private $_SWM_Consumer;
     function __construct()
     {
         $this->_Conn = (new ParamModel())->resolveDynamicConnection();
@@ -92,6 +97,7 @@ class PropertyController extends Controller
         $this->_PropertyNotice = new PropertyNotice();
         $this->_NttPaymentRequest = new NttPaymentRequest();
         $this->_PropertyAdditionalDocument = new PropertyAdditionalDocument();
+        $this->_SWM_Consumer = new Consumer();
         
         $this->_UlbWardMaster = new UlbWardMaster();
         $this->_UlbMaster = new UlbMaster();
@@ -196,6 +202,7 @@ class PropertyController extends Controller
             $property->floors = $this->adjustFloorValue($property->getFloors());
             $property->owners = $property->getOwners();
             $property->tran_dtls = $property->getTrans();
+            $property->swm = $this->consumerMetaDataList()->where("property_detail_id", $property->id)->get();
             $property->additionalDoc = $property->getAdditionalDoc()->map(function($item){
                 $item->docPath = $item->doc_path ? url("/documents")."/".$item->doc_path:"";
                 return $item;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   propDueApi,
@@ -480,6 +480,39 @@ const Details = () => {
                 </tr>
               )}
             />
+            {propDetails?.swm && propDetails?.swm?.length > 0 && (
+                <SectionCard
+                  title="SWM Details"
+                  headers={[
+                    "SL",
+                    "Consumer No.",
+                    "Owner Name",
+                    "Guardian Name",
+                    "Mobile No",
+                    "Address",
+                    "View",
+                  ]}
+                  data={propDetails.swm}
+                  renderRow={(swm, idx) => (
+                    <tr key={idx}>
+                      <td className="px-3 py-2 border">{idx + 1}</td>
+                      <td className="px-3 py-2 border">{swm.consumerNo}</td>
+                      <td className="px-3 py-2 border">{swm.ownerName}</td>
+                      <td className="px-3 py-2 border">{swm.guardianName}</td>
+                      <td className="px-3 py-2 border">{swm.mobileNo}</td>
+                      <td className="px-3 py-2 border">{swm.address}</td>
+                      <td className="px-3 py-2 border">
+                        {swm?.id && (
+                          <Link to={`/swm/dtl/${swm.id}`} target="_blank" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded font-medium text-white text-sm transition duration-200">
+                            <FaEye className="text-base" />
+                            <span>View</span> 
+                            </Link>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                />
+            )}
             <div className="flex flex-wrap justify-center gap-3">
               {wfPermissions ? (
                 actions.map((btn, i) => <ActionButton key={i} {...btn} />)

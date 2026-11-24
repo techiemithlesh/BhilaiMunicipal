@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     host: true, // Listen on all local IP addresses
     port: 5173, // You can change this if you use a different port
-    // allowedHosts: ['.trycloudflare.com'],
+    allowedHosts: ['.trycloudflare.com'],
   },
   build: {
     rollupOptions: {

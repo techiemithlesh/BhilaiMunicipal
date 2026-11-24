@@ -78,13 +78,12 @@ const PropDtl = ({
               htmlFor="villageMaujaName"
               className="block font-medium text-sm"
             >
-              Village/Mauja Name <span className="text-red-500">*</span>
+              Village/Mauja Name 
             </label>
             <input
               type="text"
               id="villageMaujaName"
               name="villageMaujaName"
-              required
               placeholder=""
               value={formData.villageMaujaName || ""}
               onChange={handleInputChange}

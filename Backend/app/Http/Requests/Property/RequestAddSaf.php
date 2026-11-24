@@ -111,7 +111,7 @@ class RequestAddSaf extends ParentRequest
             // "flatRegistryDate"=>"nullable|required_if:propTypeMstrId,3|date|date_format:Y-m-d|before_or_equal:".Carbon::now()->format("Y-m-d"),
             "khataNo"=>"nullable",
             "plotNo"=>"nullable",
-            "villageMaujaName"=>"required",
+            "villageMaujaName"=>"nullable",
             "areaOfPlot"=>"required|numeric|min:0.1",
             // "builtupArea"=>"nullable|required_unless:propTypeMstrId,4|numeric|min:0".($this->areaOfPlot ? "|max:".($this->areaOfPlot) : ""),
             "propAddress"=>"required",
