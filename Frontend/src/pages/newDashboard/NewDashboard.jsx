@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { getToken } from "../../utils/auth";
 import {
+  getFyearListApi,
   newDashboardSummaryApi,
   newDashboardAuthSummaryApi,
   newDashboardAllPeriodsApi,
@@ -66,6 +67,7 @@ import {
   mergeAllModulesChart,
   mergeSingleModuleOverview,
   mergeSingleModuleDcb,
+  calculateDateRangesForFyear,
 } from "./newDashboardData";
 
 // Icon resolver for module items
@@ -183,6 +185,7 @@ const CustomMultiLineTooltip = ({ active, payload, label, focusedModule }) => {
 
 export default function NewDashboard() {
   const [selectedTab, setSelectedTab] = useState("ALL_MODULE");
+  const [financialYears, setFinancialYears] = useState(FINANCIAL_YEARS);
   const [selectedYear, setSelectedYear] = useState(FINANCIAL_YEARS[0]);
   const [chartTimeframe, setChartTimeframe] = useState("month"); // 'week' | 'month' | 'year'
   const [chartViewMode, setChartViewMode] = useState("chart"); // 'chart' | 'table'
@@ -204,7 +207,72 @@ export default function NewDashboard() {
     { id: "WATER", label: "WATER", icon: <FaWater /> },
   ];
 
-  // Fetch live dashboard data modularly from Laravel backend
+  // 1. Fetch dynamic financial years from server API (getFyearListApi)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFyears = async () => {
+      try {
+        const response = await axios.get(getFyearListApi, {
+          headers: { Accept: "application/json" },
+          timeout: 5000,
+        });
+        if (
+          response?.data?.status &&
+          Array.isArray(response.data.data) &&
+          response.data.data.length > 0 &&
+          isMounted
+        ) {
+          const list = response.data.data;
+          setFinancialYears(list);
+          setSelectedYear((prev) => (list.includes(prev) ? prev : list[0]));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch fyear list from server, using fallback:", err.message);
+      }
+    };
+    fetchFyears();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Computed date boundaries for selected FY (Today date/month mapped into selected FY year)
+  const computedDates = useMemo(() => {
+    return calculateDateRangesForFyear(selectedYear);
+  }, [selectedYear]);
+
+  // Synchronize period date labels immediately when FY changes
+  useEffect(() => {
+    if (!computedDates) return;
+
+    setAllModulesData((prev) => {
+      const newPeriods = { ...prev.periods };
+      Object.keys(newPeriods).forEach((k) => {
+        if (newPeriods[k] && computedDates.labels[k]) {
+          newPeriods[k] = { ...newPeriods[k], dateRange: computedDates.labels[k] };
+        }
+      });
+      return { ...prev, periods: newPeriods };
+    });
+
+    setModuleSpecificData((prev) => {
+      const next = { ...prev };
+      ["PROPERTY", "WASTE", "WATER"].forEach((mod) => {
+        if (next[mod]?.periods) {
+          const p = { ...next[mod].periods };
+          Object.keys(p).forEach((k) => {
+            if (p[k] && computedDates.labels[k]) {
+              p[k] = { ...p[k], dateRange: computedDates.labels[k] };
+            }
+          });
+          next[mod] = { ...next[mod], periods: p };
+        }
+      });
+      return next;
+    });
+  }, [computedDates]);
+
+  // 3. Fetch live dashboard data modularly from Laravel backend
   useEffect(() => {
     let isMounted = true;
     const abortController = new AbortController();
@@ -227,14 +295,19 @@ export default function NewDashboard() {
           signal: abortController.signal,
         };
 
+        const datePayload = {
+          fyear: selectedYear,
+          date: computedDates.refDate,
+        };
+
         if (selectedTab === "ALL_MODULE") {
           // Parallel fast queries for All Modules (Periods + Chart)
           const periodsUrl = token ? newDashboardAuthAllPeriodsApi : newDashboardAllPeriodsApi;
           const chartUrl = token ? newDashboardAuthAllChartApi : newDashboardAllChartApi;
 
           const [periodsRes, chartRes] = await Promise.allSettled([
-            axios.post(periodsUrl, { fyear: selectedYear }, axiosConfig),
-            axios.post(chartUrl, { fyear: selectedYear, timeframe: chartTimeframe }, axiosConfig),
+            axios.post(periodsUrl, datePayload, axiosConfig),
+            axios.post(chartUrl, { ...datePayload, timeframe: chartTimeframe }, axiosConfig),
           ]);
 
           if (isMounted) {
@@ -263,7 +336,7 @@ export default function NewDashboard() {
           // Step 1: Immediate fetch for Overview (Periods + Chart)
           const overviewPromise = axios.post(
             overviewUrl,
-            { module: selectedTab, fyear: selectedYear, timeframe: chartTimeframe },
+            { module: selectedTab, ...datePayload, timeframe: chartTimeframe },
             axiosConfig
           );
 
@@ -315,7 +388,7 @@ export default function NewDashboard() {
       isMounted = false;
       abortController.abort();
     };
-  }, [selectedYear, selectedTab, chartTimeframe, isRefreshing]);
+  }, [selectedYear, selectedTab, chartTimeframe, isRefreshing, computedDates]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -410,7 +483,7 @@ export default function NewDashboard() {
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="bg-white text-slate-800 text-xs sm:text-sm font-semibold rounded-md border-0 py-1.5 px-3 shadow-xs focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
               >
-                {FINANCIAL_YEARS.map((fy) => (
+                {financialYears.map((fy) => (
                   <option key={fy} value={fy}>
                     {fy}
                   </option>

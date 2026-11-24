@@ -112,14 +112,33 @@ class DashBoardController extends Controller
 
     /**
      * Resolves date boundaries for periods (Today, Week, Month, Year)
+     * When FY is changed, Day and Month remain current, but Year is mapped to the selected FY
      */
     private function resolveDateRanges(Request $request)
     {
         $fyear = $request->fyear ?? getFY();
-        $refDate = $request->date ?? Carbon::now()->format('Y-m-d');
-        $refCarbon = Carbon::parse($refDate);
-
         list($fyearStart, $fyearEnd) = FyearFromUptoDate($fyear);
+        $parts = explode('-', $fyear);
+        $fromYear = (int)($parts[0] ?? 2026);
+        $uptoYear = (int)($parts[1] ?? 2027);
+
+        // Current real date (day and month)
+        $now = Carbon::now();
+        $currentMonth = (int) $now->format('m');
+        $currentDay = (int) $now->format('d');
+
+        // Target year in the selected FY:
+        // April (4) to December (12) -> fromYear
+        // January (1) to March (3) -> uptoYear
+        $targetYear = ($currentMonth >= 4) ? $fromYear : $uptoYear;
+
+        if ($request->filled('date')) {
+            $refCarbon = Carbon::parse($request->date);
+        } else {
+            $maxDays = Carbon::createFromDate($targetYear, $currentMonth, 1)->endOfMonth()->day;
+            $safeDay = min($currentDay, $maxDays);
+            $refCarbon = Carbon::createFromDate($targetYear, $currentMonth, $safeDay);
+        }
 
         $today = $refCarbon->format('Y-m-d');
         $weekStart = $refCarbon->copy()->startOfWeek()->format('Y-m-d');
@@ -129,7 +148,7 @@ class DashBoardController extends Controller
 
         return [
             'fyear' => $fyear,
-            'refDate' => $refDate,
+            'refDate' => $today,
             'today' => $today,
             'weekStart' => $weekStart,
             'weekEnd' => $weekEnd,

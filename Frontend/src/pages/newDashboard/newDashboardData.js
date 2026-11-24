@@ -614,3 +614,54 @@ export const mergeSingleModuleDcb = (defaultData, moduleKey, apiDcb) => {
     },
   };
 };
+
+// Computes date boundaries for a selected financial year (e.g. 2024-2025)
+// Day and month are kept current, but year is mapped into the selected FY
+export const calculateDateRangesForFyear = (fyear, customDate = null) => {
+  const parts = (fyear || "2026-2027").split("-");
+  const fromYear = parseInt(parts[0], 10) || 2026;
+  const uptoYear = parseInt(parts[1], 10) || 2027;
+
+  const now = customDate ? new Date(customDate) : new Date();
+  const currentMonth = now.getMonth() + 1; // 1 to 12
+  const currentDay = now.getDate();
+
+  // Target year in selected FY:
+  // April (4) to Dec (12) -> fromYear
+  // Jan (1) to Mar (3) -> uptoYear
+  const targetYear = currentMonth >= 4 ? fromYear : uptoYear;
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const maxDays = new Date(targetYear, currentMonth, 0).getDate();
+  const safeDay = Math.min(currentDay, maxDays);
+
+  const refDateStr = `${targetYear}-${pad(currentMonth)}-${pad(safeDay)}`;
+  const refDate = new Date(targetYear, currentMonth - 1, safeDay);
+
+  const todayLabel = `${pad(safeDay)}-${pad(currentMonth)}-${targetYear}`;
+
+  // Week calculation (Monday to Sunday)
+  const dayOfWeek = refDate.getDay(); // 0 is Sun, 1 is Mon...
+  const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const mon = new Date(refDate);
+  mon.setDate(refDate.getDate() + diffToMon);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const weekLabel = `${pad(mon.getDate())}-${pad(mon.getMonth() + 1)}-${mon.getFullYear()} TO ${pad(sun.getDate())}-${pad(sun.getMonth() + 1)}-${sun.getFullYear()}`;
+
+  // Month calculation (1st to last of current month)
+  const monthLabel = `01-${pad(currentMonth)}-${targetYear} TO ${pad(maxDays)}-${pad(currentMonth)}-${targetYear}`;
+
+  // Year calculation (01-04-fromYear to 31-03-uptoYear)
+  const yearLabel = `01-04-${fromYear} TO 31-03-${uptoYear}`;
+
+  return {
+    refDate: refDateStr,
+    labels: {
+      TODAY: todayLabel,
+      WEEK: weekLabel,
+      MONTH: monthLabel,
+      YEAR: yearLabel,
+    },
+  };
+};
