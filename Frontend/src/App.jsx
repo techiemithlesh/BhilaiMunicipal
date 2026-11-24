@@ -30,6 +30,7 @@ const TradeRoutes = lazy(() => import("./routes/TradeRoutes"));
 const LicenseCertificateReceipt = lazy(() => import("./modules/trade/pages/LicenseCertificateReceipt"));
 const TradePaymentReceipt = lazy(() => import("./modules/trade/pages/TradePaymentReceipt"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const NewDashboard = lazy(() => import("./pages/newDashboard/NewDashboard.jsx"));
 const SWMRoute = lazy(() => import("./modules/swm/index"));
 const ShopRentRoute = lazy(() => import("./modules/shopRent/index"));
 const ShopPaymentReceipt = lazy(() => import("./modules/shopRent/pages/ShopPaymentReceipt"));const SwmPaymentReceipt = lazy(() => import("./modules/swm/pages/SwmPaymentReceipt"));
@@ -145,6 +146,10 @@ function App() {
                   <Dashboard />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/new-dashboard"
+              element={<NewDashboard />}
             />
             <Route
               path="/swm/payment-receipt/:id"

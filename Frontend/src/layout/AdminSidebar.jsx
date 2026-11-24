@@ -20,11 +20,14 @@ const AdminSidebar = ({
   const host = hostInfo();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("userDetails"));
-    if (user?.menuTree) {
-      const mappedMenu = mapMenuTreeToMenuItems(user.menuTree);
-      setMenuItems(mappedMenu);
-    }
+    const user = JSON.parse(localStorage.getItem("userDetails") || "null");
+    const mappedMenu = user?.menuTree ? mapMenuTreeToMenuItems(user.menuTree) : [];
+    const newDashboardItem = {
+      title: "NewDashboard",
+      icon: getAnyIcon("MdDashboard"),
+      link: `${host}/new-dashboard`,
+    };
+    setMenuItems([newDashboardItem, ...mappedMenu]);
   }, []);
 
   const mapMenuTreeToMenuItems = (menuTree) =>

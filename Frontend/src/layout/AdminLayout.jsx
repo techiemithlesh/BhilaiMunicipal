@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { heartBeatApi, UlbApi } from "../api/endpoints";
 
-const AdminLayout = ({ children }) => {
+const AdminLayout = ({ children, allowAnonymous = false }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const userInfo = JSON.parse(localStorage.getItem("userDetails"));
+  const userInfo = JSON.parse(localStorage.getItem("userDetails") || "null");
   const [ulbData, setUlbData] = useState(null);
   const navigate = useNavigate();
 
@@ -22,8 +22,10 @@ const AdminLayout = ({ children }) => {
 
   // === Auth heartbeat check ===
   useEffect(() => {
+    if (allowAnonymous) return;
     if (!token || !userInfo) {
       navigate("/login", { replace: true });
+      return;
     }
 
     const testHeartBeat = async () => {
@@ -45,12 +47,17 @@ const AdminLayout = ({ children }) => {
     testHeartBeat();
     intervalRef.current = setInterval(testHeartBeat, 300000); // 5 min
     return () => clearInterval(intervalRef.current);
-  }, [token, navigate, userInfo]);
+  }, [token, navigate, userInfo, allowAnonymous]);
 
   // === Fetch ULB Info ===
   useEffect(() => {
     const fetchUlbDtl = async () => {
-      if (!ulbId) return;
+      if (!ulbId) {
+        if (allowAnonymous) {
+          setUlbData({ ulb_name: "MUNICIPAL CORPORATION BHILAI" });
+        }
+        return;
+      }
       let ulb = getWithExpiry("uldDtl");
       try {
         if(ulb?.id && ulb?.id==ulbId ){
