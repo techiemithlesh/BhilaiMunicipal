@@ -412,3 +412,100 @@ export const formatCitizens = (count) => {
   if (count === null || count === undefined || isNaN(count)) return "0";
   return Number(count).toLocaleString("en-IN");
 };
+
+// Merges live API response with ALL_MODULES_DATA structure
+export const mergeAllModulesApiData = (defaultData, apiAllModules) => {
+  if (!apiAllModules || !apiAllModules.periods) return defaultData;
+  const newPeriods = { ...defaultData.periods };
+
+  Object.keys(apiAllModules.periods).forEach((pKey) => {
+    const apiPeriod = apiAllModules.periods[pKey];
+    if (!apiPeriod) return;
+
+    const baseItems = defaultData.periods[pKey]?.items || [];
+    const newItems = baseItems.map((item) => {
+      const apiItem = apiPeriod.modules?.[item.id];
+      if (!apiItem) return item;
+      return {
+        ...item,
+        amount: apiItem.amount !== undefined ? apiItem.amount : item.amount,
+        citizens: apiItem.citizens !== undefined ? apiItem.citizens : item.citizens,
+      };
+    });
+
+    const totalCitizens = newItems.reduce((acc, curr) => acc + (curr.citizens || 0), 0);
+
+    newPeriods[pKey] = {
+      ...defaultData.periods[pKey],
+      dateRange: apiPeriod.date || defaultData.periods[pKey]?.dateRange,
+      netCollection:
+        apiPeriod.netCollection !== undefined
+          ? apiPeriod.netCollection
+          : defaultData.periods[pKey]?.netCollection,
+      totalCitizens: totalCitizens || defaultData.periods[pKey]?.totalCitizens,
+      items: newItems,
+    };
+  });
+
+  const newChart = { ...defaultData.chart };
+  if (Array.isArray(apiAllModules.chartData) && apiAllModules.chartData.length > 0) {
+    newChart.month = apiAllModules.chartData;
+  }
+
+  return {
+    ...defaultData,
+    periods: newPeriods,
+    chart: newChart,
+  };
+};
+
+// Merges live API response with MODULE_SPECIFIC_DATA structure
+export const mergeModuleSpecificApiData = (defaultData, apiModules) => {
+  if (!apiModules) return defaultData;
+  const result = { ...defaultData };
+
+  ["PROPERTY", "WASTE", "WATER"].forEach((modKey) => {
+    const apiMod = apiModules[modKey];
+    if (!apiMod) return;
+
+    const currentMod = defaultData[modKey];
+    if (!currentMod) return;
+
+    const newPeriods = { ...currentMod.periods };
+    if (apiMod.periods) {
+      Object.keys(apiMod.periods).forEach((pKey) => {
+        const p = apiMod.periods[pKey];
+        if (!p) return;
+        newPeriods[pKey] = {
+          ...currentMod.periods[pKey],
+          dateRange: p.date || currentMod.periods[pKey]?.dateRange,
+          amount: p.amount !== undefined ? p.amount : currentMod.periods[pKey]?.amount,
+          citizens: p.citizens !== undefined ? p.citizens : currentMod.periods[pKey]?.citizens,
+        };
+      });
+    }
+
+    const newDcb = {
+      ...currentMod.dcb,
+      ...(apiMod.dcb || {}),
+    };
+
+    const newChart = { ...currentMod.chart };
+    if (Array.isArray(apiMod.chartData) && apiMod.chartData.length > 0) {
+      newChart.month = apiMod.chartData.map((d) => ({
+        date: d.date,
+        collection: d.amount !== undefined ? d.amount : d.collection,
+        citizens: d.citizens !== undefined ? d.citizens : 0,
+      }));
+    }
+
+    result[modKey] = {
+      ...currentMod,
+      periods: newPeriods,
+      dcb: newDcb,
+      chart: newChart,
+    };
+  });
+
+  return result;
+};

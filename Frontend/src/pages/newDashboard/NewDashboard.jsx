@@ -1,4 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
+import { getToken } from "../../utils/auth";
+import {
+  newDashboardSummaryApi,
+  newDashboardAuthSummaryApi,
+} from "../../api/endpoints";
 import {
   FaBuilding,
   FaTrashAlt,
@@ -46,6 +52,8 @@ import {
   MODULE_ITEMS_DEF,
   formatIndianCurrency,
   formatCitizens,
+  mergeAllModulesApiData,
+  mergeModuleSpecificApiData,
 } from "./newDashboardData";
 
 // Icon resolver for module items
@@ -168,6 +176,10 @@ export default function NewDashboard() {
   const [chartViewMode, setChartViewMode] = useState("chart"); // 'chart' | 'table'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [focusedModule, setFocusedModule] = useState(null); // null means all normal, 'property' means property bold and others light
+  const [allModulesData, setAllModulesData] = useState(ALL_MODULES_DATA);
+  const [moduleSpecificData, setModuleSpecificData] = useState(MODULE_SPECIFIC_DATA);
+  const [isFetchingApi, setIsFetchingApi] = useState(false);
+  const [apiStatus, setApiStatus] = useState("checking"); // 'connected' | 'fallback' | 'checking'
 
   const handleModuleFocus = (key) => {
     setFocusedModule((prev) => (prev === key ? null : key));
@@ -180,25 +192,75 @@ export default function NewDashboard() {
     { id: "WATER", label: "WATER", icon: <FaWater /> },
   ];
 
+  // Fetch live dashboard data from Laravel backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveDashboard = async () => {
+      setIsFetchingApi(true);
+      try {
+        const token = getToken();
+        const headers = {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const apiUrl = token ? newDashboardAuthSummaryApi : newDashboardSummaryApi;
+
+        const response = await axios.post(
+          apiUrl,
+          { fyear: selectedYear, tab: selectedTab },
+          { headers, timeout: 8000 }
+        );
+
+        if (response?.data?.status && response?.data?.data && isMounted) {
+          const apiData = response.data.data;
+          if (apiData.allModules) {
+            setAllModulesData((prev) => mergeAllModulesApiData(prev, apiData.allModules));
+          }
+          if (apiData.modules) {
+            setModuleSpecificData((prev) => mergeModuleSpecificApiData(prev, apiData.modules));
+          }
+          setApiStatus("connected");
+        } else if (isMounted) {
+          setApiStatus("fallback");
+        }
+      } catch (err) {
+        console.warn("Live Dashboard API fallback:", err.message);
+        if (isMounted) {
+          setApiStatus("fallback");
+        }
+      } finally {
+        if (isMounted) {
+          setIsFetchingApi(false);
+          setIsRefreshing(false);
+        }
+      }
+    };
+
+    fetchLiveDashboard();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedYear, selectedTab, isRefreshing]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 500);
   };
 
   // Get active module specific data if tab is PROPERTY, WASTE, or WATER
   const currentModuleData =
-    selectedTab !== "ALL_MODULE" ? MODULE_SPECIFIC_DATA[selectedTab] : null;
+    selectedTab !== "ALL_MODULE" ? moduleSpecificData[selectedTab] : null;
 
   // Active chart dataset
   const activeChartData = useMemo(() => {
     if (selectedTab === "ALL_MODULE") {
-      return ALL_MODULES_DATA.chart[chartTimeframe] || [];
+      return allModulesData.chart[chartTimeframe] || [];
     }
     if (!currentModuleData) return [];
     return currentModuleData.chart[chartTimeframe] || [];
-  }, [selectedTab, currentModuleData, chartTimeframe]);
+  }, [selectedTab, currentModuleData, chartTimeframe, allModulesData]);
 
   // Calculations for chart summary stats
   const chartStats = useMemo(() => {
@@ -222,14 +284,14 @@ export default function NewDashboard() {
 
   // Module comparison chart data for ALL MODULE tab
   const allModuleComparisonData = useMemo(() => {
-    const monthItems = ALL_MODULES_DATA.periods.MONTH.items;
+    const monthItems = allModulesData.periods.MONTH.items;
     return monthItems.map((item) => ({
       name: item.name,
       amount: item.amount,
       citizens: item.citizens,
       color: item.color,
     }));
-  }, []);
+  }, [allModulesData]);
 
   return (
     <AdminLayout allowAnonymous={true}>
@@ -238,13 +300,24 @@ export default function NewDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              {/* <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                Live Overview
-              </span> */}
               <span className="text-xs text-slate-500 font-medium">
                 Bhilai Municipal Corporation
               </span>
+              {apiStatus === "connected" ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                  Live Server Data
+                </span>
+              ) : isFetchingApi ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">
+                  <FaSyncAlt className="mr-1.5 animate-spin text-xs" />
+                  Syncing Server...
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
+                  Reference Baseline
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               Municipal Revenue Dashboard
@@ -279,7 +352,7 @@ export default function NewDashboard() {
               title="Refresh Data"
               className="p-2 sm:px-3 sm:py-2 text-xs font-medium bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-50 rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <FaSyncAlt className={`${isRefreshing ? "animate-spin text-blue-600" : ""}`} />
+              <FaSyncAlt className={`${isRefreshing || isFetchingApi ? "animate-spin text-blue-600" : ""}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
@@ -323,16 +396,16 @@ export default function NewDashboard() {
                     TODAY
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    {ALL_MODULES_DATA.periods.TODAY.dateRange}
+                    {allModulesData.periods.TODAY.dateRange}
                   </span>
                 </div>
                 <div className="mt-2">
                   <div className="text-2xl font-bold text-slate-900">
-                    {formatIndianCurrency(ALL_MODULES_DATA.periods.TODAY.netCollection)}
+                    {formatIndianCurrency(allModulesData.periods.TODAY.netCollection)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium">
                     <FaUsers className="text-slate-400" />
-                    <span>{formatCitizens(ALL_MODULES_DATA.periods.TODAY.totalCitizens)} Citizens Paid</span>
+                    <span>{formatCitizens(allModulesData.periods.TODAY.totalCitizens)} Citizens Paid</span>
                   </div>
                 </div>
               </div>
@@ -345,16 +418,16 @@ export default function NewDashboard() {
                     WEEK
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    {ALL_MODULES_DATA.periods.WEEK.dateRange}
+                    {allModulesData.periods.WEEK.dateRange}
                   </span>
                 </div>
                 <div className="mt-2">
                   <div className="text-2xl font-bold text-slate-900">
-                    {formatIndianCurrency(ALL_MODULES_DATA.periods.WEEK.netCollection)}
+                    {formatIndianCurrency(allModulesData.periods.WEEK.netCollection)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium">
                     <FaUsers className="text-slate-400" />
-                    <span>{formatCitizens(ALL_MODULES_DATA.periods.WEEK.totalCitizens)} Citizens Paid</span>
+                    <span>{formatCitizens(allModulesData.periods.WEEK.totalCitizens)} Citizens Paid</span>
                   </div>
                 </div>
               </div>
@@ -367,16 +440,16 @@ export default function NewDashboard() {
                     MONTH
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    {ALL_MODULES_DATA.periods.MONTH.dateRange}
+                    {allModulesData.periods.MONTH.dateRange}
                   </span>
                 </div>
                 <div className="mt-2">
                   <div className="text-2xl font-bold text-slate-900">
-                    {formatIndianCurrency(ALL_MODULES_DATA.periods.MONTH.netCollection)}
+                    {formatIndianCurrency(allModulesData.periods.MONTH.netCollection)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium">
                     <FaUsers className="text-slate-400" />
-                    <span>{formatCitizens(ALL_MODULES_DATA.periods.MONTH.totalCitizens)} Citizens Paid</span>
+                    <span>{formatCitizens(allModulesData.periods.MONTH.totalCitizens)} Citizens Paid</span>
                   </div>
                 </div>
               </div>
@@ -389,16 +462,16 @@ export default function NewDashboard() {
                     YEAR
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    {ALL_MODULES_DATA.periods.YEAR.dateRange}
+                    {allModulesData.periods.YEAR.dateRange}
                   </span>
                 </div>
                 <div className="mt-2">
                   <div className="text-2xl font-bold text-slate-900">
-                    {formatIndianCurrency(ALL_MODULES_DATA.periods.YEAR.netCollection)}
+                    {formatIndianCurrency(allModulesData.periods.YEAR.netCollection)}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium">
                     <FaUsers className="text-slate-400" />
-                    <span>{formatCitizens(ALL_MODULES_DATA.periods.YEAR.totalCitizens)} Citizens Paid</span>
+                    <span>{formatCitizens(allModulesData.periods.YEAR.totalCitizens)} Citizens Paid</span>
                   </div>
                 </div>
               </div>
@@ -406,7 +479,7 @@ export default function NewDashboard() {
 
             {/* 4 Period Columns Module-Wise Breakdown (as shown in user image 4) */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {Object.entries(ALL_MODULES_DATA.periods).map(([periodKey, periodData]) => {
+              {Object.entries(allModulesData.periods).map(([periodKey, periodData]) => {
                 const badgeColor =
                   periodKey === "TODAY"
                     ? "bg-emerald-500"

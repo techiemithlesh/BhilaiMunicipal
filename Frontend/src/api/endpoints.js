@@ -273,6 +273,8 @@ export const tradeWiseDCBApi = `${BASE_URL}/api/trade/report/trade-dcb`;
 
 export const holdingDemandCollectionDueApi = `${BASE_URL}/api/dashboard/property/demand-collection-due`;
 export const appliedSafApi = `${BASE_URL}/api/dashboard/property/applied-saf`;
+export const newDashboardSummaryApi = `${BASE_URL}/api/dashboard/summary`;
+export const newDashboardAuthSummaryApi = `${BASE_URL}/api/dashboard/auth-summary`;
 
 export const tradePayDemandApi = `${BASE_URL}/api/trade/pay-demand`;
 export const tradePaymentReceiptApi = `${BASE_URL}/api/trade/payment-receipt`;
