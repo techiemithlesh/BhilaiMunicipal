@@ -3,8 +3,6 @@ import axios from "axios";
 import { getToken } from "../../utils/auth";
 import {
   getFyearListApi,
-  newDashboardSummaryApi,
-  newDashboardAuthSummaryApi,
   newDashboardAllPeriodsApi,
   newDashboardAllChartApi,
   newDashboardModuleOverviewApi,
@@ -61,8 +59,6 @@ import {
   MODULE_ITEMS_DEF,
   formatIndianCurrency,
   formatCitizens,
-  mergeAllModulesApiData,
-  mergeModuleSpecificApiData,
   mergeAllModulesPeriods,
   mergeAllModulesChart,
   mergeSingleModuleOverview,
@@ -214,7 +210,7 @@ export default function NewDashboard() {
       try {
         const response = await axios.get(getFyearListApi, {
           headers: { Accept: "application/json" },
-          timeout: 5000,
+          // timeout: 5000,
         });
         if (
           response?.data?.status &&
@@ -258,14 +254,14 @@ export default function NewDashboard() {
     setModuleSpecificData((prev) => {
       const next = { ...prev };
       ["PROPERTY", "WASTE", "WATER"].forEach((mod) => {
-        if (next[mod]?.periods) {
-          const p = { ...next[mod].periods };
+        if (next[mod]?.periodCards) {
+          const p = { ...next[mod].periodCards };
           Object.keys(p).forEach((k) => {
             if (p[k] && computedDates.labels[k]) {
               p[k] = { ...p[k], dateRange: computedDates.labels[k] };
             }
           });
-          next[mod] = { ...next[mod], periods: p };
+          next[mod] = { ...next[mod], periodCards: p };
         }
       });
       return next;
@@ -291,7 +287,7 @@ export default function NewDashboard() {
 
         const axiosConfig = {
           headers,
-          timeout: 6000,
+          // timeout: 6000,
           signal: abortController.signal,
         };
 
@@ -322,7 +318,7 @@ export default function NewDashboard() {
             if (chartRes.status === "fulfilled" && chartRes.value?.data?.status) {
               const cData = chartRes.value.data.data?.chartData;
               if (cData) {
-                setAllModulesData((prev) => mergeAllModulesChart(prev, cData));
+                setAllModulesData((prev) => mergeAllModulesChart(prev, cData, chartTimeframe));
                 hasSuccess = true;
               }
             }
@@ -354,7 +350,9 @@ export default function NewDashboard() {
             if (overviewRes.status === "fulfilled" && overviewRes.value?.data?.status) {
               const oData = overviewRes.value.data.data;
               if (oData) {
-                setModuleSpecificData((prev) => mergeSingleModuleOverview(prev, selectedTab, oData));
+                setModuleSpecificData((prev) =>
+                  mergeSingleModuleOverview(prev, selectedTab, oData, chartTimeframe)
+                );
                 hasSuccess = true;
               }
             }
@@ -865,9 +863,23 @@ export default function NewDashboard() {
               </div>
 
               {/* Chart View (7 Lines with Dynamic Bold & Dim Focus) */}
-              {chartViewMode === "chart" ? (
+              {activeChartData.length === 0 && chartViewMode !== "table" ? (
+                <div className="h-80 w-full flex flex-col items-center justify-center bg-slate-50/60 rounded-lg border border-dashed border-slate-200 text-slate-500 text-sm gap-2">
+                  {isFetchingApi ? (
+                    <>
+                      <FaSyncAlt className="animate-spin text-blue-600 text-xl" />
+                      <span>Loading chart data from server...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaChartLine className="text-slate-300 text-2xl" />
+                      <span>No chart data available for this period</span>
+                    </>
+                  )}
+                </div>
+              ) : chartViewMode === "chart" ? (
                 <div className="h-80 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={310} minWidth={0}>
                     <LineChart
                       data={activeChartData}
                       margin={{ top: 10, right: 15, left: 10, bottom: 25 }}
@@ -928,7 +940,7 @@ export default function NewDashboard() {
               ) : chartViewMode === "bar" ? (
                 /* Bar Chart View (7-Department Clustered Bars) */
                 <div className="h-80 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={310} minWidth={0}>
                     <BarChart
                       data={activeChartData}
                       margin={{ top: 10, right: 15, left: 10, bottom: 25 }}
@@ -1137,10 +1149,11 @@ export default function NewDashboard() {
                     <span className="text-sm font-bold text-slate-800">Collection</span>
                   </div>
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    {(
-                      (currentModuleData.collection.totalCollection /
-                        currentModuleData.demand.totalDemand) *
-                      100
+                    {(currentModuleData.demand.totalDemand > 0
+                      ? (currentModuleData.collection.totalCollection /
+                          currentModuleData.demand.totalDemand) *
+                        100
+                      : 0
                     ).toFixed(1)}
                     % Realized
                   </span>
@@ -1339,9 +1352,23 @@ export default function NewDashboard() {
               </div>
 
               {/* Chart View */}
-              {chartViewMode === "chart" ? (
+              {activeChartData.length === 0 && chartViewMode !== "table" ? (
+                <div className="h-80 w-full flex flex-col items-center justify-center bg-slate-50/60 rounded-lg border border-dashed border-slate-200 text-slate-500 text-sm gap-2">
+                  {isFetchingApi ? (
+                    <>
+                      <FaSyncAlt className="animate-spin text-blue-600 text-xl" />
+                      <span>Loading chart data from server...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaChartLine className="text-slate-300 text-2xl" />
+                      <span>No chart data available for this period</span>
+                    </>
+                  )}
+                </div>
+              ) : chartViewMode === "chart" ? (
                 <div className="h-80 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={310} minWidth={0}>
                     <AreaChart
                       data={activeChartData}
                       margin={{ top: 10, right: 10, left: 10, bottom: 25 }}
@@ -1387,7 +1414,7 @@ export default function NewDashboard() {
               ) : chartViewMode === "bar" ? (
                 /* Bar Chart View for Single Module */
                 <div className="h-80 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={310} minWidth={0}>
                     <BarChart
                       data={activeChartData}
                       margin={{ top: 10, right: 15, left: 10, bottom: 25 }}

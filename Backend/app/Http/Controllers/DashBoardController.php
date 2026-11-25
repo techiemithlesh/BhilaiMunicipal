@@ -228,40 +228,91 @@ class DashBoardController extends Controller
         try {
             $ulbId = $this->resolveUlb($request);
             $d = $this->resolveDateRanges($request);
-
-            $startDate = $d['monthStart'];
-            $endDate = $d['monthEnd'];
-
-            $propMap = $this->queryGroupedDailyChart($this->_PropTransaction, $startDate, $endDate, 'saf_detail_id');
-            $swmMap = $this->queryGroupedDailyChart($this->_SwmTransaction, $startDate, $endDate, 'consumer_id');
-            $waterMap = $this->queryGroupedDailyChart($this->_WaterTransaction, $startDate, $endDate, 'consumer_id');
-            $shopMap = $this->queryGroupedDailyChart($this->_ShopTransaction, $startDate, $endDate, 'shop_id');
-            $tradeMap = $this->queryGroupedDailyChart($this->_TradeTransaction, $startDate, $endDate, 'trade_license_id');
+            $timeframe = strtolower($request->timeframe ?? 'month');
 
             $chartData = [];
-            $cur = Carbon::parse($startDate);
-            $end = Carbon::parse($endDate);
 
-            while ($cur->lte($end)) {
-                $dateKey = $cur->format('Y-m-d');
-                $dayLabel = $cur->format('d-m');
+            if ($timeframe === 'year') {
+                $startDate = $d['yearStart'];
+                $endDate = $d['yearEnd'];
 
-                $chartData[] = [
-                    'day' => $dayLabel,
-                    'property' => (float) ($propMap[$dateKey]->amount ?? 0),
-                    'waste' => (float) ($swmMap[$dateKey]->amount ?? 0),
-                    'water' => (float) ($waterMap[$dateKey]->amount ?? 0),
-                    'lease' => round((float) (($shopMap[$dateKey]->amount ?? 0) * 0.75), 2),
-                    'shop' => round((float) (($shopMap[$dateKey]->amount ?? 0) * 0.25), 2),
-                    'tower' => 0,
-                    'trade' => (float) ($tradeMap[$dateKey]->amount ?? 0),
-                ];
+                $propMap = $this->queryGroupedMonthlyChart($this->_PropTransaction, $startDate, $endDate, 'saf_detail_id');
+                $swmMap = $this->queryGroupedMonthlyChart($this->_SwmTransaction, $startDate, $endDate, 'consumer_id');
+                $waterMap = $this->queryGroupedMonthlyChart($this->_WaterTransaction, $startDate, $endDate, 'consumer_id');
+                $shopMap = $this->queryGroupedMonthlyChart($this->_ShopTransaction, $startDate, $endDate, 'shop_id');
+                $tradeMap = $this->queryGroupedMonthlyChart($this->_TradeTransaction, $startDate, $endDate, 'trade_license_id');
 
-                $cur->addDay();
+                $cur = Carbon::parse($startDate)->startOfMonth();
+                $end = Carbon::parse($endDate)->startOfMonth();
+
+                while ($cur->lte($end)) {
+                    $key = $cur->format('Y-m');
+                    $label = $cur->format('M');
+
+                    $citizens = (int) ($propMap[$key]->citizens ?? 0)
+                        + (int) ($swmMap[$key]->citizens ?? 0)
+                        + (int) ($waterMap[$key]->citizens ?? 0)
+                        + (int) ($shopMap[$key]->citizens ?? 0)
+                        + (int) ($tradeMap[$key]->citizens ?? 0);
+
+                    $chartData[] = [
+                        'date' => $label,
+                        'day' => $label,
+                        'property' => (float) ($propMap[$key]->amount ?? 0),
+                        'waste' => (float) ($swmMap[$key]->amount ?? 0),
+                        'water' => (float) ($waterMap[$key]->amount ?? 0),
+                        'lease' => round((float) (($shopMap[$key]->amount ?? 0) * 0.75), 2),
+                        'shop' => round((float) (($shopMap[$key]->amount ?? 0) * 0.25), 2),
+                        'tower' => 0,
+                        'trade' => (float) ($tradeMap[$key]->amount ?? 0),
+                        'citizens' => $citizens,
+                    ];
+
+                    $cur->addMonth();
+                }
+            } else {
+                $startDate = ($timeframe === 'week') ? $d['weekStart'] : $d['monthStart'];
+                $endDate = ($timeframe === 'week') ? $d['weekEnd'] : $d['monthEnd'];
+
+                $propMap = $this->queryGroupedDailyChart($this->_PropTransaction, $startDate, $endDate, 'saf_detail_id');
+                $swmMap = $this->queryGroupedDailyChart($this->_SwmTransaction, $startDate, $endDate, 'consumer_id');
+                $waterMap = $this->queryGroupedDailyChart($this->_WaterTransaction, $startDate, $endDate, 'consumer_id');
+                $shopMap = $this->queryGroupedDailyChart($this->_ShopTransaction, $startDate, $endDate, 'shop_id');
+                $tradeMap = $this->queryGroupedDailyChart($this->_TradeTransaction, $startDate, $endDate, 'trade_license_id');
+
+                $cur = Carbon::parse($startDate);
+                $end = Carbon::parse($endDate);
+
+                while ($cur->lte($end)) {
+                    $dateKey = $cur->format('Y-m-d');
+                    $label = ($timeframe === 'week') ? $cur->format('D (d-m)') : $cur->format('d-m-y');
+
+                    $citizens = (int) ($propMap[$dateKey]->citizens ?? 0)
+                        + (int) ($swmMap[$dateKey]->citizens ?? 0)
+                        + (int) ($waterMap[$dateKey]->citizens ?? 0)
+                        + (int) ($shopMap[$dateKey]->citizens ?? 0)
+                        + (int) ($tradeMap[$dateKey]->citizens ?? 0);
+
+                    $chartData[] = [
+                        'date' => $label,
+                        'day' => $label,
+                        'property' => (float) ($propMap[$dateKey]->amount ?? 0),
+                        'waste' => (float) ($swmMap[$dateKey]->amount ?? 0),
+                        'water' => (float) ($waterMap[$dateKey]->amount ?? 0),
+                        'lease' => round((float) (($shopMap[$dateKey]->amount ?? 0) * 0.75), 2),
+                        'shop' => round((float) (($shopMap[$dateKey]->amount ?? 0) * 0.25), 2),
+                        'tower' => 0,
+                        'trade' => (float) ($tradeMap[$dateKey]->amount ?? 0),
+                        'citizens' => $citizens,
+                    ];
+
+                    $cur->addDay();
+                }
             }
 
             return responseMsg(true, "All Modules Chart Fetched", [
                 'fyear' => $d['fyear'],
+                'timeframe' => $timeframe,
                 'chartData' => $chartData,
             ]);
         } catch (Exception $e) {
@@ -305,28 +356,52 @@ class DashBoardController extends Controller
             }
 
             // Chart
-            $dailyMap = $this->queryGroupedDailyChart($model, $d['monthStart'], $d['monthEnd'], $citizenCol);
+            $timeframe = strtolower($request->timeframe ?? 'month');
             $chartData = [];
-            $cur = Carbon::parse($d['monthStart']);
-            $end = Carbon::parse($d['monthEnd']);
 
-            while ($cur->lte($end)) {
-                $dateKey = $cur->format('Y-m-d');
-                $dateLabel = $cur->format('d-m-y');
-                $rec = $dailyMap[$dateKey] ?? null;
+            if ($timeframe === 'year') {
+                $monthlyMap = $this->queryGroupedMonthlyChart($model, $d['yearStart'], $d['yearEnd'], $citizenCol);
+                $cur = Carbon::parse($d['yearStart'])->startOfMonth();
+                $end = Carbon::parse($d['yearEnd'])->startOfMonth();
 
-                $chartData[] = [
-                    'date' => $dateLabel,
-                    'amount' => (float) ($rec->amount ?? 0),
-                    'citizens' => (int) ($rec->citizens ?? 0),
-                ];
+                while ($cur->lte($end)) {
+                    $key = $cur->format('Y-m');
+                    $rec = $monthlyMap[$key] ?? null;
 
-                $cur->addDay();
+                    $chartData[] = [
+                        'date' => $cur->format('M'),
+                        'amount' => (float) ($rec->amount ?? 0),
+                        'citizens' => (int) ($rec->citizens ?? 0),
+                    ];
+
+                    $cur->addMonth();
+                }
+            } else {
+                $startDate = ($timeframe === 'week') ? $d['weekStart'] : $d['monthStart'];
+                $endDate = ($timeframe === 'week') ? $d['weekEnd'] : $d['monthEnd'];
+                $dailyMap = $this->queryGroupedDailyChart($model, $startDate, $endDate, $citizenCol);
+                $cur = Carbon::parse($startDate);
+                $end = Carbon::parse($endDate);
+
+                while ($cur->lte($end)) {
+                    $dateKey = $cur->format('Y-m-d');
+                    $dateLabel = ($timeframe === 'week') ? $cur->format('D (d-m)') : $cur->format('d-m-y');
+                    $rec = $dailyMap[$dateKey] ?? null;
+
+                    $chartData[] = [
+                        'date' => $dateLabel,
+                        'amount' => (float) ($rec->amount ?? 0),
+                        'citizens' => (int) ($rec->citizens ?? 0),
+                    ];
+
+                    $cur->addDay();
+                }
             }
 
             return responseMsg(true, "Module Overview Fetched", [
                 'module' => $module,
                 'fyear' => $d['fyear'],
+                'timeframe' => $timeframe,
                 'periods' => $periods,
                 'chartData' => $chartData,
             ]);
@@ -551,6 +626,29 @@ class DashBoardController extends Controller
             ->keyBy(function ($item) {
                 return Carbon::parse($item->t_date)->format('Y-m-d');
             });
+        } catch (Exception $e) {
+            return collect([]);
+        }
+    }
+
+    /**
+     * Helper: Fast grouped monthly chart query (for Year view)
+     */
+    private function queryGroupedMonthlyChart($model, $startDate, $endDate, $citizenCol = 'id', $amountCol = 'payable_amt')
+    {
+        try {
+            return $model->select(
+                DB::raw("TO_CHAR(tran_date::date, 'YYYY-MM') as t_month"),
+                DB::raw("COALESCE(SUM({$amountCol}), 0) as amount"),
+                DB::raw("COUNT(DISTINCT {$citizenCol}) as citizens")
+            )
+            ->where('lock_status', false)
+            ->whereIn('payment_status', [1, 2])
+            ->whereBetween('tran_date', [$startDate, $endDate])
+            ->groupBy(DB::raw("TO_CHAR(tran_date::date, 'YYYY-MM')"))
+            ->orderBy(DB::raw("TO_CHAR(tran_date::date, 'YYYY-MM')"), 'ASC')
+            ->get()
+            ->keyBy('t_month');
         } catch (Exception $e) {
             return collect([]);
         }
