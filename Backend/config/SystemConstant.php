@@ -28,7 +28,8 @@ return [
         "TRADE"=>3,
         "SWM"=>4,
         "ACCOUNT"=>5,
-        "SHOP"=>6
+        "SHOP"=>6,
+        "Lease"=>7
     ],
     "USER-TYPE-SHORT-NAME" =>[
         ""                  =>"ONLINE",
@@ -79,7 +80,7 @@ return [
 
     ],
     "MOBILE-ROLE"=>[
-        5,7,13,15
+        1,6
     ],
     "DOC-RELATIVE-PATHS"=>[
         "USER"=>"user/img",
