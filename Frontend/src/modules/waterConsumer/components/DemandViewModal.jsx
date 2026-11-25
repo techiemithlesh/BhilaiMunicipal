@@ -199,6 +199,8 @@ function DemandViewModal({
 
           {isShowPaymentModal && (
             <PaymentModal
+              apiUrl={apiUrl}
+              id={id} 
               demandData={demandData}
               onSubmit={handlePaymentSubmit}
               onCancel={() => setIsShowPaymentModal(false)}

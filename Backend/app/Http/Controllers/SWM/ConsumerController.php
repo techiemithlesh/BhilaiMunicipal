@@ -862,8 +862,8 @@ class ConsumerController extends Controller
             if($validator->fails()){
                 return validationError($validator);
             }
-            $currentDate = Carbon::now()->format("Y-m-d");
-            $demandUpto = $request->demandUpto??$currentDate;
+            $currentDate = Carbon::now()->format("Y-m-d");            
+            $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
 
             $objConsumerDueBll = new ConsumerDueBll($request->id,$currentDate,$demandUpto);
             $objConsumerDueBll->getConsumerDue();
