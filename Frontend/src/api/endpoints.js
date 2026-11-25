@@ -410,6 +410,7 @@ export const shopRentDtlApi = `${BASE_URL}/api/shop-rent/dtl`;
 export const shopRentGenerateDemandApi = `${BASE_URL}/api/shop-rent/generate-demand`;
 export const shopRentDemandHistoryApi = `${BASE_URL}/api/shop-rent/demand-history`;
 export const shopRentDueApi = `${BASE_URL}/api/shop-rent/due`;
+export const shopRentPaymentApi = `${BASE_URL}/api/shop-rent/pay-due`;
 export const shopRentPaymentReceiptApi = `${BASE_URL}/api/shop-rent/payment-receipt`;
 
 // shop rent report

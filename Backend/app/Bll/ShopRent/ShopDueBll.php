@@ -10,6 +10,7 @@ use App\Models\ShopRent\Shop;
 use App\Models\ShopRent\ShopDemand;
 use App\Trait\ShopRent\ShopTrait;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ShopDueBll
 {
@@ -37,6 +38,7 @@ class ShopDueBll
     private $_owners;
     private $_DemandList;
     private $_goveTaxList;
+    private $_demandUptoList;
 
     public function __construct($shopId,$tranDate=null,$demandUpto=null)
     {
@@ -66,6 +68,13 @@ class ShopDueBll
 
     private function setDemandList(){
         $objDemand = new ShopDemand();
+        $this->_demandUptoList = $objDemand
+                ->select(DB::raw("DISTINCT demand_upto AS demand_upto"))
+                ->where("shop_id",$this->_ShopId)
+                ->where("lock_status",false)
+                ->where("is_full_paid",false)
+                ->orderBy("demand_upto","DESC")
+                ->get();
         $this->_DemandList = collect($objDemand->getDueDemand($this->_ShopId))
                             ->where("demand_upto","<=",$this->_demandUpto);
         $this->_DemandList = $this->_DemandList->map(function($item){                                
@@ -120,6 +129,7 @@ class ShopDueBll
     private function generateDemand(){        
         $this->adjustShopValue($this->_Shop);
         $this->_GRID = [
+            "demandUptoList"=>$this->_demandUptoList,
             "printingDate"=>Carbon::now()->format("Y-m-d H:i:s"),
             "description"=>"SHOP RENT DEMAND",
             "department" => "Revenue Section",

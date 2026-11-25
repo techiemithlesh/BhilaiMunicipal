@@ -345,7 +345,7 @@ class ShopRentController extends Controller
             return responseMsg(true,"Consumer Due",camelCase(remove_null($objConsumerDueBll->_GRID)));
         }catch(CustomException $e){
             return responseMsg(false,$e->getMessage(),"");
-        }catch(Exception $e){
+        }catch(Exception $e){dd($e);
             return responseMsg(false,"Server Error","");
         }
     }

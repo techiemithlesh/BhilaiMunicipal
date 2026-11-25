@@ -9,12 +9,13 @@ import SectionCard from "../../../components/common/SectionCard";
 import DataTableFullData from "../../../components/common/DataTableFullData";
 import ActionButton from "../../../components/common/ActionButton";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { shopRentDtlApi } from "../../../api/endpoints";
+import { shopRentDtlApi, shopRentDueApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 import { formatLocalDate } from "../../../utils/common";
 import ShopDemandHistoryModal from "../components/ShopDemandHistoryModal";
 import ShopGenerateDemandModal from "../components/ShopGenerateDemandModal";
 import ShopPaymentReceiptModal from "../components/ShopPaymentReceiptModal";
+import DemandViewModal from "../components/DemandViewModal";
 
 // The API returns a relative storage path for the rent document. Only a full URL can be opened.
 const isUrl = (value) => /^https?:\/\//i.test(value || "");
@@ -27,6 +28,7 @@ function ShopDetails() {
   const [appData, setAppData] = useState(null);
   const [notFound, setNotFound] = useState("");
   const [isDemandHistoryOpen, setIsDemandHistoryOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isGenerateDemandOpen, setIsGenerateDemandOpen] = useState(false);
   const [receiptTranId, setReceiptTranId] = useState(null);
 
@@ -115,6 +117,12 @@ function ShopDetails() {
     {
       label: "View Demand",
       onClick: () => setIsDemandHistoryOpen(true),
+      icon: <FaEye />,
+      show: true,
+    },
+    {
+      label: "Make Payment",
+      onClick: () => setIsPaymentOpen(true),
       icon: <FaEye />,
       show: true,
     },
@@ -236,6 +244,15 @@ function ShopDetails() {
 
       {isDemandHistoryOpen && (
         <ShopDemandHistoryModal id={appData.id} onClose={() => setIsDemandHistoryOpen(false)} />
+      )}
+      {isPaymentOpen && (
+        <DemandViewModal 
+          id={appData?.id}
+          actionType={"Payment"}
+          onSuccess={fetchDetails}
+          onClose={() => setIsDemandViewPayModal(false)}
+          apiUrl={shopRentDueApi}
+        />
       )}
       {receiptTranId && (
         <ShopPaymentReceiptModal id={receiptTranId} onClose={() => setReceiptTranId(null)} />
