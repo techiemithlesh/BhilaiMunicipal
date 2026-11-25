@@ -4,17 +4,39 @@ import { motion } from "framer-motion";
 import { modalVariants } from "../../../utils/motionVariable";
 import { FaTimes } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { getToken } from "../../../utils/auth";
+import axios from "axios";
 
-function PaymentModal({ demandData, onSubmit, onCancel }) {
-  const [form, setForm] = useState({ paymentType: "FULL" });
+function PaymentModal({ apiUrl,id,demandData, onSubmit, onCancel }) {
+  const [form, setForm] = useState({ paymentType: "FULL" ,demandUpto: demandData?.demandUpto});
   const [isFrozen, setIsFrozen] = useState(false);
   const { setIsLoadingGable } = useLoading();
+  const [dueData, setDueData] = useState(demandData || {});
+  const token = getToken();
+
   useEffect(() => {
     if (!isFrozen) return;
     setIsLoadingGable(true);
     return () => setIsLoadingGable(false);
   }, [isFrozen]);
+
   const isNonCash = form.paymentMode && form.paymentMode !== "CASH";
+
+  const fetchDemandData = async (demandUpto) => {
+    setIsFrozen(true);
+    try {
+        const response = await axios.post(apiUrl,{id,demandUpto},{
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response?.data?.status) {
+            setDueData(response.data.data || {});
+        }
+    }catch (error) {
+      console.error("Error fetching demand:", error);
+    } finally {
+      setIsFrozen(false);
+    }
+}
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,13 +52,14 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
         return;
       }
 
-      const payload = {
+      const payload = {        
+        demandUpto: form?.demandUpto,
         paymentMode: form.paymentMode,
         paymentType: form.paymentType,
         amount:
           form.paymentType === "PART"
             ? form.amount ?? "0"
-            : demandData?.payableAmount ?? "0",
+            : dueData?.payableAmount ?? "0",
 
         ...(isNonCash && {
           chequeNo: form.chequeNo,
@@ -77,20 +100,22 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
         >
           {/* Payment Type */}
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm">Payment Type</label>
+            <label className="mb-1 font-medium text-sm">Payment Upto</label>
             <select
-              value={form.paymentType || ""}
-              onChange={(e) =>
-                setForm({ ...form, paymentType: e.target.value })
+              value={form.demandUpto || ""}
+              onChange={(e) =>{
+                setForm({ ...form, demandUpto: e.target.value });
+                fetchDemandData(e.target.value);
+              }
               }
               required
               className="px-3 py-2 border rounded"
             >
-              <option value="" disabled>
-                Select Type
-              </option>
-              <option value="FULL">Full</option>
-              <option value="PART">Partial</option>
+              {demandData?.demandUptoList?.map((item, index) => (
+                    <option key={index} value={item.demandUpto}>
+                        {item.demandUpto}
+                    </option>
+                ))}
             </select>
           </div>
 
@@ -124,7 +149,7 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
               value={
                 form.paymentType === "PART"
                   ? form.amount ?? ""
-                  : demandData?.payableAmount ?? ""
+                  : dueData?.payableAmount ?? ""
               }
               step="any"
               min={0.01}

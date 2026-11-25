@@ -822,9 +822,10 @@ class ConsumerController extends Controller
 
     public function consumerDue(Request $request){
         try{
+            list($from,$upto) = FyearFromUptoDate(getFy());
             $rules = [
                 "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Consumer->getConnectionName().".".$this->_Consumer->getTable().",id,lock_status,false",
-                // "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:today",
+                "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
             ];
             
             $validator = Validator::make($request->all(), $rules);
@@ -832,7 +833,7 @@ class ConsumerController extends Controller
                 return validationError($validator);
             }
             $currentDate = Carbon::now()->format("Y-m-d");
-            $demandUpto = $request->demandUpto??$currentDate;
+            $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
             $objConsumerDueBll = new ConsumerDueBll($request->id,$currentDate,$demandUpto);
             $objConsumerDueBll->getConsumerDue();
             return responseMsg(true,"Consumer Due",camelCase(remove_null($objConsumerDueBll->_GRID)));
@@ -845,8 +846,10 @@ class ConsumerController extends Controller
 
     public function offlinePayment(Request $request){
         try{
+            list($from,$upto) = FyearFromUptoDate(getFy());
             $rule=[
                 "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Consumer->getConnectionName().".".$this->_Consumer->getTable().",id,lock_status,false",
+                "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
                 "paymentType"=>"required|in:FULL,PART",
                 "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
                 "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",

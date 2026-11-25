@@ -32,7 +32,7 @@ class ConsumerPaymentBll
         $this->_tranDate = Carbon::parse($request->tranDate)->format("Y-m-d");
         $this->_CONSUMER = Consumer::find($this->_APPId);
        
-        $ConsumerDueBll = new ConsumerDueBll($this->_APPId,$this->_tranDate);
+        $ConsumerDueBll = new ConsumerDueBll($this->_APPId,$this->_tranDate,$request->demandUpto);
         $ConsumerDueBll->getConsumerDue();
         $this->_Demand = $ConsumerDueBll->_GRID;
         $this->_DemandList = $ConsumerDueBll->_GRID["demandList"];

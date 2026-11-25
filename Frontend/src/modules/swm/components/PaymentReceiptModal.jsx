@@ -36,25 +36,6 @@ function PaymentReceiptModal({ id, onClose }) {
       >
         <div className="print:hidden flex justify-between items-center mb-4">
           <h2 className="font-semibold text-blue-900 text-xl">View Receipt</h2>
-          {/* <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
-            >
-              Print
-            </button>
-            {onClose && (
-              <button
-                className="text-gray-600 hover:text-red-600"
-                onClick={() => {
-                  setIsFrozen(false);
-                  if (onClose) onClose();
-                }}
-              >
-                <FaTimes size={20} />
-              </button>
-            )}
-          </div> */}
           <div className="flex gap-2">
             <button 
               className="text-red-500 hover:text-red-400"

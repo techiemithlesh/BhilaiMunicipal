@@ -6,6 +6,7 @@ use App\Models\SWM\AdvanceDetail;
 use App\Models\SWM\Consumer;
 use App\Models\SWM\ConsumerDemand;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ConsumerDueBll
 {
@@ -23,13 +24,16 @@ class ConsumerDueBll
     public $_lastPaymentIsClear = true;
     public $_otherPenalty = 0;
     public $_GRID;
-    public $_endDateOfFyear ; 
+    public $_endDateOfFyear ;    
+    private $_demandUptoList; 
+
     public function __construct($consumerId,$tranDate=null,$demandUpto=null)
     {
         $this->_CONSUMERId = $consumerId;
         $this->_tranDate = Carbon::parse($tranDate)->endOfMonth()->format("Y-m-d");
         list(,$this->_endDateOfFyear) = FyearFromUptoDate(getFY($tranDate));
-        $this->_demandUpto = Carbon::parse($demandUpto)->format("Y-m-d");
+        // $this->_demandUpto = Carbon::parse($demandUpto)->format("Y-m-d");
+        $this->_demandUpto = $demandUpto ? Carbon::parse($demandUpto)->format("Y-m-d") : $this->_endDateOfFyear;
         $this->_CONSUMER = Consumer::find($this->_CONSUMERId);               
         $this->setDemandList();
         $this->testLastTran();
@@ -44,9 +48,16 @@ class ConsumerDueBll
 
     private function setDemandList(){
         $objDemand = new ConsumerDemand();
+        $this->_demandUptoList = $objDemand
+                ->select(DB::raw("DISTINCT demand_upto AS demand_upto"))
+                ->where("consumer_id",$this->_CONSUMERId)
+                ->where("lock_status",false)
+                ->where("is_full_paid",false)
+                ->orderBy("demand_upto","DESC")
+                ->get();
         $this->_DemandList = collect($objDemand->getDueDemand($this->_CONSUMERId))
-                            // ->where("demand_upto","<=",$this->_demandUpto)
-                            ->where("demand_upto","<=",$this->_endDateOfFyear);
+                            ->where("demand_upto","<=",$this->_demandUpto);
+                            
         $this->_DemandList = $this->_DemandList->map(function($item){                                
                                 $item = $this->getLatePenalty($item);
                                 return $item;
@@ -82,7 +93,8 @@ class ConsumerDueBll
     }
 
     private function generateDemand(){
-        $this->_GRID = [
+        $this->_GRID = [            
+            "demandUptoList"=>$this->_demandUptoList,
             "lastPaymentClear" => $this->_lastPaymentIsClear,
             "demandList"=>$this->_DemandList,
             "otherPenaltyList"=>$this->_otherPenaltyList??[],
