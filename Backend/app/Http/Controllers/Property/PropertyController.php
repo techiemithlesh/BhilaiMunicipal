@@ -25,6 +25,7 @@ use App\Models\Property\DeactivateAppDetail;
 use App\Models\Property\NttPaymentRequest;
 use App\Models\Property\ParamModel;
 use App\Models\Property\PropertyAdditionalDocument;
+use App\Models\Property\PropertyCollection;
 use App\Models\Property\PropertyDemand;
 use App\Models\Property\PropertyDetail;
 use App\Models\Property\PropertyFloorDetail;
@@ -34,6 +35,7 @@ use App\Models\Property\PropertyTax;
 use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\PropTransaction;
 use App\Models\SWM\Consumer;
+use App\Models\SWM\ParamModel as SWMParamModel;
 use App\Models\User;
 use App\Trait\Property\PropertyTrait;
 use App\Trait\SWM\ConsumerTrait;
@@ -59,6 +61,7 @@ class PropertyController extends Controller
      */
 
     private $_Conn;
+    private $_SWMConn;
     private $_PropertyTypeMaster;
     private $_PropertyTax;
     private $_PropertyDetail;
@@ -84,6 +87,7 @@ class PropertyController extends Controller
     function __construct()
     {
         $this->_Conn = (new ParamModel())->resolveDynamicConnection();
+        $this->_SWMConn = (new SWMParamModel)->resolveDynamicConnection();
         $this->_PropertyTypeMaster = new PropertyTypeMaster();
         $this->_PropertyTax = new PropertyTax();
         $this->_PropertyDetail = new PropertyDetail();
@@ -112,11 +116,20 @@ class PropertyController extends Controller
     private function begin(){
         DB::connection($this->_Conn)->beginTransaction();
     }
+    private function beginSwm(){
+        DB::connection($this->_SWMConn)->beginTransaction();
+    }
     private function rollBack(){
         DB::connection($this->_Conn)->rollBack();
     }
+    private function rollBackSwm(){
+        DB::connection($this->_SWMConn)->rollBack();
+    }
     private function commit(){
         DB::connection($this->_Conn)->commit();
+    }
+    private function commitSwm(){
+        DB::connection($this->_SWMConn)->commit();
     }
 
     public function searchProperty(Request $request){
@@ -328,8 +341,35 @@ class PropertyController extends Controller
 
     public function getPropDue(Request $request){
         try{
-            $rule=[
-                "id"=>"required|digits_between:1,9223372036854775807"
+            $fyear = getFy();
+            $rule = [
+                'id' => ['required', 'digits_between:1,9223372036854775807'],
+                'fyear' => [
+                    'nullable',
+                    'string',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($fyear) {
+                        if (!preg_match('/^(\d{4})-(\d{4})$/', $value, $matches)) {
+                            $fail("The {$attribute} must be in YYYY-YYYY format.");
+                            return;
+                        }
+
+                        $startYear = (int) $matches[1];
+                        $endYear = (int) $matches[2];
+
+                        if ($endYear !== $startYear + 1) {
+                            $fail("The {$attribute} must contain consecutive years (e.g., 2025-2026).");
+                            return;
+                        }
+
+                        if ($fyear && preg_match('/^(\d{4})-(\d{4})$/', $fyear, $maxMatches)) {
+                            $maxStartYear = (int) $maxMatches[1];
+                            if ($startYear > $maxStartYear) {
+                                $fail("The {$attribute} must be less than or equal to {$fyear}.");
+                            }
+                        }
+                    },
+                ],
+                "isSWMDemand"=>"nullable|boolean",
             ];
             $validator = Validator::make($request->all(),$rule);
             if($validator->fails()){
@@ -339,7 +379,9 @@ class PropertyController extends Controller
             if(!$property){
                 throw new CustomException("Property Not Found");
             }
-            $propDemandBLL = new PropDemandBll($property->id);
+            $currentDate = Carbon::now()->format("Y-m-d");
+            $demandUptoFyear = $request->fyear??$fyear;
+            $propDemandBLL = new PropDemandBll($property->id,$currentDate,$demandUptoFyear,$request->isSWMDemand);
             $propDemandBLL->getPropDue();
             return responseMsg(true,"Property Demand",camelCase(remove_null($propDemandBLL->_GRID)));
         }catch(CustomException $e){
@@ -377,8 +419,35 @@ class PropertyController extends Controller
 
     public function propOfflinePayment(Request $request){
         try{
+            $fyear = getFy();
             $rule=[
                 "id"=>"required|digits_between:1,9223372036854775807",
+                'fyear' => [
+                    'nullable',
+                    'string',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($fyear) {
+                        if (!preg_match('/^(\d{4})-(\d{4})$/', $value, $matches)) {
+                            $fail("The {$attribute} must be in YYYY-YYYY format.");
+                            return;
+                        }
+
+                        $startYear = (int) $matches[1];
+                        $endYear = (int) $matches[2];
+
+                        if ($endYear !== $startYear + 1) {
+                            $fail("The {$attribute} must contain consecutive years (e.g., 2025-2026).");
+                            return;
+                        }
+
+                        if ($fyear && preg_match('/^(\d{4})-(\d{4})$/', $fyear, $maxMatches)) {
+                            $maxStartYear = (int) $maxMatches[1];
+                            if ($startYear > $maxStartYear) {
+                                $fail("The {$attribute} must be less than or equal to {$fyear}.");
+                            }
+                        }
+                    },
+                ],
+                "isSWMDemand"=>"nullable|boolean",
                 "paymentType"=>"required|in:FULL,PART,ARREAR",
                 "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
                 "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",
@@ -393,6 +462,7 @@ class PropertyController extends Controller
             }
             
             $this->begin();  
+            $this->beginSwm();
             $property = $this->_PropertyDetail->lockForUpdate()->find($request->id);
             if(!$property){
                throw new CustomException("Property Not Found"); 
@@ -401,7 +471,10 @@ class PropertyController extends Controller
             if($testSafPending){
                 throw new CustomException("Saf Not Is Not Approved. Please Wait For Approval");
             }
-            $propertyDemandBLL = new PropDemandBll($property->id);
+            $currentDate = Carbon::now()->format("Y-m-d");
+            $demandUptoFyear = $request->fyear??$fyear;
+
+            $propertyDemandBLL = new PropDemandBll($property->id,$currentDate,$demandUptoFyear,$request->isSWMDemand);
             $propertyDemandBLL->getPropDue();
             $demandPayableAmount = $propertyDemandBLL->_GRID["payableAmount"];
             $isLastPaymentClear = $propertyDemandBLL->_GRID["lastPaymentClear"];
@@ -415,15 +488,20 @@ class PropertyController extends Controller
                 throw new CustomException("If Notice Generated Then Not Pay Part Payment");
             }
             $propertyPaymentBll = new PropertyPaymentBll($request);         
-            $responseData = ($propertyPaymentBll->payNow());          
+            $responseData = ($propertyPaymentBll->payNow());  
+            $tan = PropTransaction::find($responseData["tranId"]);
+            $coll = PropertyCollection::where("transaction_id",$responseData["tranId"])->get();     
             $this->commit();
+            $this->commitSwm();
             return responseMsg(true,"Payment Successfully Done",$responseData);
         }catch(CustomException $e){
             $this->rollBack();
+            $this->rollBackSwm();
             return responseMsg(false,$e->getMessage(),"");
         }
         catch(Exception $e){
             $this->rollBack();
+            $this->rollBackSwm();
             return responseMsg(false,"Internal Server Error","");
         }
     }

@@ -109,6 +109,7 @@ class TransactionDeactivationBll
             $demand = PropertyDemand::find($coll->property_demand_id);
             $demand->balance_tax = $demand->balance_tax + $coll->total_tax;
             $demand->due_holding_tax = $demand->due_holding_tax + $coll->holding_tax;
+            $demand->due_composite_tax = $demand->due_composite_tax + $coll->composite_tax;
             $demand->due_latrine_tax = $demand->due_latrine_tax + $coll->latrine_tax;
             $demand->due_water_tax = $demand->due_water_tax + $coll->water_tax;
             $demand->due_health_cess_tax = $demand->due_health_cess_tax + $coll->health_cess_tax;  

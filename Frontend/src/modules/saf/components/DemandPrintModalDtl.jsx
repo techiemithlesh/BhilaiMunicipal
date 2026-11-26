@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { formatLocalDate, hostInfo } from "../../../utils/common";
+import { formatLocalDate, formatReadableYearMonth ,hostInfo } from "../../../utils/common";
 import axios from "axios";
 import QRCodeComponent from "../../../components/common/QRCodeComponent";
 import { propDueApi, UlbApi } from "../../../api/endpoints";
@@ -54,7 +54,7 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
       }
       const response = await axios.post(
         propDueApi,
-        { id },
+        { id ,isSWMDemand:true},
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response?.data?.status) {
@@ -283,37 +283,37 @@ function DemandPrintModalDtl({ data = null, id, setIsFrozen = () => {} }) {
                 {t("Solid Waste User Charge")}
               </td>
               <td className="px-2 py-1 border text-right">
-                {receiptData?.swmTranReceipt?.arrearFromDate ? (
+                {receiptData?.swm?.previousDemandReceipt ? (
                   <>
                     <div className="text-[10px]">
-                      ({formatLocalDate(receiptData.swmTranReceipt.arrearFromDate, "-")})
+                      ({`${formatReadableYearMonth(receiptData.swm.previousDemandReceipt?.demandFrom, "-")} - ${formatReadableYearMonth(receiptData.swm.previousDemandReceipt?.demandUpto, "-")}`})
                     </div>
-                    {fmtAmt(receiptData?.swmTranReceipt?.arrearAmount)}
+                    {fmtAmt(receiptData?.swm?.previousDemandReceipt?.totalTax)}
                   </>
                 ) : (
                   NA
                 )}
               </td>
               <td className="px-2 py-1 border text-right">
-                {receiptData?.swmTranReceipt?.currentFromDate ? (
+                {receiptData?.swm?.currentDemandReceipt ? (
                   <>
                     <div className="text-[10px]">
-                      ({formatLocalDate(receiptData.swmTranReceipt.currentFromDate, "-")})
+                      ({`${formatReadableYearMonth(receiptData.swm.currentDemandReceipt?.demandFrom, "-")} - ${formatReadableYearMonth(receiptData.swm.currentDemandReceipt?.demandUpto, "-")}`})
                     </div>
-                    {fmtAmt(receiptData?.swmTranReceipt?.currentAmount)}
+                    {fmtAmt(receiptData?.swm?.currentDemandReceipt?.totalTax)}
                   </>
                 ) : (
                   NA
                 )}
               </td>
               <td className="px-2 py-1 border text-right">
-                {fmtAmt(receiptData?.swmTranReceipt?.totalAmount)}
+                {fmtAmt(receiptData?.swm?.demandAmount)}
               </td>
               <td className="px-2 py-1 border text-right">
-                {fmtAmt(receiptData?.swmTranReceipt?.advanceAmount)}
+                {fmtAmt(receiptData?.swm?.advanceAmount)}
               </td>
               <td className="px-2 py-1 border text-right">
-                {fmtAmt(receiptData?.swmTranReceipt?.totalDues)}
+                {fmtAmt(receiptData?.swm?.payableAmount)}
               </td>
             </tr>
           </tbody>

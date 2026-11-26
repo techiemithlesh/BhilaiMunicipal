@@ -12,14 +12,34 @@ import {
   useDisclosure,
 } from "@nextui-org/react";
 import toast from "react-hot-toast";
+import { getToken } from "../../../utils/auth";
+import axios from "axios";
 
-function PaymentModal({ demandData, onSubmit, onCancel }) {
-  const [form, setForm] = useState({ paymentType: "FULL" });
+function PaymentModal({ isSWMDemandIncluded=false,apiUrl,id,demandData, onSubmit, onCancel }) {
+  const [form, setForm] = useState({ paymentType: "FULL" ,fyear: demandData?.uptoFyear});
   const [isFrozen, setIsFrozen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState(null);
+  const [dueData, setDueData] = useState(demandData || {});
+  const token = getToken();
 
   const isNonCash = form.paymentMode && form.paymentMode !== "CASH";
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  const fetchDemandData = async (fyear) => {
+      setIsFrozen(true);
+      try {
+          const response = await axios.post(apiUrl,{id,fyear,isSWMDemand:isSWMDemandIncluded},{
+              headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response?.data?.status) {
+              setDueData(response.data.data || {});
+          }
+      }catch (error) {
+        console.error("Error fetching demand:", error);
+      } finally {
+        setIsFrozen(false);
+      }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -34,12 +54,14 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
 
     // prepare payload
     const payload = {
+      isSWMDemand:isSWMDemandIncluded,
+      fyear: form?.fyear,
       paymentMode: form.paymentMode,
       paymentType: form.paymentType,
       amount:
         form.paymentType === "PARTIAL"
           ? form.amount ?? "0"
-          : demandData?.payableAmount ?? "0",
+          : demandData?.totalPayableAmount ?? "0",
       ...(isNonCash && {
         chequeNo: form.chequeNo,
         chequeDate: form.chequeDate,
@@ -94,22 +116,21 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
         >
           {/* Payment Type */}
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm">Payment Type</label>
+            <label className="mb-1 font-medium text-sm">Payment Upto</label>
             <select
-              value={form.paymentType || ""}
-              onChange={(e) =>
-                setForm({ ...form, paymentType: e.target.value })
-              }
+              value={form.fyear || ""}
+              onChange={(e) =>{
+                setForm({ ...form, fyear: e.target.value });
+                fetchDemandData(e.target.value);
+              }}
               required
               className="px-3 py-2 border rounded"
             >
-              <option value="" disabled>
-                Select Type
-              </option>
-              <option value="FULL">Full</option>
-              <option value="PARTIAL" disabled>
-                Partial
-              </option>
+              {demandData?.demandUptoFyearList?.map((item, index) => (
+                    <option key={index} value={item.fyear}>
+                        {item.fyear}
+                    </option>
+                ))}
             </select>
           </div>
 
@@ -143,7 +164,7 @@ function PaymentModal({ demandData, onSubmit, onCancel }) {
               value={
                 form.paymentType === "PARTIAL"
                   ? form.amount ?? ""
-                  : demandData?.payableAmount ?? ""
+                  : dueData?.totalPayableAmount ?? ""
               }
               onChange={(e) =>
                 form.paymentType === "PARTIAL" &&

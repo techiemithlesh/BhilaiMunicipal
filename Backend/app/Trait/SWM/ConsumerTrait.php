@@ -19,6 +19,7 @@ trait ConsumerTrait
         $oldWard = UlbWardMaster::find($consumer->ward_mstr_id);
         $consumer->ulb_name = $ulbDtl->ulb_name??"";
         $consumer->ward_no = $oldWard->ward_no??"";
+        $consumer->consumer_type = $consumer->is_self==true?"Self":"Rental";
         return $consumer;
     }
 

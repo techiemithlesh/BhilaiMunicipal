@@ -33,31 +33,49 @@ function DemandViewModal({
 
   const [isDemandPrintModal, setIsDemandPrintModal] = useState(false);
   const [paymentReceiptId, setPaymentReceiptId] = useState(null);
+  const [isSWMDemandIncluded, setIsSWMDemandIncluded] = useState(false);
+  const [demandRefresh, setDemandRefresh] = useState(0);
 
   useEffect(() => {
-    if (token && id) fetchData();
-  }, [id, token]);
+    if (!token || !id || !apiUrl) return;
 
-  const fetchData = async () => {
+    const controller = new AbortController();
     setIsFrozen(true);
-    try {
-      const response = await axios.post(
-        apiUrl,
-        { id },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.post(
+          apiUrl,
+          { id, isSWMDemand: isSWMDemandIncluded },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          }
+        );
+        if (controller.signal.aborted) return;
+
+        if (!response.data?.status) {
+          throw new Error(response.data?.message || "Unable to load demand");
         }
-      );
-      if (response?.data?.status) {
-        setDemandList(response.data.data?.demandList || []);
-        setDemandData(response.data.data || {});
+
+        const data = response.data.data || {};
+        setDemandList(Array.isArray(data.demandList) ? data.demandList : []);
+        setDemandData(data);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setDemandList([]);
+        setDemandData({});
+        console.error("Error fetching demand:", error);
+        toast.error(error.response?.data?.message || error.message || "Unable to load demand");
+      } finally {
+        if (!controller.signal.aborted) setIsFrozen(false);
       }
-    } catch (error) {
-      console.error("Error fetching demand:", error);
-    } finally {
-      setIsFrozen(false);
-    }
-  };
+    };
+
+    fetchData();
+    return () => controller.abort();
+  }, [apiUrl, id, token, isSWMDemandIncluded, demandRefresh]);
 
   const handlePaymentSubmit = async (paymentData) => {
     paymentData.id = id;
@@ -67,7 +85,7 @@ function DemandViewModal({
       });
       if (response?.data?.status) {
         onSuccess();
-        fetchData();
+        setDemandRefresh((refresh) => refresh + 1);
         setPaymentReceiptId(response?.data?.data?.tranId);
         setTimeout(() => {
           setIsShowPaymentModal(false);
@@ -102,6 +120,7 @@ function DemandViewModal({
             {demandData?.totalPayableAmount > 0 && (
               <button
                 onClick={() => setIsDemandPrintModal(true)}
+                disabled={isFrozen}
                 className="bg-blue-300 hover:bg-blue-400 px-6 py-2 rounded text-white"
               >
                 Print Demand
@@ -307,6 +326,95 @@ function DemandViewModal({
                 </tfoot>
               </table>
             </div>
+            {/* SWM Demand Section */}
+            {demandData?.swm && (
+              <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                {/* Header */}
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-5 w-1.5 rounded-full bg-blue-600"></span>
+                    <h3 className="text-base font-bold text-slate-800 sm:text-lg">
+                      SWM Demand Details
+                    </h3>
+                  </div>
+
+                  {/* Highlighted Demand Amount Badge */}
+                  <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 border border-blue-100">
+                    <span className="text-xs font-medium text-blue-700">Demand Amount:</span>
+                    <span className="text-sm font-bold text-blue-950 sm:text-base">
+                      {demandData?.swm?.payableAmount !== undefined && demandData?.swm?.payableAmount !== null
+                        ? `₹${demandData.swm.payableAmount}`
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Responsive Details Grid */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Consumer No */}
+                  <div className="flex flex-col rounded-lg border border-gray-100 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Consumer No
+                    </span>
+                    <span className="mt-1 break-all text-sm font-semibold text-slate-800">
+                      {demandData?.swm?.consumer?.consumerNo ?? "-"}
+                    </span>
+                  </div>
+
+                  {/* Consumer Type */}
+                  <div className="flex flex-col rounded-lg border border-gray-100 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Consumer Type
+                    </span>
+                    <span className="mt-1 text-sm font-semibold text-slate-800">
+                      {demandData?.swm?.consumer?.consumerType ?? "-"}
+                    </span>
+                  </div>
+
+                  {/* Owner Name */}
+                  <div className="flex flex-col rounded-lg border border-gray-100 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Owner Name
+                    </span>
+                    <span className="mt-1 text-sm font-semibold text-slate-800">
+                      {demandData?.swm?.ownerName ?? "-"}
+                    </span>
+                  </div>
+
+                  {/* Due From */}
+                  <div className="flex flex-col rounded-lg border border-gray-100 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Due From
+                    </span>
+                    <span className="mt-1 text-sm font-semibold text-slate-800">
+                      {demandData?.swm?.fromDate ?? "-"}
+                    </span>
+                  </div>
+
+                  {/* Due Upto */}
+                  <div className="flex flex-col rounded-lg border border-gray-100 bg-slate-50/70 p-3 transition-colors hover:bg-slate-50">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Due Upto
+                    </span>
+                    <span className="mt-1 text-sm font-semibold text-slate-800">
+                      {demandData?.swm?.uptoDate ?? "-"}
+                    </span>
+                  </div>
+
+                  {/* Demand Amount (Also kept in grid for consistency, highlighted) */}
+                  <div className="flex flex-col rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                    <span className="text-xs font-medium uppercase tracking-wider text-emerald-700">
+                      Total Payable
+                    </span>
+                    <span className="mt-1 text-sm font-bold text-emerald-900">
+                      {demandData?.swm?.payableAmount !== undefined && demandData?.swm?.payableAmount !== null
+                        ? `₹${demandData.swm.payableAmount}`
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Summary Section */}
             <div className="space-y-4 mt-6 text-sm">
@@ -314,6 +422,15 @@ function DemandViewModal({
               <div>
                 <h3 className="mb-2 font-semibold text-blue-900">
                   Main Demand
+                  <label className="ml-2 text-xs font-normal text-blue-600">
+                    Include SWM
+                    <input
+                      type="checkbox"
+                      checked={isSWMDemandIncluded}
+                      onChange={(event) => setIsSWMDemandIncluded(event.target.checked)}
+                      className="ml-2"
+                    />
+                  </label>
                 </h3>
                 <div className="gap-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
                   <div className="flex justify-between bg-gray-100 px-3 py-2 rounded">
@@ -339,10 +456,6 @@ function DemandViewModal({
                     <span className="font-medium">Monthly Penalty:</span>
                     <span>{demandData?.monthlyPenalty ?? "-"}</span>
                   </div>
-                  {/* <div className="flex justify-between bg-red-100 px-3 py-2 rounded">
-                    <span className="font-medium">Other Penalty:</span>
-                    <span>{demandData?.otherPenalty ?? "-"}</span>
-                  </div> */}
                   {demandData?.otherPenaltyList?.map((penalty, idx) => (
                     <div key={idx} className="flex justify-between bg-red-100 px-3 py-2 rounded">
                       <span className="font-medium">
@@ -412,6 +525,7 @@ function DemandViewModal({
               <div className="mt-6 text-right">
                 <button
                   onClick={() => setIsShowPaymentModal(true)}
+                  disabled={isFrozen}
                   className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded text-white"
                 >
                   Pay Now
@@ -428,6 +542,9 @@ function DemandViewModal({
 
           {isShowPaymentModal && (
             <PaymentModal
+              isSWMDemandIncluded={isSWMDemandIncluded}
+              id={id}
+              apiUrl={apiUrl}
               demandData={demandData}
               onSubmit={handlePaymentSubmit}
               onCancel={() => setIsShowPaymentModal(false)}

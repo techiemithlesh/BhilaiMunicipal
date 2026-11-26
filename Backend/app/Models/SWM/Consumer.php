@@ -19,6 +19,7 @@ class Consumer extends ParamModel
         "ward_mstr_id",
         "holding_no",
         "property_detail_id",
+        "is_self",
         "has_composting_machine_provision",
         "total_no_of_flat",
         "actual_no_of_flat",

@@ -16,6 +16,7 @@ class PropertyCollection extends ParamModel
         "qtr",
         "total_tax",
         "holding_tax",
+        "composite_tax",
         "latrine_tax",
         "water_tax",
         "health_cess_tax",

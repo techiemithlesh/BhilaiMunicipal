@@ -9,6 +9,7 @@ class ConsumerTransaction extends ParamModel
 {
     use HasFactory;
     protected $fillable = [
+        "prop_transaction_id",
         "ulb_id",
         "consumer_id",
         "ward_mstr_id",

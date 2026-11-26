@@ -1,6 +1,7 @@
 <?php
 namespace App\Bll\Property;
 
+use App\Bll\SWM\ConsumerPaymentBll;
 use App\Models\Citizen;
 use App\Models\Property\AdjustmentDetail;
 use App\Models\Property\AdvanceDetail;
@@ -33,14 +34,15 @@ class PropertyPaymentBll{
         $this->_tranDate = Carbon::parse($request->tranDate);
         $this->_PROPERTY = PropertyDetail::find($this->_PROPId);
          
-        $propDemandBll = new PropDemandBll($this->_PROPId,$this->_tranDate);
+        $propDemandBll = new PropDemandBll($this->_PROPId,$this->_tranDate,$request->fyear??null);
         $propDemandBll->getPropDue();
         $this->_Demand = $propDemandBll->_GRID;
         $this->_DemandList = $propDemandBll->_GRID["demandList"];
         $this->setParams();
     }
 
-    public function setParams(){
+    public function setParams(){        
+        $swmPaidAmount = $this->_Demand["swm"]["payableAmount"];
         if(!$this->_REQUEST->amount){
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["totalPayableAmount"],
@@ -51,13 +53,14 @@ class PropertyPaymentBll{
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["totalPayableAmount"],                
                 "propertyPaidAmount"=>$this->_Demand["payableAmount"],
-        ]);
+            ]);
         }
         if($this->_REQUEST->paymentType=="ARREAR"){
             $this->_REQUEST->merge([
                 "amount"=>$this->_Demand["arrearPayableAmount"],
                 "propertyPaidAmount"=>$this->_Demand["arrearPayableAmount"],
             ]);
+            $swmPaidAmount=0;
         }
         if($this->_REQUEST->paymentType=="PART"){
             $amount = roundFigure($this->_REQUEST->amount);
@@ -66,25 +69,31 @@ class PropertyPaymentBll{
             $amount = min($amount, roundFigure($this->_Demand["totalPayableAmount"]));
 
             $proPayable = roundFigure($this->_Demand["payableAmount"]);
+            $swmPayable = roundFigure($this->_Demand["swm"]["payableAmount"]);
 
             if ($amount <= $proPayable) {
 
                 // Partial property payment only
                 $propertyPaid = $amount;
+                $swmPaid = 0;
 
             } else {
-
                 // Property fully paid, remaining to
                 $propertyPaid = $proPayable;
                 $remaining = roundFigure($amount - $proPayable);
+                $swmPaid = min($remaining, $swmPayable);
             }
 
             $this->_REQUEST->merge([
-                "amount"             => roundFigure($propertyPaid ),
+                "amount"             => roundFigure($propertyPaid + $swmPaid ),
                 "propertyPaidAmount" => $propertyPaid,
             ]);
+            $swmPaidAmount      = $swmPaid;
 
         }
+        $this->_REQUEST->merge([
+            "swmPaidAmount"      => $swmPaidAmount,
+        ]);
 
         $user = Auth()->user();
 
@@ -314,6 +323,7 @@ class PropertyPaymentBll{
                 "qtr" => $paid["qtr"],
                 "total_tax"=>$paid["paid_balance_tax"],
                 "holding_tax"=>$paid["paid_due_holding_tax"],
+                "composite_tax"=>$paid["paid_due_composite_tax"],
                 "latrine_tax"=>$paid["paid_due_latrine_tax"],
                 "water_tax"=>$paid["paid_due_water_tax"],
                 "health_cess_tax"=>$paid["paid_due_health_cess_tax"],
@@ -325,13 +335,14 @@ class PropertyPaymentBll{
                 "due_date"=>$propDemand->due_date,
                 "fine_amt"=>$paid["paid_due_fine_tax"],
             ];
-            $newRequest = new Request($metaCollData); 
+            $newRequest = new Request($metaCollData);
             # insert collection           
             $collectionId = $objPropCollection->store($newRequest);
 
             # update demand
             $propDemand->balance_tax = $propDemand->balance_tax - $paid["paid_balance_tax"];
             $propDemand->due_holding_tax = $propDemand->due_holding_tax - $paid["paid_due_holding_tax"];
+            $propDemand->due_composite_tax = $propDemand->due_composite_tax - $paid["paid_due_composite_tax"];
             $propDemand->due_latrine_tax = $propDemand->due_latrine_tax - $paid["paid_due_latrine_tax"];
             $propDemand->due_water_tax = $propDemand->due_water_tax - $paid["paid_due_water_tax"];
             $propDemand->due_health_cess_tax = $propDemand->due_health_cess_tax - $paid["paid_due_health_cess_tax"];
@@ -384,6 +395,23 @@ class PropertyPaymentBll{
             $id = $objTranFineRebate->store($newPenaltyRequest);
         }
 
+        #==========swm Payment==============
+        if($remainAmount>0 && $this->_REQUEST->isSWMDemand && $this->_Demand["swm"]["consumer"]){
+            $consumer = $this->_Demand["swm"]["consumer"];
+            $swmDemandAmount = $this->_Demand["swm"]["payableAmount"];
+            $swmPaidAmount = $swmDemandAmount;
+            $newSwmRequest = new Request(["id"=>$consumer["id"],"propTranId"=>$tranId,"tranDate"=>$this->_REQUEST->tranDate,"paymentMode"=>$this->_REQUEST->paymentMode]);
+            if($remainAmount<=$swmDemandAmount){
+                $swmPaidAmount = $remainAmount;
+                $remainAmount =0;
+            }else{
+                $remainAmount -= $swmPaidAmount;
+            }
+            $newSwmRequest->merge(["amount"=>$swmPaidAmount,"paymentType"=>($swmDemandAmount==$swmPaidAmount ? "FULL":"PART")]);
+            
+            $objSwmPaymentBll = new ConsumerPaymentBll($newSwmRequest);
+            $swmReturn = $objSwmPaymentBll->payNow();  
+        }
         # Advance Adjust and new Advance Insert
         //Advance
         if($remainAmount>0){

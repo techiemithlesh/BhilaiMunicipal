@@ -20,6 +20,7 @@ class ConsumerPaymentBll
 {
     public $_REQUEST;
     public $_APPId;
+    public $_PropTranId;
     public $_CONSUMER;
     public $_Demand;
     public $_DemandList;
@@ -28,7 +29,8 @@ class ConsumerPaymentBll
     public function __construct($request)
     {
         $this->_REQUEST = $request;
-        $this->_APPId = $request->id;
+        $this->_APPId = $request->id;        
+        $this->_PropTranId = $request->propTranId;
         $this->_tranDate = Carbon::parse($request->tranDate)->format("Y-m-d");
         $this->_CONSUMER = Consumer::find($this->_APPId);
        
@@ -67,6 +69,7 @@ class ConsumerPaymentBll
         }
         $metaData = [
             "tranDate"=>$this->_tranDate,
+            "propTransactionId"=>$this->_PropTranId,
             "ulbId"=>$this->_CONSUMER->ulb_id,
             "consumerId"=>$this->_CONSUMER->id,
             "wardMstrId"=>$this->_CONSUMER->ward_mstr_id,

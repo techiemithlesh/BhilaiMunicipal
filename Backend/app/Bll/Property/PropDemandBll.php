@@ -2,6 +2,7 @@
 
 namespace App\Bll\Property;
 
+use App\Bll\SWM\ConsumerDueBll;
 use App\Models\DBSystem\UlbMaster;
 use App\Models\Property\ActiveSafDetail;
 use App\Models\Property\AdditionalTax;
@@ -14,6 +15,7 @@ use App\Models\Property\PropertyTypeMaster;
 use App\Models\Property\RejectedSafDetail;
 use App\Models\Property\SafDemand;
 use App\Models\Property\SafDetail;
+use App\Models\SWM\Consumer;
 use App\Trait\Property\PropertyTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -66,15 +68,20 @@ class PropDemandBll{
     public $_WatermarkBase64;
     public $_floor;
     public $_SafNo;
+    public $_uptoFYear;
+    private $_demandUptoFyearList;
+    private $_IsSWMDemand = true;
 
-    function __construct($propId,$tranDate=null)
+    function __construct($propId,$tranDate=null,$uptoFyear=null,$isSWMDemand=true)
     {
         $this->_PROPId = $propId;
+        $this->_IsSWMDemand = $isSWMDemand;
         $this->_tranDate = Carbon::parse($tranDate);
         $this->_tranDateFyear = getFY($this->_tranDate->copy()->format("Y-m-d"));
+        $this->_uptoFYear = $uptoFyear ? $uptoFyear : $this->_tranDateFyear;
         $this->_PROPERTY = PropertyDetail::find($this->_PROPId);
         $this->_PROPERTY = $this->adjustSafValue($this->_PROPERTY);
-         $this->_owners = collect($this->_PROPERTY->getOwners())->sortBy("id");
+        $this->_owners = collect($this->_PROPERTY->getOwners())->sortBy("id");
         $this->_UlbDetail = UlbMaster::find($this->_PROPERTY->ulb_id);
         if($this->_UlbDetail){
             $this->_WatermarkBase64 = $this->getImageBase64($this->_UlbDetail->water_mark_img);
@@ -138,10 +145,17 @@ class PropDemandBll{
             $this->_lastPaymentIsClear = false;
         }
     }
-    public function setDemandList(){        
+    public function setDemandList(){       
         $currentFyear = getFY($this->_tranDate->copy()->format("Y-m-d"));
         $propDemand = new PropertyDemand();
-        $this->_DemandList = collect($propDemand->getDueDemand($this->_PROPId))->where("fyear","<=",$this->_tranDateFyear);
+        $this->_demandUptoFyearList = $propDemand
+                                ->select(DB::raw("DISTINCT fyear AS fyear"))
+                                ->where("property_detail_id",$this->_PROPId)
+                                ->where("lock_status",false)
+                                ->where("is_full_paid",false)
+                                ->orderBy("fyear","DESC")
+                                ->get();
+        $this->_DemandList = collect($propDemand->getDueDemand($this->_PROPId))->where("fyear","<=",$this->_uptoFYear);
         $this->_monthlyPenalty = roundFigure($this->_DemandList->sum("monthlyPenalty"));
         $this->_demandAmount = roundFigure($this->_DemandList->sum("balance_tax"));
         $this->_rwhAmount = roundFigure($this->_DemandList->sum("due_rwh_tax"));
@@ -218,6 +232,7 @@ class PropDemandBll{
         $totalDiscount = roundFigure($this->_quarterlyRebate + $this->_specialRebate + $this->_advanceAmount);
 
         $this->_GRID = [
+            "demandUptoFyearList"=>$this->_demandUptoFyearList,
             "printingDate"=>Carbon::now()->format("Y-m-d H:i:s"),
             "description"=>"PROPERTY TAX DEMAND",
             "department" => "Revenue Section",
@@ -276,7 +291,21 @@ class PropDemandBll{
         ];
         $this->_GRID["payableAmountInWord"] = getIndianCurrency($this->_GRID["payableAmount"]);
         
+        
         $this->_GRID["totalPayableAmount"] = roundFigure($this->_GRID["payableAmount"]);
+        $sefConsumer = Consumer::where("property_detail_id",$this->_PROPId)
+                                    ->where("is_self",true)
+                                    ->orderBy("id","ASC")
+                                    ->first();   
+        if($sefConsumer){
+            $swmDemand = new ConsumerDueBll($sefConsumer->id,$this->_tranDate);
+            $swmDemand->getConsumerDue();
+            $this->_GRID["swm"] = $swmDemand->_GRID; 
+            if($this->_IsSWMDemand){
+                $this->_GRID["totalPayableAmount"] += $swmDemand->_GRID["payableAmount"] ?? 0; 
+            }
+        }
+        $this->_GRID["totalPayableAmount"] = round($this->_GRID["totalPayableAmount"]);
         $this->_GRID["totalPayableAmountInWord"] = getIndianCurrency($this->_GRID["totalPayableAmount"]);
     }
 
