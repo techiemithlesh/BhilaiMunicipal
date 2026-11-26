@@ -438,6 +438,8 @@ const Details = () => {
                 "From Year",
                 "Upto Year",
                 "Amount",
+                "prop Amount",
+                "swm Amount",
                 "View",
               ]}
               data={propDetails.tranDtls}
@@ -459,6 +461,12 @@ const Details = () => {
                   </td>
                   <td className="px-3 py-2 border">
                     {trans?.payableAmt || ""}
+                  </td>
+                  <td className="px-3 py-2 border">
+                    {trans?.propertyPaidAmount || ""}
+                  </td>
+                  <td className="px-3 py-2 border">
+                    {trans?.swmPaidAmount || ""}
                   </td>
                   <td className="px-3 py-2 border">
                     {trans?.id && (
@@ -490,6 +498,7 @@ const Details = () => {
                     "Guardian Name",
                     "Mobile No",
                     "Address",
+                    "Consumer Type",
                     "View",
                   ]}
                   data={propDetails.swm}
@@ -501,6 +510,7 @@ const Details = () => {
                       <td className="px-3 py-2 border">{swm.guardianName}</td>
                       <td className="px-3 py-2 border">{swm.mobileNo}</td>
                       <td className="px-3 py-2 border">{swm.address}</td>
+                      <td className="px-3 py-2 border">{swm.isSelf ? "SELF":"RENTAL"}</td>
                       <td className="px-3 py-2 border">
                         {swm?.id && (
                           <Link to={`/swm/dtl/${swm.id}`} target="_blank" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded font-medium text-white text-sm transition duration-200">

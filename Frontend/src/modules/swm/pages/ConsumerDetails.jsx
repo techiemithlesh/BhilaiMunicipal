@@ -170,6 +170,7 @@ function ConsumerDetails() {
     { label: "Street Name", value: appData?.streetName },
     { label: "Locality", value: appData?.locality },
     { label: "Apply Date", value: formatLocalDate(appData?.applyDate) },
+    { label: "Consumer Type", value: appData?.consumerType },
   ];
 
   const handelConnectionSubmit = async () => {

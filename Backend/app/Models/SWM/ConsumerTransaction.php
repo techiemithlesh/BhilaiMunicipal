@@ -39,4 +39,11 @@ class ConsumerTransaction extends ParamModel
     public function getChequeDtl(){
         return $this->belongsTo(ChequeDetail::class,"id","transaction_id")->where("lock_status",false)->orderBy("id","DESC")->first();
     }
+
+    public static function getTranByPropTranId($propTranId){
+        return self::where("prop_transaction_id",$propTranId)
+                ->where("lock_status",false)
+                ->whereIn("payment_status",[1,2])
+                ->get();
+    }
 }

@@ -13,6 +13,7 @@ use App\Models\Property\RejectedSafDetail;
 use App\Models\Property\SafCollection;
 use App\Models\Property\SafDetail;
 use App\Models\Property\TransactionFineRebateDetail;
+use App\Models\SWM\ConsumerTransaction;
 use App\Models\User;
 use App\Trait\Property\PropertyTrait;
 use Illuminate\Support\Carbon;
@@ -39,6 +40,7 @@ class PaymentReceiptBll{
     public $_tranDateFyear ;
     public $_currentDemandList;
     public $_previousDemandList;
+    public $_swmTran;
     public $_WatermarkBase64;
 
     function __construct($tranId)
@@ -85,6 +87,7 @@ class PaymentReceiptBll{
             $this->_UlbDetail->left_logo =  $this->_UlbDetail->logo_img ;
             $this->_UlbDetail->right_logo =  url('/'."UlbLogo/swachh_bharat.png") ;
         }
+        $this->_swmTran = ConsumerTransaction::getTranByPropTranId($this->_TranId);
         $this->_propSafData = $this->adjustSafValue($this->_propSafData);
         $this->_oldWard = UlbWardMaster::find($this->_propSafData->ward_mstr_id);
         $this->_newWard = UlbWardMaster::find($this->_propSafData->new_ward_mstr_id);
@@ -145,6 +148,12 @@ class PaymentReceiptBll{
         $this->_currentDemandList = $this->_CollectionDetail->where("fyear",$this->_tranDateFyear);
         $this->_previousDemandList = $this->_CollectionDetail->where("fyear","<",$this->_tranDateFyear);
 
+        
+
+        $swmFromDate = $this->_swmTran->min("from_date");
+        $swmUptoDate = $this->_swmTran->max("upto_date");
+        $swmAmount = roundFigure($this->_swmTran->sum("payable_amt"));
+
         $this->_GRID=[
             "printingDate"=>Carbon::now()->format("Y-m-d H:i:s"),
             "description"=>"PROPERTY TAX RECEIPT",
@@ -193,6 +202,12 @@ class PaymentReceiptBll{
             "userDtl"=> $this->_UserDetail,
             "floorDtl" => $this->_floor,
             "watermark" => $this->_WatermarkBase64,
+            "swmTranReceipt"=>[
+                "fromDate"=>$swmFromDate,
+                "uptoDate"=>$swmUptoDate,
+                "totalAmount"=>$swmAmount,
+            ]
+            
         ];
     }
 }

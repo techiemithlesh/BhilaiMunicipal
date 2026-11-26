@@ -39,6 +39,7 @@ trait ConsumerTrait
                 ->select("app.id",
                 "app.consumer_no",
                 "app.address",
+                "app.is_self",
                 "holding_no",
                 "wm.ward_no",
                 "w.owner_name",

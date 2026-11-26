@@ -59,7 +59,7 @@ function PaymentReceiptDtl({ data = null, id, setIsFrozen = () => {} }) {
     }
   };
 
-  const NA = "NA";
+  const NA = "NA";  
   const val = (v) => (v === null || v === undefined || v === "" ? NA : v);
 
   // Indian-style amount: 11,328.00

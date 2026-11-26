@@ -119,6 +119,7 @@ function SearchConsumer() {
         "Guardian Name",
         "Mobile No",
         "Address",
+        "Consumer Type",
         "View",
       ]}
       tableData={tableData}
@@ -132,6 +133,7 @@ function SearchConsumer() {
           <td className="px-3 py-2 border">{row.guardianName ?? ""}</td>
           <td className="px-3 py-2 border">{row.mobileNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.address ?? "NA"}</td>
+          <td className="px-3 py-2 border">{row.isSelf ? "SELF":"RENTAL"}</td>
           <td className="px-3 py-2 border">
             <Link
               to={`/swm/dtl/${row.id}`}
