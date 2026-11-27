@@ -1,0 +1,239 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useTranslation } from "react-i18next";
+import { leaseRentDueApi } from "../leaseEndpoints";
+import { getToken } from "../../../utils/auth";
+import "../../../i18n";
+
+const NA = "NA";
+const val = (v) => (v === null || v === undefined || v === "" ? NA : v);
+
+const fmtAmt = (v) =>
+  Number(v || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const fmtMonth = (dateStr) => {
+  if (!dateStr) return NA;
+  const [year, month] = String(dateStr).split("-");
+  const name = new Date(Number(year), Number(month) - 1, 1).toLocaleString("en-US", {
+    month: "short",
+  });
+  return `${name}-${year}`;
+};
+
+const fmtPrintDate = (value) => {
+  if (!value) return NA;
+  const [date, time = ""] = String(value).split(" ");
+  const [year, month, day] = date.split("-");
+  return `${day}-${month}-${year} ${time.slice(0, 5)}`.trim();
+};
+
+function LeaseDemandReceiptDtl({ id, setIsFrozen = () => {} }) {
+  const token = getToken();
+  const { t, i18n } = useTranslation();
+  const [receiptData, setReceiptData] = useState({});
+
+  useEffect(() => {
+    i18n.changeLanguage("hi");
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    if (id) fetchData();
+    return () => {
+      setIsFrozen(false);
+      setReceiptData({});
+    };
+    // eslint-disable-next-line
+  }, [id]);
+
+  const fetchData = async () => {
+    setIsFrozen(true);
+    try {
+      const response = await axios.post(
+        leaseRentDueApi,
+        { id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response?.data?.status) {
+        setReceiptData(response.data.data || {});
+      }
+    } catch (error) {
+      console.error("Error fetching lease demand receipt:", error);
+    } finally {
+      setIsFrozen(false);
+    }
+  };
+
+  const ulb = receiptData?.ulbDtl || {};
+  const ulbName =
+    i18n.language === "hi" ? ulb.hindiUlbName || ulb.ulbName : ulb.ulbName;
+  const lease = receiptData?.leaseDtl || receiptData?.shopDtl || {};
+
+  const owner = [
+    val(receiptData?.ownerName),
+    t(receiptData?.relationType || "S/O"),
+    val(receiptData?.guardianName),
+    receiptData?.mobileNo ? `${receiptData.mobileNo},` : "",
+  ].join(" ");
+
+  const extraRows = [
+    { label: "Penalty Charge", amount: receiptData?.latePenalty, always: true },
+    { label: "Service Tax", amount: receiptData?.serviceTax, always: true },
+    { label: "CGST", amount: receiptData?.cgst, always: true },
+    { label: "SGST", amount: receiptData?.sgst, always: true },
+    { label: "Additional Tax", amount: receiptData?.additionalTax },
+    { label: "Advance", amount: receiptData?.advanceAmount, negative: true },
+  ].filter((row) => row.always || Number(row.amount) > 0);
+
+  return (
+    <div className="print-container relative bg-white p-4 print:p-6 border-2 border-black border-dotted font-sans text-xs print:text-[11px] overflow-hidden">
+      {ulb.waterMarkImg && (
+        <div className="print:flex z-0 absolute inset-0 flex justify-center items-center pointer-events-none">
+          <img
+            src={ulb.waterMarkImg}
+            alt="Watermark"
+            className="opacity-[0.55] w-[440px] select-none"
+          />
+        </div>
+      )}
+      <div className="relative z-10">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="justify-self-end">
+            {ulb.logoImg && (
+              <img src={ulb.logoImg} alt="Logo" className="w-16 h-16 object-contain" />
+            )}
+          </div>
+          <h1 className="font-bold text-xl tracking-tight text-center">{val(ulbName)}</h1>
+          <div className="justify-self-start">
+            {ulb.rightLogo && (
+              <img src={ulb.rightLogo} alt="Right Logo" className="w-20 h-16 object-contain" />
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-3">
+          <span className="inline-block px-6 py-1.5 border-2 border-black font-bold text-sm text-center">
+            {t(receiptData?.description || "LEASE RENT DEMAND RECEIPT")}
+            <div className="font-semibold text-[10px]">({t("THIS IS NOT PAYMENT RECEIPT")})</div>
+          </span>
+        </div>
+
+        <table className="mt-4 mb-2 w-full leading-relaxed [&_td]:py-0.5 [&_td:nth-child(odd)]:align-top [&_td:nth-child(odd)]:whitespace-nowrap [&_td:nth-child(odd)]:pr-2">
+          <tbody>
+            <tr>
+              <td>{t("Department / Section")}</td>
+              <td className="font-bold">: {t(receiptData?.department || "Lease Rent")}</td>
+              <td>{t("Ward No")}</td>
+              <td className="font-bold">: {val(receiptData?.wardNo)}</td>
+            </tr>
+            <tr>
+              <td>{t("Account Description")}</td>
+              <td className="font-bold">: {t(receiptData?.accountDescription || "Lease Rent")}</td>
+              <td>{t("Consumer No.")}</td>
+              <td className="font-bold">: {val(lease?.consumerNo || receiptData?.consumerNo)}</td>
+            </tr>
+            <tr>
+              <td>{t("Lease Area")}</td>
+              <td className="font-bold">: {val(receiptData?.leaseArea || receiptData?.areaName)}</td>
+              <td>{t("Nigam Lease No.")}</td>
+              <td className="font-bold">: {val(receiptData?.nigamLeaseNo || lease?.nigamLeaseNo)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="pt-2 border-t leading-relaxed">
+          <p>
+            {t("Received From")} : <strong>{owner}</strong>
+          </p>
+          <p>
+            <span className="inline-block w-24">{t("Plot Address")}</span> :{" "}
+            <strong>{val(receiptData?.plotAddress || receiptData?.address)}</strong>
+          </p>
+        </div>
+
+        <table className="mt-3 mb-2 print:break-inside-avoid border w-full border-collapse text-[12px]">
+          <thead>
+            <tr>
+              <th className="px-2 py-1.5 border font-bold">{t("Tax Type")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("From Month")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("Upto Month")}</th>
+              <th className="px-2 py-1.5 border font-bold text-right">{t("Total Demand")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="px-2 py-1 border text-center">{t("Lease Rent Charge")}</td>
+              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.demandFrom)}</td>
+              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.demandUpto)}</td>
+              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.demandAmount)}</td>
+            </tr>
+            {extraRows.map((row) => (
+              <tr key={row.label}>
+                <td className="px-2 py-1 border text-right font-semibold" colSpan={3}>
+                  {t(row.label)}
+                </td>
+                <td className="px-2 py-1 border text-right w-40">
+                  {row.negative ? "- " : ""}
+                  {fmtAmt(row.amount)}
+                </td>
+              </tr>
+            ))}
+            <tr className="font-bold">
+              <td className="px-2 py-1 border text-right" colSpan={3}>
+                {t("Total Due")}
+              </td>
+              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.payableAmount)}</td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 border" colSpan={4}>
+                <span className="font-semibold">{t("Total Demand (In Words)")}</span> :{" "}
+                <strong>{val(receiptData?.payableAmountInWord)}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="border w-full">
+          <div className="grid grid-cols-[1fr_auto]">
+            <div className="p-2">
+              <p className="font-bold">Note</p>
+              <ul className="list-disc list-inside leading-relaxed">
+                <li>
+                  {t(
+                    "This is a Computer genrated Receipt.This receipt does not require physical signature."
+                  )}
+                </li>
+                <li>
+                  {t("This is only demand and not payment Receipt.")}
+                  {i18n.language !== "hi" && " (यह भुगतान नहीं, मांग रसीद है)"}
+                </li>
+                <li>
+                  {t(
+                    "Demand will be revised at the time of Payment(based on applicable discount/penalty/GST)."
+                  )}
+                </li>
+                <li>
+                  {t("Print Date")} : {fmtPrintDate(receiptData?.printingDate)}
+                </li>
+              </ul>
+            </div>
+            <div className="p-2 border-l w-56 text-sm text-center">
+              <p>
+                {t("In Collaboration With")}
+                <br />
+                {val(ulb.collaboration)}
+                <br />
+                {ulb.ulbName}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LeaseDemandReceiptDtl;

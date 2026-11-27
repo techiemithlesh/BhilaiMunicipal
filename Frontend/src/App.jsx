@@ -12,6 +12,7 @@ import CitizenAuth from "./pages/citizen/CitizenAuth";
 import Layout from "./layout/Layout";
 import { MenuProvider } from "./components/common/MenuContext";
 import MaintenancePage from "./Maintenance.jsx";
+import LeaseRentModule from "./modules/leaseRent/index.jsx";
 
 const PropertyRoutes = lazy(() => import("./modules/property/PropertyRoutes"));
 const UserRoutes = lazy(() => import("./modules/user/userRoutes"));
@@ -91,6 +92,7 @@ function App() {
               element={<ShopPaymentReceipt />}
             />
             <Route path="/shop-rent/*" element={<ShopRentRoute />} />
+            <Route path="/lease/*" element={<LeaseRentModule />} />
             <Route
               path="/water-app/payment-receipt/:id"
               element={<WaterAppPaymentReceipt />}
