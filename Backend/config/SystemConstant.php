@@ -13,13 +13,7 @@ return [
             "swm"=>"pgsql_swm",
             "trade"=>"pgsql_trade",
             "shop_rent"=>"pgsql_shop_rent",
-        ],
-        1=>[
-            "property"=>"pgsql_dmc_property",
-            "water"=>"pgsql_dmc_water",
-            "swm"=>"pgsql_dmc_swm",
-            "trade"=>"pgsql_dmc_trade",
-            "shop_rent"=>"pgsql_dmc_shop_rent",
+            "lease"=>"pgsql_lease",
         ],
     ],
     "MODULE"=>[
@@ -29,7 +23,7 @@ return [
         "SWM"=>4,
         "ACCOUNT"=>5,
         "SHOP"=>6,
-        "Lease"=>7
+        "LEASE"=>7
     ],
     "USER-TYPE-SHORT-NAME" =>[
         ""                  =>"ONLINE",

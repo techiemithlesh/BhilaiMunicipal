@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { leaseRentPaymentReceiptApi } from "../leaseEndpoints";
 import { getToken } from "../../../utils/auth";
 import "../../../i18n";
+import { leasePaymentReceiptApi } from "../../../api/endpoints";
 
 const NA = "NA";
 const val = (v) => (v === null || v === undefined || v === "" ? NA : String(v));
@@ -58,7 +58,7 @@ function LeasePaymentReceiptDtl({ id, setIsFrozen = () => {} }) {
     setIsFrozen(true);
     try {
       const response = await axios.post(
-        leaseRentPaymentReceiptApi,
+        leasePaymentReceiptApi,
         { id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -73,15 +73,7 @@ function LeasePaymentReceiptDtl({ id, setIsFrozen = () => {} }) {
   };
 
   const ulb = receiptData?.ulbDtl || {};
-  const ulbName =
-    i18n.language === "hi" ? ulb.hindiUlbName || ulb.ulbName : ulb.ulbName;
-
-  const owner = [
-    val(receiptData?.ownerName),
-    t(receiptData?.relationType || "S/O"),
-    val(receiptData?.guardianName),
-    receiptData?.mobileNo ? `${receiptData.mobileNo},` : "",
-  ].join(" ");
+  const ulbName = i18n.language === "hi" ? ulb.hindiUlbName || ulb.ulbName : ulb.ulbName;
 
   return (
     <div className="print-container relative bg-white p-4 print:p-6 border-2 border-black border-dotted font-sans text-xs print:text-[11px] overflow-hidden">
@@ -130,68 +122,93 @@ function LeasePaymentReceiptDtl({ id, setIsFrozen = () => {} }) {
               <td className="font-bold">: {val(receiptData?.wardNo)}</td>
             </tr>
             <tr>
+              <td>{t("Account Description")}</td>
+              <td className="font-bold">: {val(receiptData?.accountDescription)}</td>
               <td>{t("Consumer No.")}</td>
               <td className="font-bold">: {val(receiptData?.consumerNo)}</td>
-              <td>{t("Nigam Lease No.")}</td>
-              <td className="font-bold">: {val(receiptData?.nigamLeaseNo)}</td>
             </tr>
             <tr>
-              <td>{t("Lease Area")}</td>
-              <td className="font-bold">: {val(receiptData?.leaseArea || receiptData?.areaName)}</td>
-              <td>{t("Payment Mode")}</td>
-              <td className="font-bold">: {val(receiptData?.paymentMode)}</td>
+              <td></td>
+              <td className="font-bold"></td>
+              <td>{t("Lease No.")}</td>
+              <td className="font-bold">: {val(receiptData?.leaseRegNo)}</td>
             </tr>
           </tbody>
         </table>
 
         <div className="pt-2 border-t leading-relaxed">
           <p>
-            {t("Received From")} : <strong>{owner}</strong>
+            {t("Name")} : 
+            <strong>
+              {receiptData?.ownerName} 
+              <br/>
+              {receiptData?.relationType||"S/O"} {receiptData?.guardianName}
+            </strong>
           </p>
           <p>
-            <span className="inline-block w-24">{t("Plot Address")}</span> :{" "}
-            <strong>{val(receiptData?.plotAddress || receiptData?.address)}</strong>
+            <span className="inline-block">{t("Address")}</span> :{" "}
+            <strong>{receiptData?.address}</strong>
           </p>
+          <p>
+            <span className="inline-block">{t("MOB")}</span> :{" "}
+            <strong>{receiptData?.mobileNo}</strong>
+          </p>
+          <p>{t(`A Sum of Rs.`)} : 
+            <strong>{receiptData?.amount}</strong>           
+            &nbsp;&nbsp;&nbsp;({t(`In words`)}) : 
+            <strong className="inline-block border-b border-black border-dotted">{receiptData?.amountInWords}</strong>
+          </p>
+          <p>
+              {t(`Towards`)} : <strong>{t(receiptData?.accountDescription)}</strong>
+              &nbsp;&nbsp;&nbsp;{t(`Vide`)} : <strong>{receiptData?.paymentMode}</strong>
+              &nbsp;&nbsp;&nbsp; {t(`Payment Type`)} : <strong className="text-red-500">{receiptData?.tranDtl?.tranType}</strong>
+          </p>
+          {receiptData?.chequeDtl && (
+              <p>
+                  {toTitleCase(receiptData?.paymentMode)} No : <strong className="inline-block border-b border-black border-dotted">{receiptData?.chequeNo}</strong>
+                  &nbsp;&nbsp;&nbsp;&nbsp; {toTitleCase(receiptData?.paymentMode)} Date : <strong className="inline-block border-b border-black border-dotted">{receiptData?.chequeDate}</strong>
+                  &nbsp;&nbsp;&nbsp;&nbsp; Bank Name : <strong className="inline-block border-b border-black border-dotted">{receiptData?.bankName}</strong>
+                  &nbsp;&nbsp;&nbsp;&nbsp; Branch Name : <strong className="inline-block border-b border-black border-dotted">{receiptData?.branchName}</strong>
+              </p>
+          )}
         </div>
-
+        <p> 
+          <strong>
+            {t(`LEASE RENT CHARGE DETAILS`)}
+          </strong> 
+        </p>
         <table className="mt-3 mb-2 print:break-inside-avoid border w-full border-collapse text-[12px]">
           <thead>
             <tr>
-              <th className="px-2 py-1.5 border font-bold">{t("Tax Type")}</th>
-              <th className="px-2 py-1.5 border font-bold">{t("From Month")}</th>
-              <th className="px-2 py-1.5 border font-bold">{t("Upto Month")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("Account Description")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("Due Period")}</th>
               <th className="px-2 py-1.5 border font-bold text-right">{t("Amount")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td className="px-2 py-1 border text-center">{t("Lease Rent Charge")}</td>
-              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.fromDate)}</td>
-              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.uptoDate)}</td>
-              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.demandAmt)}</td>
+              <td className="px-2 py-1 border text-center">{receiptData?.fromYear} {t(`To`)} {receiptData?.uptoYear}</td>
+              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.monthlyDemandAmount)}</td>
             </tr>
-            {Number(receiptData?.penaltyAmt) > 0 && (
-              <tr>
-                <td className="px-2 py-1 border text-right font-semibold" colSpan={3}>
-                  {t("Penalty")}
-                </td>
-                <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.penaltyAmt)}</td>
-              </tr>
-            )}
+            {receiptData?.fineRebate?.map((item, index) => (
+                <tr key={`tr_${index}`}>
+                    <td className="p-1 border" colSpan={2}>{item?.headName}</td>
+                    <td className="p-1 border">{item?.amount}</td>
+                </tr>
+            ))}
             <tr className="font-bold">
-              <td className="px-2 py-1 border text-right" colSpan={3}>
-                {t("Total Paid Amount")}
+              <td className="px-2 py-1 border text-right" colSpan={2}>
+                {t("Total Amount")}
               </td>
-              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.payableAmt)}</td>
-            </tr>
-            <tr>
-              <td className="px-2 py-1 border" colSpan={4}>
-                <span className="font-semibold">{t("Amount (In Words)")}</span> :{" "}
-                <strong>{val(receiptData?.amountInWords)}</strong>
-              </td>
+              <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.amount)}</td>
             </tr>
           </tbody>
         </table>
+
+        <div className="flex justify-end pr-[16%] mt-5 text-[12px]">
+            {t("Signature of Tax Collector")}
+        </div>
 
         <div className="border w-full">
           <div className="grid grid-cols-[1fr_auto]">

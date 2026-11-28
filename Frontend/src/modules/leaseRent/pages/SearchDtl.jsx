@@ -6,19 +6,11 @@ import Select from "react-select";
 import { FaEye } from "react-icons/fa";
 import SearchWithTable from "../../../components/common/SearchWithTable";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { getWardListApi } from "../../../api/endpoints";
-import { leaseRentMasterDataApi, leaseRentSearchApi } from "../leaseEndpoints";
+import { getWardListApi, leaseMasterDataApi, leaseSearchApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 
 const toList = (value) =>
   Array.isArray(value) ? value : Object.values(value || {});
-
-const ownerText = (row) =>
-  row.ownerName ??
-  row.consumerName ??
-  toList(row.owners)
-    .map((owner) => owner.ownerName)
-    .join(", ");
 
 const SearchDtl = () => {
   const token = getToken();
@@ -45,7 +37,7 @@ const SearchDtl = () => {
       setIsLoadingGable(true);
       try {
         const res = await axios.post(
-          leaseRentMasterDataApi,
+          leaseMasterDataApi,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -77,7 +69,7 @@ const SearchDtl = () => {
     setIsLoading(true);
     try {
       const res = await axios.post(
-        leaseRentSearchApi,
+        leaseSearchApi,
         {
           wardId,
           areaId: areaId || null,
@@ -170,13 +162,17 @@ const SearchDtl = () => {
       tableHeaders={[
         "#",
         "Ward No.",
-        "Consumer No.",
+        "Lease No.",
         "Nigam Lease No.",
-        "Lease Area",
-        "Use of Land",
         "Consumer Name",
         "Mobile No",
-        "Plot Address",
+        "Area Name",
+        "Use of Land",
+        "Amnt",
+        "Start Date",
+        "End Date",
+        "Address",
+        "Status",
         "View",
       ]}
       tableData={tableData}
@@ -184,16 +180,20 @@ const SearchDtl = () => {
         <tr key={row.id ?? index}>
           <td className="px-3 py-2 border">{index + 1}</td>
           <td className="px-3 py-2 border">{row.wardNo ?? ""}</td>
-          <td className="px-3 py-2 border">{row.consumerNo ?? ""}</td>
+          <td className="px-3 py-2 border">{row.leaseNo ?? ""}</td>
           <td className="px-3 py-2 border">{row.nigamLeaseNo ?? row.regNo ?? ""}</td>
-          <td className="px-3 py-2 border">{row.leaseArea ?? row.areaName ?? ""}</td>
-          <td className="px-3 py-2 border">{row.useOfLand ?? ""}</td>
-          <td className="px-3 py-2 border">{ownerText(row)}</td>
+          <td className="px-3 py-2 border">{row?.ownerName}</td>
           <td className="px-3 py-2 border">{row.mobileNo ?? ""}</td>
-          <td className="px-3 py-2 border">{row.plotAddress ?? row.address ?? "NA"}</td>
+          <td className="px-3 py-2 border">{row.areaName ?? ""}</td>
+          <td className="px-3 py-2 border">{row.usageType ?? ""}</td>
+          <td className="px-3 py-2 border">{row.yearlyRate ?? ""}</td>
+          <td className="px-3 py-2 border">{row.leaseDate ?? ""}</td>
+          <td className="px-3 py-2 border">{row.leaseEndDate ?? ""}</td>
+          <td className="px-3 py-2 border">{row.address ?? ""}</td>
+          <td className="px-3 py-2 border">{row.statusType ?? ""}</td>
           <td className="px-3 py-2 border">
             <Link
-              to={`/lease-rent/dtl/${row.id}`}
+              to={`/lease/dtl/${row.id}`}
               className="inline-flex justify-center items-center text-blue-600 hover:text-blue-800"
               title="View Details"
             >

@@ -4,23 +4,21 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { FaEye, FaFileInvoiceDollar } from "react-icons/fa";
 import HeaderCard from "../../../components/common/HeaderCard";
+import ApplicationDetails from "../../../components/common/ApplicationDetails ";
 import SectionCard from "../../../components/common/SectionCard";
 import DataTableFullData from "../../../components/common/DataTableFullData";
 import ActionButton from "../../../components/common/ActionButton";
 import { useLoading } from "../../../contexts/LoadingContext";
-import {
-  leaseRentDtlApi,
-  leaseRentDueApi,
-  leaseRentUpdateHoldingApi,
-} from "../leaseEndpoints";
+import { leaseDtlApi, shopRentDtlApi, shopRentDueApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 import { formatLocalDate } from "../../../utils/common";
+import { leaseRentUpdateHoldingApi } from "../leaseEndpoints";
 import LeaseDemandHistoryModal from "../components/LeaseDemandHistoryModal";
 import LeaseGenerateDemandModal from "../components/LeaseGenerateDemandModal";
 import LeasePaymentReceiptModal from "../components/LeasePaymentReceiptModal";
 import DemandViewModal from "../components/DemandViewModal";
-import { DUMMY_LEASE_DETAILS } from "../dummyLeaseData";
 
+// The API returns a relative storage path for the rent document. Only a full URL can be opened.
 const isUrl = (value) => /^https?:\/\//i.test(value || "");
 
 function LeaseDetails() {
@@ -30,54 +28,51 @@ function LeaseDetails() {
 
   const [appData, setAppData] = useState(null);
   const [notFound, setNotFound] = useState("");
-  const [holdingInput, setHoldingInput] = useState("");
-  const [isUpdatingHolding, setIsUpdatingHolding] = useState(false);
-
   const [isDemandHistoryOpen, setIsDemandHistoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isGenerateDemandOpen, setIsGenerateDemandOpen] = useState(false);
   const [receiptTranId, setReceiptTranId] = useState(null);
+  
+  const [holdingInput, setHoldingInput] = useState("");
+  const [isUpdatingHolding, setIsUpdatingHolding] = useState(false);
 
   const fetchDetails = async () => {
-    if (!token) {
-      setAppData(DUMMY_LEASE_DETAILS);
-      setHoldingInput(DUMMY_LEASE_DETAILS.holdingNo || "");
-      return;
-    }
+    if (!token) return;
     setIsLoadingGable(true);
     try {
       const response = await axios.post(
-        leaseRentDtlApi,
+        leaseDtlApi,
         { id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response?.data?.status) {
-        const data = response.data.data;
-        setAppData(data);
-        setHoldingInput(data?.holdingNo || "");
+        setAppData(response.data.data);
         setNotFound("");
       } else {
-        setAppData(DUMMY_LEASE_DETAILS);
-        setHoldingInput(DUMMY_LEASE_DETAILS.holdingNo || "");
-        setNotFound("");
+        setAppData(null);
+        setNotFound(response?.data?.message || "Shop details not found.");
+        toast.error(response?.data?.message || "Shop details not found.");
       }
     } catch (error) {
-      console.warn("Using dummy lease details fallback:", error);
-      setAppData(DUMMY_LEASE_DETAILS);
-      setHoldingInput(DUMMY_LEASE_DETAILS.holdingNo || "");
-      setNotFound("");
+      console.error("Failed to fetch shop details", error);
+      setNotFound("Unable to load shop details.");
     } finally {
       setIsLoadingGable(false);
     }
   };
 
   useEffect(() => {
-    fetchDetails();
+    if (id) fetchDetails();
   }, [id, token]);
+
+  const demandGenerated = () => {
+    setIsGenerateDemandOpen(false);
+    fetchDetails();
+  };
 
   const handleHoldingUpdate = async () => {
     if (!holdingInput.trim()) {
-      toast.error("Please enter Holding No.");
+      toastMsg("Please enter Holding No.","error");
       return;
     }
     setIsUpdatingHolding(true);
@@ -101,11 +96,6 @@ function LeaseDetails() {
     }
   };
 
-  const demandGenerated = () => {
-    setIsGenerateDemandOpen(false);
-    fetchDetails();
-  };
-
   if (!appData) {
     return notFound ? (
       <div className="bg-white shadow p-6 border border-blue-800 rounded-lg text-gray-600 text-center">
@@ -114,23 +104,60 @@ function LeaseDetails() {
     ) : null;
   }
 
-  const primaryOwner = (appData.owners && appData.owners[0]) || {};
-  const consumerName = appData.consumerName || primaryOwner.ownerName || "NA";
-  const guardianName = appData.guardianName || primaryOwner.guardianName || "NA";
-  const mobileNo = appData.mobileNo || primaryOwner.mobileNo || "NA";
-  const relation = appData.relationType || primaryOwner.relationType || "NA";
+  const fields = [
+    { label: "Consumer No.", value: appData.leaseNo },
+    { label: "Ward No.", value: appData.wardNo },
+    { label: "Nigam Reg. No.", value: appData.leaseRegNo },
+    {
+      label: "Holding No.",
+      value: (
+        <>
+          <input
+            type="text"
+            value={holdingInput}
+            onChange={(e) => setHoldingInput(e.target.value)}
+            placeholder="Enter Holding No"
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm w-44 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleHoldingUpdate}
+            disabled={isUpdatingHolding}
+            className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 px-3 py-1 rounded text-white text-xs font-semibold uppercase tracking-wide"
+          >
+            {isUpdatingHolding ? "Updating..." : "UPDATE"}
+          </button>
+          {appData.holdingNo && appData.propertyDetailId && (
+            <a
+              href={`/property/details/${appData.propertyDetailId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 text-xs underline"
+            >
+              View Property ({appData.holdingNo})
+            </a>
+          )}
+        </>
+      )
+    },
+    { label: "Usage Type", value: appData.usageType },
+    { label: "Area Name", value: appData.areaName },
+    { label: "Lease Status", value: appData.statusType },
+    { label: "Area Dimensions", value: (`W (${appData?.width}) X L (${appData?.length}) mtrs`) },
+    { label: "Total Area", value: (<>
+                                  {(appData?.width||0) * (appData?.length||0)} mtrs <sup>2</sup>
+                                  </>
+                                ) 
+    },
+    { label: "Pincode", value: appData.pinCode },
+    { label: "Address", value: appData.address },
+    { label: "Apply Date", value: formatLocalDate(appData.applyDate) },
+  ];
 
-  const width = appData.width ?? 0;
-  const length = appData.length ?? 0;
-  const totalArea = appData.totalArea ?? 0;
-
-  const rents = [...(appData.leaseRents || appData.shopRents || [])].sort((a, b) =>
-    String(b.effectiveDate || b.leaseStartDate || "").localeCompare(
-      String(a.effectiveDate || a.leaseStartDate || "")
-    )
+  const rents = [...(appData.leaseRents || [])].sort((a, b) =>
+    String(b.effectiveDate).localeCompare(String(a.effectiveDate))
   );
 
-  const canGenerateDemand = appData.userPermission?.canGenerateDemand ?? true;
 
   const actions = [
     {
@@ -143,222 +170,53 @@ function LeaseDetails() {
       label: "Make Payment",
       onClick: () => setIsPaymentOpen(true),
       icon: <FaEye />,
-      show: true,
+      show: (appData?.userPermission?.canTakePayment||false) && !appData?.lockStatus,
     },
     {
       label: "Generate Demand",
       onClick: () => setIsGenerateDemandOpen(true),
       icon: <FaFileInvoiceDollar />,
-      show: canGenerateDemand && !appData.lockStatus,
+      show: (appData?.userPermission?.canGenerateDemand||false) && !appData.lockStatus,
       className: "bg-red-600 hover:bg-red-700",
     },
   ];
 
   return (
     <div className="mx-auto container">
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         {appData.lockStatus && (
-          <HeaderCard statusText="Lease Deactivated" statusColor="text-red-500" />
+          <HeaderCard statusText="Shop Deactivated" statusColor="text-red-500" />
         )}
 
-        {/* Consumer / Lessee Details (Matching Image Layout) */}
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-800 text-base">
-              Lease Consumer Details
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <tbody>
-                <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 w-44">Ward No.</td>
-                  <td className="px-2 py-2.5 text-gray-500 w-4">:</td>
-                  <td className="px-4 py-2.5 font-medium text-gray-900">
-                    {appData.wardNo || "NA"}
-                  </td>
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 w-44 border-l border-gray-200">
-                    Consumer No.
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-500 w-4">:</td>
-                  <td className="px-4 py-2.5 font-bold text-gray-900">
-                    {appData.consumerNo || "NA"}
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2.5 font-semibold text-gray-700">Consumer Name</td>
-                  <td className="px-2 py-2.5 text-gray-500">:</td>
-                  <td className="px-4 py-2.5 text-gray-800">{consumerName}</td>
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 border-l border-gray-200">
-                    Guardian&apos;s Name
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-500">:</td>
-                  <td className="px-4 py-2.5 text-gray-800">{guardianName}</td>
-                </tr>
-                <tr className="border-b border-gray-200">
-                  <td className="px-4 py-2.5 font-semibold text-gray-700">Mobile No.</td>
-                  <td className="px-2 py-2.5 text-gray-500">:</td>
-                  <td className="px-4 py-2.5 text-gray-800">{mobileNo}</td>
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 border-l border-gray-200">
-                    Relation
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-500">:</td>
-                  <td className="px-4 py-2.5 text-gray-800">{relation}</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 align-top">
-                    Holding No
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-500 align-top">:</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex flex-col items-start gap-2">
-                      <input
-                        type="text"
-                        value={holdingInput}
-                        onChange={(e) => setHoldingInput(e.target.value)}
-                        placeholder="Enter Holding No"
-                        className="px-3 py-1.5 border border-gray-300 rounded text-sm w-44 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleHoldingUpdate}
-                        disabled={isUpdatingHolding}
-                        className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 px-3 py-1 rounded text-white text-xs font-semibold uppercase tracking-wide"
-                      >
-                        {isUpdatingHolding ? "Updating..." : "UPDATE"}
-                      </button>
-                      {appData.holdingNo && appData.propertyDetailId && (
-                        <a
-                          href={`/property/details/${appData.propertyDetailId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 text-xs underline"
-                        >
-                          View Property ({appData.holdingNo})
-                        </a>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 font-semibold text-gray-700 align-top border-l border-gray-200">
-                    Address
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-500 align-top">:</td>
-                  <td className="px-4 py-2.5 text-gray-800 align-top">
-                    {appData.address || "NA"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ApplicationDetails fields={fields} />
 
-        {/* Area Details (Matching Image Layout) */}
-        <div className="space-y-2">
-          <h3 className="text-lg font-medium text-gray-700 px-1">Area Details</h3>
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <tbody>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-2.5 font-semibold text-gray-700 w-48">
-                      Nigam Lease No.
-                    </td>
-                    <td className="px-2 py-2.5 text-gray-500 w-4">:</td>
-                    <td colSpan={4} className="px-4 py-2.5 font-bold text-gray-900">
-                      {appData.nigamLeaseNo || appData.regNo || appData.consumerNo || "NA"}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-2.5 font-semibold text-gray-700">Lease Area</td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td className="px-4 py-2.5 text-gray-800">
-                      {appData.leaseArea || appData.areaName || "NA"}
-                    </td>
-                    <td className="px-4 py-2.5 font-semibold text-gray-700 w-44 border-l border-gray-200">
-                      Use of land
-                    </td>
-                    <td className="px-2 py-2.5 text-gray-500 w-4">:</td>
-                    <td className="px-4 py-2.5 text-gray-800">
-                      {appData.useOfLand || "NA"}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-2.5 font-semibold text-gray-700">
-                      Area Dimensions
-                    </td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td className="px-4 py-2.5 text-gray-800">
-                      W {width} mtrs x L {length} mtrs
-                    </td>
-                    <td className="px-4 py-2.5 font-semibold text-gray-700 border-l border-gray-200">
-                      Total Area
-                    </td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td className="px-4 py-2.5 text-gray-800">
-                      {totalArea} mtrs<sup>2</sup>
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-2.5 font-semibold text-gray-700">Plot Address</td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td colSpan={4} className="px-4 py-2.5 text-gray-800">
-                      {appData.plotAddress || appData.address || "NA"}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-2.5 font-semibold text-gray-700">Lease Amount</td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td colSpan={4} className="px-4 py-2.5 font-bold text-gray-900">
-                      {Number(appData.leaseAmount ?? appData.monthlyRate ?? 0).toFixed(2)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-2.5 font-semibold text-gray-700">
-                      Lease Start Date
-                    </td>
-                    <td className="px-2 py-2.5 text-gray-500">:</td>
-                    <td colSpan={4} className="px-4 py-2.5 font-bold text-gray-900">
-                      {formatLocalDate(appData.leaseStartDate || appData.allotmentDate) || "NA"}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Owners (if multiple lessees exist) */}
-        {Array.isArray(appData.owners) && appData.owners.length > 0 && (
-          <SectionCard
-            title="Lessee / Consumer Details"
-            headers={["SL", "Consumer Name", "Guardian's Name", "Relation", "Mobile No"]}
-            data={appData.owners}
-            renderRow={(owner, idx) => (
-              <tr key={owner.id ?? idx}>
-                <td className="px-3 py-2 border">{idx + 1}</td>
-                <td className="px-3 py-2 border">{owner.ownerName}</td>
-                <td className="px-3 py-2 border">{owner.guardianName}</td>
-                <td className="px-3 py-2 border">{owner.relationType}</td>
-                <td className="px-3 py-2 border">{owner.mobileNo}</td>
-              </tr>
-            )}
-          />
-        )}
-
-        {/* Lease Rate History */}
         <SectionCard
-          title="Lease Rate Details"
-          headers={["SL", "Lease Amount", "Lease Start Date", "Document", "Status"]}
+          title="Owner Details"
+          headers={["SL", "Owner", "Guardian", "Relation", "Mobile","Address"]}
+          data={appData.owners}
+          renderRow={(owner, idx) => (
+            <tr key={owner.id ?? idx}>
+              <td className="px-3 py-2 border">{idx + 1}</td>
+              <td className="px-3 py-2 border">{owner.ownerName}</td>
+              <td className="px-3 py-2 border">{owner.guardianName}</td>
+              <td className="px-3 py-2 border">{owner.relationType}</td>
+              <td className="px-3 py-2 border">{owner.mobileNo}</td>
+              <td className="px-3 py-2 border">{owner.Address}</td>
+            </tr>
+          )}
+        />
+
+        <SectionCard
+          title="Monthly Rate Details"
+          headers={["SL", "Yearly Rate", "Date of Effect","Lease Start Date","Lease End Date", "Document", "Status"]}
           data={rents}
           renderRow={(rent, idx) => (
             <tr key={rent.id ?? idx}>
               <td className="px-3 py-2 border">{idx + 1}</td>
-              <td className="px-3 py-2 border">
-                {rent.leaseAmount ?? rent.monthlyRate}
-              </td>
-              <td className="px-3 py-2 border">
-                {formatLocalDate(rent.effectiveDate || rent.leaseStartDate)}
-              </td>
+              <td className="px-3 py-2 border">{rent.yearlyRate}</td>
+              <td className="px-3 py-2 border">{formatLocalDate(rent.effectiveDate)}</td>
+              <td className="px-3 py-2 border">{formatLocalDate(rent.leaseDate)}</td>
+              <td className="px-3 py-2 border">{formatLocalDate(rent.leaseEndDate)}</td>
               <td className="px-3 py-2 border">
                 {isUrl(rent.docPath) ? (
                   <a
@@ -384,7 +242,6 @@ function LeaseDetails() {
           )}
         />
 
-        {/* Payment Details */}
         <DataTableFullData
           title="Payment Details"
           headers={[
@@ -435,25 +292,19 @@ function LeaseDetails() {
       </div>
 
       {isDemandHistoryOpen && (
-        <LeaseDemandHistoryModal
-          id={appData.id}
-          onClose={() => setIsDemandHistoryOpen(false)}
-        />
+        <LeaseDemandHistoryModal id={appData.id} onClose={() => setIsDemandHistoryOpen(false)} />
       )}
       {isPaymentOpen && (
-        <DemandViewModal
+        <DemandViewModal 
           id={appData?.id}
           actionType={"Payment"}
           onSuccess={fetchDetails}
-          onClose={() => setIsPaymentOpen(false)}
-          apiUrl={leaseRentDueApi}
+          onClose={() => setIsDemandViewPayModal(false)}
+          apiUrl={shopRentDueApi}
         />
       )}
       {receiptTranId && (
-        <LeasePaymentReceiptModal
-          id={receiptTranId}
-          onClose={() => setReceiptTranId(null)}
-        />
+        <LeasePaymentReceiptModal id={receiptTranId} onClose={() => setReceiptTranId(null)} />
       )}
       {isGenerateDemandOpen && (
         <LeaseGenerateDemandModal

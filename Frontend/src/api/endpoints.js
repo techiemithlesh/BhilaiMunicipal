@@ -419,6 +419,16 @@ export const shopRentCollectionApi = `${BASE_URL}/api/shop-rent/report/collectio
 export const shopCollectionSummaryApi = `${BASE_URL}/api/shop-rent/report/collection-summary`;
 export const shopRentTeamSummaryApi = `${BASE_URL}/api/shop-rent/report/team-summary`;
 
+// Lease 
+
+export const leaseMasterDataApi = `${BASE_URL}/api/lease/get-master-data`;
+export const leaseAddApi = `${BASE_URL}/api/lease/add`;
+export const leaseSearchApi = `${BASE_URL}/api/lease/search`;
+export const leaseDtlApi = `${BASE_URL}/api/lease/dtl`;
+export const leaseDemandHistoryApi = `${BASE_URL}/api/lease/demand-history`;
+export const leaDueApi = `${BASE_URL}/api/lease/due`;
+export const leasePaymentReceiptApi = `${BASE_URL}/api/lease/payment-receipt`;
+
 // Accounts
 export const cashUserListApi = `${BASE_URL}/api/account/cash-user/list`;
 export const cashUserApi = `${BASE_URL}/api/account/user/cash`;

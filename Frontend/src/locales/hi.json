@@ -188,5 +188,14 @@
   "Shop Total Amount":"कुल रकम",
   "Shop Rent Charge Fee":"दुकान किराया शुल्क",
   "Shop Sum of Rs.":"कुल रुपये :",
-  "This is a Computer generated Receipt and does not require physical signature.":"यह कंप्यूटर जनित रसीद है इस रसीद मे हस्ताक्षर की आवश्यकता नहीं है ।"
+  "This is a Computer generated Receipt and does not require physical signature.":"यह कंप्यूटर जनित रसीद है इस रसीद मे हस्ताक्षर की आवश्यकता नहीं है ।",
+
+  "LAND LEASE RENT DEMAND" : "भू-भाटक का मांग पत्र",
+  "Lease No.":"पट्टा संख्या",
+  "Received From Shri / Smt.":"के द्वारा प्राप्ती श्री / श्रीमती",
+  "Correspondence Address":"पत्राचार का पता",
+  "Property Address":"सम्पति का पता",
+  "Demand From (Year)":"से मांग (वर्ष)",
+  "Demand Upto (Year)":"तक मांग (वर्ष)",
+  "LEASE RENT CHARGE DETAILS":"पट्टा किराया शुल्क का विवरण"
 }

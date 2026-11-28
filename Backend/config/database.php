@@ -270,6 +270,36 @@ return [
                 'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
             ],
         ],
+        // LEASE
+        'pgsql_lease' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_LEASE_HOST', '127.0.0.1'),
+            'read' => [
+                'host' => [
+                    env('DB_LEASE_READ_HOST', env('DB_LEASE_HOST', '127.0.0.1')),
+                ],
+                'port' => env('DB_LEASE_READ_PORT', env('DB_LEASE_PORT', '5432')),
+                'database' => env('DB_LEASE_READ_DATABASE', env('DB_LEASE_DATABASE', 'laravel')),
+                'username' => env('DB_LEASE_READ_USERNAME', env('DB_LEASE_USERNAME', 'postgres')),
+                "password" => env('DB_LEASE_READ_PASSWORD', env('DB_LEASE_PASSWORD', 'root')),
+            ],
+            'write' => [
+                'host' => env('DB_LEASE_HOST', '127.0.0.1'),
+            ],
+            'port' => env('DB_LEASE_PORT', '5432'),
+            'database' => env('DB_LEASE_DATABASE', 'laravel'),
+            'username' => env('DB_LEASE_USERNAME', 'root'),
+            'password' => env('DB_LEASE_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+            ],
+        ],
 
         // DMC 
         'pgsql_dmc_property' => [

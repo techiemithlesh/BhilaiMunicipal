@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { leaseRentDueApi } from "../leaseEndpoints";
 import { getToken } from "../../../utils/auth";
 import "../../../i18n";
+import { leaDueApi } from "../../../api/endpoints";
 
 const NA = "NA";
 const val = (v) => (v === null || v === undefined || v === "" ? NA : v);
@@ -53,7 +53,7 @@ function LeaseDemandReceiptDtl({ id, setIsFrozen = () => {} }) {
     setIsFrozen(true);
     try {
       const response = await axios.post(
-        leaseRentDueApi,
+        leaDueApi,
         { id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -80,10 +80,8 @@ function LeaseDemandReceiptDtl({ id, setIsFrozen = () => {} }) {
   ].join(" ");
 
   const extraRows = [
-    { label: "Penalty Charge", amount: receiptData?.latePenalty, always: true },
-    { label: "Service Tax", amount: receiptData?.serviceTax, always: true },
-    { label: "CGST", amount: receiptData?.cgst, always: true },
-    { label: "SGST", amount: receiptData?.sgst, always: true },
+    { label: "Penalty", amount: receiptData?.latePenalty, always: true },
+    { label: "GST", amount: receiptData?.GST, always: true },
     { label: "Additional Tax", amount: receiptData?.additionalTax },
     { label: "Advance", amount: receiptData?.advanceAmount, negative: true },
   ].filter((row) => row.always || Number(row.amount) > 0);
@@ -136,43 +134,50 @@ function LeaseDemandReceiptDtl({ id, setIsFrozen = () => {} }) {
               <td className="font-bold">: {val(lease?.consumerNo || receiptData?.consumerNo)}</td>
             </tr>
             <tr>
-              <td>{t("Lease Area")}</td>
-              <td className="font-bold">: {val(receiptData?.leaseArea || receiptData?.areaName)}</td>
-              <td>{t("Nigam Lease No.")}</td>
-              <td className="font-bold">: {val(receiptData?.nigamLeaseNo || lease?.nigamLeaseNo)}</td>
+              <td></td>
+              <td className="font-bold"></td>
+              <td>{t("Area")}</td>
+              <td className="font-bold">: {val(receiptData?.area)}</td>
             </tr>
           </tbody>
         </table>
 
         <div className="pt-2 border-t leading-relaxed">
-          <p>
-            {t("Received From")} : <strong>{owner}</strong>
+          <p>{t("Lease No.")} :  
+            <strong>{receiptData?.leaseRegNo}</strong>
           </p>
           <p>
-            <span className="inline-block w-24">{t("Plot Address")}</span> :{" "}
-            <strong>{val(receiptData?.plotAddress || receiptData?.address)}</strong>
+            {t("Received From Shri / Smt.")} : <strong>{receiptData?.ownerName}</strong>
+          </p>
+          <p>
+            <span className="inline-block w-24">{t("Correspondence Address")}</span> :{" "} <strong>{receiptData?.firstOwnerAddress}</strong>
+          </p>
+          <p>
+            <span className="inline-block w-24">{t("Property Address")}</span> :{" "}
+            <strong>{val(receiptData?.address)}</strong>
+          </p>
+          <p>
+            {t("MOB")} : <strong>{receiptData?.mobileNo}</strong>
           </p>
         </div>
 
         <table className="mt-3 mb-2 print:break-inside-avoid border w-full border-collapse text-[12px]">
           <thead>
             <tr>
-              <th className="px-2 py-1.5 border font-bold">{t("Tax Type")}</th>
-              <th className="px-2 py-1.5 border font-bold">{t("From Month")}</th>
-              <th className="px-2 py-1.5 border font-bold">{t("Upto Month")}</th>
-              <th className="px-2 py-1.5 border font-bold text-right">{t("Total Demand")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("Demand From (Year)")}</th>
+              <th className="px-2 py-1.5 border font-bold">{t("Demand Upto (Year)")}</th>
+              <th className="px-2 py-1.5 border font-bold text-right">{t("Amount")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td className="px-2 py-1 border text-center">{t("Lease Rent Charge")}</td>
-              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.demandFrom)}</td>
-              <td className="px-2 py-1 border text-center">{fmtMonth(receiptData?.demandUpto)}</td>
+              <td className="px-2 py-1 border text-center">{(receiptData?.demandFromFyear)}</td>
+              <td className="px-2 py-1 border text-center">{(receiptData?.demandUptoFyear)}</td>
               <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.demandAmount)}</td>
             </tr>
             {extraRows.map((row) => (
               <tr key={row.label}>
-                <td className="px-2 py-1 border text-right font-semibold" colSpan={3}>
+                <td className="px-2 py-1 border text-right font-semibold" colSpan={2}>
                   {t(row.label)}
                 </td>
                 <td className="px-2 py-1 border text-right w-40">
@@ -182,13 +187,13 @@ function LeaseDemandReceiptDtl({ id, setIsFrozen = () => {} }) {
               </tr>
             ))}
             <tr className="font-bold">
-              <td className="px-2 py-1 border text-right" colSpan={3}>
+              <td className="px-2 py-1 border text-right" colSpan={2}>
                 {t("Total Due")}
               </td>
               <td className="px-2 py-1 border text-right">{fmtAmt(receiptData?.payableAmount)}</td>
             </tr>
             <tr>
-              <td className="px-2 py-1 border" colSpan={4}>
+              <td className="px-2 py-1 border" colSpan={3}>
                 <span className="font-semibold">{t("Total Demand (In Words)")}</span> :{" "}
                 <strong>{val(receiptData?.payableAmountInWord)}</strong>
               </td>

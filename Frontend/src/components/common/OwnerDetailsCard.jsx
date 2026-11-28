@@ -30,7 +30,7 @@ export default function OwnerDetailsCard({
 
       {owners.map((owner, index) => (
         <div
-          key={owner.id ?? index}
+          key={owner.id ?? owner.index ?? index}
           className="bg-gradient-to-br from-white via-blue-50 to-blue-100 shadow-sm p-4 border border-blue-300 rounded-xl"
         >
           <div className="flex justify-between items-center mb-3">
@@ -54,7 +54,7 @@ export default function OwnerDetailsCard({
                 <button
                   type="button"
                   title="Remove Owner"
-                  onClick={() => onRemove(owner.id)}
+                  onClick={() => onRemove(owner?.id||owner?.index)}
                   disabled={isDisabled}
                   className="bg-white hover:bg-red-100 p-2 rounded-full text-red-600 hover:text-red-800 transition-colors"
                 >
@@ -66,7 +66,7 @@ export default function OwnerDetailsCard({
 
           <div className="gap-4 grid grid-cols-1 md:grid-cols-4">
             {fields.map((field) => {
-              const id = `${field.name}-${owner.id ?? index}`;
+              const id = `${field.name}-${owner.id ?? owner.index ?? index}`;
               const required =
                 typeof field.required === "function"
                   ? field.required(owner)
@@ -75,7 +75,7 @@ export default function OwnerDetailsCard({
               const value = owner[field.name] ?? "";
               const handleChange = (e) =>
                 onChange(
-                  owner.id,
+                  owner.id ?? owner.index,
                   field.name,
                   field.sanitize ? field.sanitize(e.target.value) : e.target.value
                 );

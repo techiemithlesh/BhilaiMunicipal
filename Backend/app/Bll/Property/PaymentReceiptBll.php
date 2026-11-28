@@ -172,8 +172,6 @@ class PaymentReceiptBll{
             "relationType" =>$this->_owners->unique("relation_type")->pluck("relation_type")->implode(", "),
             "guardianName" =>$this->_owners->implode("guardian_name",", "),
             "mobileNo"=>$this->_owners->implode("mobile_no",", "),
-            "amount" => $this->_TranDetail->payable_amt,
-            "amountInWords" => getIndianCurrency($this->_TranDetail->payable_amt),
             "paymentMode" => $this->_TranDetail->payment_mode,
             "paymentStatus" => $this->_TranDetail->payment_status==1 ? "Clear":"Pending",
             "chequeNo" => $this->_ChequeDtl->cheque_no??"",
@@ -206,7 +204,9 @@ class PaymentReceiptBll{
                 "fromDate"=>$swmFromDate,
                 "uptoDate"=>$swmUptoDate,
                 "totalAmount"=>$swmAmount,
-            ]
+            ],            
+            "amount" => round($this->_TranDetail->payable_amt + $swmAmount),
+            "amountInWords" => getIndianCurrency(round($this->_TranDetail->payable_amt + $swmAmount)),
             
         ];
     }

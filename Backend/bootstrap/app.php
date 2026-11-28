@@ -52,6 +52,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->name("shop-rent.")
                 ->group(base_path("routes/shoprent.php"));
 
+            // LEASE ROUTES
+            Route::middleware('api')
+                ->prefix("api/lease")
+                ->name("lease.")
+                ->group(base_path("routes/lease.php"));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         },

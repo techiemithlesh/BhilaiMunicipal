@@ -7,8 +7,8 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import { modalVariants } from "../../../utils/motionVariable";
 import { getToken } from "../../../utils/auth";
 import { formatLocalDate } from "../../../utils/common";
-import { leaseRentDemandHistoryApi } from "../leaseEndpoints";
 import LeaseDemandReceiptModal from "./LeaseDemandReceiptModal";
+import { leaseDemandHistoryApi } from "../../../api/endpoints";
 
 function LeaseDemandHistoryModal({ id, onClose }) {
   const token = getToken();
@@ -70,7 +70,7 @@ function LeaseDemandHistoryModal({ id, onClose }) {
 
   const request = (pageNo, perPage) =>
     axios.post(
-      leaseRentDemandHistoryApi,
+      leaseDemandHistoryApi,
       { id, page: pageNo, perPage },
       { headers: { Authorization: `Bearer ${token}` } }
     );
