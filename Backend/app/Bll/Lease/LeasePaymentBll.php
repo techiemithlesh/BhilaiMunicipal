@@ -131,8 +131,7 @@ class LeasePaymentBll
             "demandList" => $currentDemand,
             "demandId" => $demandId,
             "remainingAmount" => $remainAmount,
-            "demand_from"=>$currentDemand->min("demand_from"),
-            "demand_upto"=>$currentDemand->max("demand_upto"),
+            "fyear"=>$currentDemand->min("fyear"),
 
             "paid_balance" => roundFigure($paidTotalBalanceTax),
             "paid_amount" => roundFigure($paidAmount),
@@ -177,8 +176,8 @@ class LeasePaymentBll
         $paidTotalSgstTax = collect($paidDemand)->sum("paid_sgst_tax");
         $paidTotalCgstTaxWeaveOff = collect($paidDemand)->sum("paid_cgst_tax_weave_off");
         $paidTotalSgstTaxWeaveOff = collect($paidDemand)->sum("paid_sgst_tax_weave_off");
-        $fromDate = collect($paidDemand)->min("demand_from");
-        $uptoDate = collect($paidDemand)->max("demand_upto");
+        $fromDate = collect($paidDemand)->min("fyear");
+        $uptoDate = collect($paidDemand)->max("fyear");
         $metaData=[
             "fromYear"=>$fromDate,
             "uptoYear"=>$uptoDate,
@@ -194,12 +193,17 @@ class LeasePaymentBll
         if($paidTotalLatePenalty>0){
             $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalLatePenalty),"head_name"=>"Penalty"]);
         }
-        $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalCgstTax),"head_name"=>"CGST"]);
-        $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalSgstTax),"head_name"=>"SGST"]);
+        if(($paidTotalCgstTax + $paidTotalSgstTax)!=0){
+            $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalCgstTax),"head_name"=>"CGST"]);
+            $penalty->push(["is_rebate"=>false,"amount"=>roundFigure($paidTotalSgstTax),"head_name"=>"SGST"]);
+        }
+
+        if(($paidTotalCgstTaxWeaveOff + $paidTotalSgstTaxWeaveOff)!=0){
+            $penalty->push(["is_rebate"=>true,"amount"=>roundFigure($paidTotalCgstTaxWeaveOff),"head_name"=>"Weave Off CGST"]);
+            $penalty->push(["is_rebate"=>true,"amount"=>roundFigure($paidTotalSgstTaxWeaveOff),"head_name"=>"Weave Off SGST"]);
+        }
 
         
-        $penalty->push(["is_rebate"=>true,"amount"=>roundFigure($paidTotalCgstTaxWeaveOff),"head_name"=>"Weave Off CGST"]);
-        $penalty->push(["is_rebate"=>true,"amount"=>roundFigure($paidTotalSgstTaxWeaveOff),"head_name"=>"Weave Off SGST"]);
 
         
         

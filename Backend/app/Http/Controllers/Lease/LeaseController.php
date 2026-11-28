@@ -244,7 +244,12 @@ class LeaseController extends Controller
 
             $lease->owners = $lease->getOwners();
             $lease->tran_dtls = $lease->getTrans();
-            $lease->lease_rents = $lease->getAllRent()->each(fn($item,$index)=>$item->is_current = $lease->current_rate_id==$item->id);
+            $lease->lease_rents = $lease->getAllRent()->each(function ($item) use ($lease) {
+                $item->is_current = $lease->current_rate_id == $item->id;
+                $item->doc_path = $item->doc_path
+                    ? url('/documents') . '/' . ltrim($item->doc_path, '/')
+                    : '';
+            });
 
             $user = Auth()->user();
             if($user->getTable()=="users"){

@@ -9,12 +9,10 @@ import SectionCard from "../../../components/common/SectionCard";
 import DataTableFullData from "../../../components/common/DataTableFullData";
 import ActionButton from "../../../components/common/ActionButton";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { leaseDtlApi, shopRentDtlApi, shopRentDueApi } from "../../../api/endpoints";
+import { leaDueApi, leaseDtlApi, leaseUpdateHoldingApi } from "../../../api/endpoints";
 import { getToken } from "../../../utils/auth";
 import { formatLocalDate } from "../../../utils/common";
-import { leaseRentUpdateHoldingApi } from "../leaseEndpoints";
 import LeaseDemandHistoryModal from "../components/LeaseDemandHistoryModal";
-import LeaseGenerateDemandModal from "../components/LeaseGenerateDemandModal";
 import LeasePaymentReceiptModal from "../components/LeasePaymentReceiptModal";
 import DemandViewModal from "../components/DemandViewModal";
 
@@ -30,7 +28,7 @@ function LeaseDetails() {
   const [notFound, setNotFound] = useState("");
   const [isDemandHistoryOpen, setIsDemandHistoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [isGenerateDemandOpen, setIsGenerateDemandOpen] = useState(false);
+  const [isDemandOpen, setIsDemandOpen ] = useState(false);
   const [receiptTranId, setReceiptTranId] = useState(null);
   
   const [holdingInput, setHoldingInput] = useState("");
@@ -65,11 +63,6 @@ function LeaseDetails() {
     if (id) fetchDetails();
   }, [id, token]);
 
-  const demandGenerated = () => {
-    setIsGenerateDemandOpen(false);
-    fetchDetails();
-  };
-
   const handleHoldingUpdate = async () => {
     if (!holdingInput.trim()) {
       toastMsg("Please enter Holding No.","error");
@@ -78,7 +71,7 @@ function LeaseDetails() {
     setIsUpdatingHolding(true);
     try {
       const response = await axios.post(
-        leaseRentUpdateHoldingApi,
+        leaseUpdateHoldingApi,
         { id, holdingNo: holdingInput.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -159,10 +152,10 @@ function LeaseDetails() {
   );
 
 
-  const actions = [
+  const actions = [    
     {
-      label: "View Demand",
-      onClick: () => setIsDemandHistoryOpen(true),
+      label: "Demand",
+      onClick: () => setIsDemandOpen(true),
       icon: <FaEye />,
       show: true,
     },
@@ -173,11 +166,10 @@ function LeaseDetails() {
       show: (appData?.userPermission?.canTakePayment||false) && !appData?.lockStatus,
     },
     {
-      label: "Generate Demand",
-      onClick: () => setIsGenerateDemandOpen(true),
-      icon: <FaFileInvoiceDollar />,
-      show: (appData?.userPermission?.canGenerateDemand||false) && !appData.lockStatus,
-      className: "bg-red-600 hover:bg-red-700",
+      label: "Demand History",
+      onClick: () => setIsDemandHistoryOpen(true),
+      icon: <FaEye />,
+      show: true,
     },
   ];
 
@@ -262,8 +254,8 @@ function LeaseDetails() {
               <td className="px-3 py-2 border">{tran.tranNo || "NA"}</td>
               <td className="px-3 py-2 border">{tran.paymentMode || "NA"}</td>
               <td className="px-3 py-2 border">{formatLocalDate(tran.tranDate)}</td>
-              <td className="px-3 py-2 border">{formatLocalDate(tran.fromDate)}</td>
-              <td className="px-3 py-2 border">{formatLocalDate(tran.uptoDate)}</td>
+              <td className="px-3 py-2 border">{tran.fromYear}</td>
+              <td className="px-3 py-2 border">{tran.uptoYear}</td>
               <td className="px-3 py-2 border">{tran.demandAmt}</td>
               <td className="px-3 py-2 border">{tran.penaltyAmt}</td>
               <td className="px-3 py-2 border">{tran.payableAmt}</td>
@@ -294,25 +286,25 @@ function LeaseDetails() {
       {isDemandHistoryOpen && (
         <LeaseDemandHistoryModal id={appData.id} onClose={() => setIsDemandHistoryOpen(false)} />
       )}
+
+      {isDemandOpen && (
+        <DemandViewModal 
+          id={appData?.id}
+          onClose={() => setIsDemandOpen(false)}
+          apiUrl={leaDueApi}
+        />
+      )}
       {isPaymentOpen && (
         <DemandViewModal 
           id={appData?.id}
           actionType={"Payment"}
           onSuccess={fetchDetails}
-          onClose={() => setIsDemandViewPayModal(false)}
-          apiUrl={shopRentDueApi}
+          onClose={() => setIsPaymentOpen(false)}
+          apiUrl={leaDueApi}
         />
       )}
       {receiptTranId && (
         <LeasePaymentReceiptModal id={receiptTranId} onClose={() => setReceiptTranId(null)} />
-      )}
-      {isGenerateDemandOpen && (
-        <LeaseGenerateDemandModal
-          id={appData.id}
-          consumerNo={appData.consumerNo}
-          onClose={() => setIsGenerateDemandOpen(false)}
-          onSuccess={demandGenerated}
-        />
       )}
     </div>
   );

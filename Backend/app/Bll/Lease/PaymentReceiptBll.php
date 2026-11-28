@@ -42,7 +42,9 @@ class PaymentReceiptBll
                             ->where("lock_status",false)
                             ->orderBy("id","DESC")
                             ->first();
-        $this->_FineRebates = LeaseTransactionFineRebateDetail::where("lock_status",false)->where("transaction_id",$this->_TranId)->get();
+        $this->_FineRebates = LeaseTransactionFineRebateDetail::where("lock_status",false)
+                            ->where("transaction_id",$this->_TranId)
+                            ->get();
         
         $this->_CollectionDetail = LeaseCollection::where("lock_status",false)->where("transaction_id",$this->_TranId)->get()->map(function($val){               
             $demand = $val->getDemand()->first();

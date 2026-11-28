@@ -6,7 +6,7 @@ import { FaTimes } from "react-icons/fa";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { modalVariants } from "../../../utils/motionVariable";
 import { getToken } from "../../../utils/auth";
-import { leaseRentGenerateDemandApi } from "../leaseEndpoints";
+import { leaseGenerateDemandApi } from "../../../api/endpoints";
 
 function LeaseGenerateDemandModal({ id, consumerNo, onClose, onSuccess }) {
   const token = getToken();
@@ -25,7 +25,7 @@ function LeaseGenerateDemandModal({ id, consumerNo, onClose, onSuccess }) {
     setIsFrozen(true);
     try {
       const response = await axios.post(
-        leaseRentGenerateDemandApi,
+        leaseGenerateDemandApi,
         { id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

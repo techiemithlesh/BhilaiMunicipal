@@ -114,11 +114,10 @@ class LeaseDueBll
         $currentGoveTax = $this->_goveTaxList
                         ->where("effective_from","<=",$from)
                         ->filter(function($item) use($from){
-                            return $item->effective_upto>=$from;
+                            return $item->effective_upto>=$from || $item->effective_upto==null;
                         });
         $percentOfCgstTax = $currentGoveTax->where("tax_type","CGST")->first()->tax_per ??0;
         $percentOfSgstTax = $currentGoveTax->where("tax_type","SGST")->first()->tax_per ??0;
-
         if($this->_Lease->uses_type_id==1){
             $percentOfCgstTax = 0;
             $percentOfSgstTax = 0;

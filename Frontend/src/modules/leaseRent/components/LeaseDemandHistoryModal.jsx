@@ -30,8 +30,7 @@ function LeaseDemandHistoryModal({ id, onClose }) {
 
   const headers = [
     { label: "#", key: "serial" },
-    { label: "Demand From", key: "demandFrom" },
-    { label: "Demand Upto", key: "demandUpto" },
+    { label: "Year", key: "fyear" },
     { label: "Demand Amount", key: "amount" },
     { label: "Penalty", key: "penalty" },
     { label: "Balance", key: "balance" },
@@ -51,8 +50,7 @@ function LeaseDemandHistoryModal({ id, onClose }) {
       <td className="px-3 py-2 border">
         {(currentPage - 1) * perPage + index + 1}
       </td>
-      <td className="px-3 py-2 border">{formatLocalDate(item?.demandFrom)}</td>
-      <td className="px-3 py-2 border">{formatLocalDate(item?.demandUpto)}</td>
+      <td className="px-3 py-2 border">{item?.fyear}</td>
       <td className="px-3 py-2 border">{item?.amount}</td>
       <td className="px-3 py-2 border">{item?.penalty}</td>
       <td className="px-3 py-2 border">{item?.balance}</td>
@@ -61,7 +59,7 @@ function LeaseDemandHistoryModal({ id, onClose }) {
 
   const renderFooter = (totals) => (
     <tr className="bg-gray-200 border-t font-bold">
-      <td colSpan={5} className="px-3 py-2 border text-center">
+      <td colSpan={4} className="px-3 py-2 border text-center">
         Total Due
       </td>
       <td className="px-3 py-2 border">{totals?.totalDue}</td>

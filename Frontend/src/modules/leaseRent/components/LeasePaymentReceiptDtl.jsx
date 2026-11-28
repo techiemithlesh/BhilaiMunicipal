@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getToken } from "../../../utils/auth";
 import "../../../i18n";
 import { leasePaymentReceiptApi } from "../../../api/endpoints";
+import { toTitleCase } from "../../../utils/common";
 
 const NA = "NA";
 const val = (v) => (v === null || v === undefined || v === "" ? NA : String(v));
@@ -197,6 +198,10 @@ function LeasePaymentReceiptDtl({ id, setIsFrozen = () => {} }) {
                     <td className="p-1 border">{item?.amount}</td>
                 </tr>
             ))}
+            <tr>
+                <td className="p-1 border" colSpan={2}>{"Prev GST"}</td>
+                <td className="p-1 border">{receiptData?.tranDtl?.prevGst}</td>
+            </tr>
             <tr className="font-bold">
               <td className="px-2 py-1 border text-right" colSpan={2}>
                 {t("Total Amount")}

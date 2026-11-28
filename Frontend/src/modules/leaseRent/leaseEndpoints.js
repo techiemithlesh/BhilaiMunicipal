@@ -4,10 +4,6 @@ import { BASE_URL } from "../../api/endpoints";
 
 
 
-export const leaseRentUpdateHoldingApi = `${BASE_URL}/api/lease-rent/update-holding`;
-export const leaseRentPaymentApi = `${BASE_URL}/api/lease-rent/pay-demand`;
-export const leaseRentGenerateDemandApi = `${BASE_URL}/api/lease-rent/generate-demand`;
-export const leaseRentDemandReceiptApi = `${BASE_URL}/api/lease-rent/demand-receipt`;
 
 // Lease Rent Report Endpoints
 export const leaseRentCollectionApi = `${BASE_URL}/api/lease-rent/report/collection`;

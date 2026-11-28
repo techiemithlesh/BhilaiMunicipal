@@ -7,12 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class LeaseTransactionFineRebateDetail extends ParamModel
 {
     protected $fillable = [
-        "lease_id",
         "transaction_id",
-        "lease_demand_id",
-        "fyear",
+        "head_name",
         "amount",
-        "penalty",
+        "is_rebate",
         "lock_status",
     ];
 }

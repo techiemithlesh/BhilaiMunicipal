@@ -427,7 +427,10 @@ export const leaseSearchApi = `${BASE_URL}/api/lease/search`;
 export const leaseDtlApi = `${BASE_URL}/api/lease/dtl`;
 export const leaseDemandHistoryApi = `${BASE_URL}/api/lease/demand-history`;
 export const leaDueApi = `${BASE_URL}/api/lease/due`;
+export const leasePaymentApi = `${BASE_URL}/api/lease/pay-due`;
 export const leasePaymentReceiptApi = `${BASE_URL}/api/lease/payment-receipt`;
+export const leaseUpdateHoldingApi = `${BASE_URL}/api/lease/update-holding`;
+export const leaseGenerateDemandApi = `${BASE_URL}/api/lease/generate-demand`;
 
 // Accounts
 export const cashUserListApi = `${BASE_URL}/api/account/cash-user/list`;
