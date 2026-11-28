@@ -490,7 +490,8 @@ class PropertyController extends Controller
             $propertyPaymentBll = new PropertyPaymentBll($request);         
             $responseData = ($propertyPaymentBll->payNow());  
             $tan = PropTransaction::find($responseData["tranId"]);
-            $coll = PropertyCollection::where("transaction_id",$responseData["tranId"])->get();     
+            $coll = PropertyCollection::where("transaction_id",$responseData["tranId"])->get(); 
+            dd($tan);    
             $this->commit();
             $this->commitSwm();
             return responseMsg(true,"Payment Successfully Done",$responseData);

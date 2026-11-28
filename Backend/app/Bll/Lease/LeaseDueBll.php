@@ -38,11 +38,16 @@ class LeaseDueBll
     private $_DemandList;
     private $_goveTaxList;
     private $_demandUptoList;
+    private $_isGSTWeaveOff;
+    private $_GSTWeaveOffAmt=0;
+    private $_cgst_weave_off=0;
+    private $_sgst_weave_off=0;
 
-    public function __construct($leaseId,$tranDate=null,$uptoFyear=null)
+    public function __construct($leaseId,$tranDate=null,$uptoFyear=null,$isGSTWeaveOff=false)
     {
         $this->_LeaseId = $leaseId;
         $this->_tranDate = Carbon::parse($tranDate);
+        $this->_isGSTWeaveOff = $isGSTWeaveOff;
         list(,$this->_endDateOfFyear) = FyearFromUptoDate(getFY($tranDate));
         $this->_tranDateFyear = getFY($this->_tranDate->copy()->format("Y-m-d"));
         $this->_uptoFYear = $uptoFyear ? $uptoFyear : $this->_tranDateFyear;
@@ -87,6 +92,10 @@ class LeaseDueBll
         $this->_serviceTax = roundFigure($this->_DemandList->sum("serviceTax"));
         $this->_cgst = roundFigure($this->_DemandList->sum("cgst"));
         $this->_sgst = roundFigure($this->_DemandList->sum("sgst"));
+
+        $this->_cgst_weave_off = roundFigure($this->_DemandList->sum("cgst_weave_off"));
+        $this->_sgst_weave_off = roundFigure($this->_DemandList->sum("sgst_weave_off"));
+
         $this->_demandFromFyear = $this->_DemandList->min("fyear");
         $this->_demandUptoFyear = $this->_DemandList->max("fyear");
     }
@@ -118,7 +127,15 @@ class LeaseDueBll
         $demandList->cgst = roundFigure(($percentOfCgstTax * $balance)/100);
         $demandList->sgst = roundFigure(($percentOfSgstTax * $balance)/100);
 
-        $demandList->totalTax = roundFigure($balance +  $demandList->cgst + $demandList->sgst);
+        $demandList->cgst_weave_off = 0;
+        $demandList->sgst_weave_off = 0;
+
+        if($this->_isGSTWeaveOff){
+            $demandList->cgst_weave_off = $demandList->cgst;
+            $demandList->sgst_weave_off = $demandList->sgst;
+        }
+
+        $demandList->totalTax = roundFigure(($balance +  $demandList->cgst + $demandList->sgst) - ($demandList->cgst_weave_off + $demandList->sgst_weave_off));
     }
 
     private function getAdvanceAmount(){
@@ -165,12 +182,15 @@ class LeaseDueBll
             "cgst"=>$this->_cgst,
             "sgst"=>$this->_sgst,
             "GST"=>roundFigure($this->_cgst + $this->_sgst),
+            "cgst_weave_off"=>$this->_cgst_weave_off,
+            "sgst_weave_off"=>$this->_sgst_weave_off,
+            "GST_weave_off"=>roundFigure($this->_cgst_weave_off + $this->_sgst_weave_off),
             "advanceAmount" => $this->_advanceAmount,
             "demandFromFyear"=>$this->_demandFromFyear,
             "_demandUptoFyear"=>$this->_demandUptoFyear,
             "payableAmount" => roundFigure(
                 ($this->_demandAmount + $this->_latePenalty + $this->_cgst + $this->_sgst +  $this->_additionalTax ) 
-                - ($this->_advanceAmount) 
+                - ($this->_advanceAmount + $this->_cgst_weave_off + $this->_sgst_weave_off) 
             ),
         ];
         $this->_GRID["payableAmountInWord"] = getIndianCurrency($this->_GRID["payableAmount"]);

@@ -34,7 +34,7 @@ class PropertyPaymentBll{
         $this->_tranDate = Carbon::parse($request->tranDate);
         $this->_PROPERTY = PropertyDetail::find($this->_PROPId);
          
-        $propDemandBll = new PropDemandBll($this->_PROPId,$this->_tranDate,$request->fyear??null);
+        $propDemandBll = new PropDemandBll($this->_PROPId,$this->_tranDate,$request->fyear??null,$request->isSWMDemand);
         $propDemandBll->getPropDue();
         $this->_Demand = $propDemandBll->_GRID;
         $this->_DemandList = $propDemandBll->_GRID["demandList"];
@@ -91,9 +91,11 @@ class PropertyPaymentBll{
             $swmPaidAmount      = $swmPaid;
 
         }
-        $this->_REQUEST->merge([
-            "swmPaidAmount"      => $swmPaidAmount,
-        ]);
+        if($this->_REQUEST->isSWMDemand){
+            $this->_REQUEST->merge([
+                "swmPaidAmount"      => $swmPaidAmount,
+            ]);
+        }
 
         $user = Auth()->user();
 

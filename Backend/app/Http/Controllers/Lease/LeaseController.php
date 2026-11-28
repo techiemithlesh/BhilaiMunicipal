@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Lease;
 
+use App\Bll\Lease\LeaseDemandGenerateBll;
 use App\Bll\Lease\LeaseDueBll;
+use App\Bll\Lease\LeasePaymentBll;
 use App\Bll\Lease\PaymentReceiptBll;
 use App\Exceptions\CustomException;
 use App\Http\Controllers\Controller;
@@ -24,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class LeaseController extends Controller
 {
@@ -125,7 +128,7 @@ class LeaseController extends Controller
                 "yearlyRate"=>$request->yearlyRate,
                 "leaseDate"=>$request->leaseDate,
                 "leaseEndDate"=>$request->leaseEndDate,
-                "effectiveDate"=>$request->effectiveDate,
+                "effectiveDate"=>$request->effectiveDate."-01",
                 "userId"=>$request->userId,
             ];
             if($request->document){
@@ -138,10 +141,10 @@ class LeaseController extends Controller
             $connectionRequest = new Request($connectionArr);
             $rateId = $this->_LeaseRent->store($connectionRequest);
 
-            // list($curentFyearFromDate,$curentFyearLastDate) = FyearFromUptoDate(getFy());
-            // $request->merge(["id"=>$shopId,"currentDate"=>$curentFyearLastDate]);
-            // $objDemandBll = new ShopDemandGenerateBll($request);
-            // $objDemandBll->generateDemand();
+            list($curentFyearFromDate,$curentFyearLastDate) = FyearFromUptoDate(getFy());
+            $request->merge(["id"=>$leaseId,"currentDate"=>$curentFyearLastDate]);
+            $objDemandBll = new LeaseDemandGenerateBll($request);
+            $objDemandBll->generateDemand();
             
             $lease = $this->_Lease->find($leaseId);
             $leaseNo = $lease->lease_no??"";
@@ -256,41 +259,7 @@ class LeaseController extends Controller
             return responseMsg(false,"Internal Server Error","");
         }
     }
-
-    /*
-    public function generateDemand(Request $request)
-    {
-        try {
-            $rules = [
-                "id" => "required|digits_between:1,9223372036854775807|exists:".$this->_Lease->getConnectionName().".".$this->_Lease->getTable().",id,lock_status,false",             
-            ];
-            $validator = Validator::make($request->all(), $rules);
-
-            if ($validator->fails()) {
-                return validationError($validator);
-            }
-
-            $user = Auth()->user();
-            $request->merge(["userId" => $user->id]);
-            list($curentFyearFromDate,$curentFyearLastDate) = FyearFromUptoDate(getFy());
-            $request->merge(["currentDate"=>$curentFyearLastDate]);
-            
-            $this->begin();
-            
-            $objDemandBll = new ShopDemandGenerateBll($request);
-            $objDemandBll->generateDemand();
-            $this->commit();
-
-            return responseMsg(true, "Demand Generated", "");
-        } catch (CustomException $e) {
-            $this->rollback();
-            return responseMsg(false, $e->getMessage(), "");
-        } catch (Exception $e) {
-            $this->rollback();
-            return responseMsg(false, "Server Error", "");
-        }
-    }
-    */
+    
 
     public function getAllDemands(Request $request){
         try{
@@ -349,6 +318,7 @@ class LeaseController extends Controller
                         }
                     },
                 ],
+                "isGSTWeaveOff"=>"nullable|boolean",
             ];
             
             $validator = Validator::make($request->all(), $rules);
@@ -357,7 +327,7 @@ class LeaseController extends Controller
             }
             $currentDate = Carbon::now()->format("Y-m-d");
             $demandUptoFyear = $request->fyear??$fyear;
-            $objConsumerDueBll = new LeaseDueBll($request->id,$currentDate,$demandUptoFyear);
+            $objConsumerDueBll = new LeaseDueBll($request->id,$currentDate,$demandUptoFyear,$request->isGSTWeaveOff);
             $objConsumerDueBll->getConsumerDue();
             return responseMsg(true,"Lease Due",camelCase(remove_null($objConsumerDueBll->_GRID)));
         }catch(CustomException $e){
@@ -367,35 +337,77 @@ class LeaseController extends Controller
         }
     }
 
-    /*
+    
     public function offlinePayment(Request $request){
         try{
-            list($from,$upto) = FyearFromUptoDate(getFy());
-            $rule=[
-                "id"=>"required|digits_between:1,9223372036854775807|exists:".$this->_Shop->getConnectionName().".".$this->_Shop->getTable().",id,lock_status,false",
-                "demandUpto"=>"nullable|date|date_format:Y-m-d|before_or_equal:".$upto,
-                "paymentType"=>"required|in:FULL,PART",
-                "paymentMode" => "required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS",
-                "amount"=>"nullable|required_if:paymentType,==,PART|numeric|min:0",
-                "chequeNo"=>"required_unless:paymentMode,ONLINE,CASH",
-                "chequeDate"=>"required_unless:paymentMode,ONLINE,CASH",                
-                "bankName"=>"required_unless:paymentMode,ONLINE,CASH",
-                "branchName"=>"required_unless:paymentMode,ONLINE,CASH",
+            $fyear = getFy();
+            $rule = [
+                'id' => [
+                    'required',
+                    'digits_between:1,9223372036854775807',
+                    'exists:' . $this->_Lease->getConnectionName() . '.' . $this->_Lease->getTable() . ',id,lock_status,false',
+                ],
+                'fyear' => [
+                    'nullable',
+                    'string',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($fyear) {
+                        if ($value === null || $value === '') {
+                            return;
+                        }
+
+                        if (!preg_match('/^(\d{4})-(\d{4})$/', $value, $matches)) {
+                            $fail("The {$attribute} must be in YYYY-YYYY format.");
+                            return;
+                        }
+
+                        $startYear = (int) $matches[1];
+                        $endYear = (int) $matches[2];
+
+                        if ($endYear !== $startYear + 1) {
+                            $fail("The {$attribute} must contain consecutive years (e.g., {$fyear}).");
+                            return;
+                        }
+
+                        if (is_string($fyear) && preg_match('/^(\d{4})-(\d{4})$/', $fyear, $maxMatches)) {
+                            $maxStartYear = (int) $maxMatches[1];
+                            if ($startYear > $maxStartYear) {
+                                $fail("The {$attribute} must be less than or equal to {$fyear}.");
+                            }
+                        }
+                    },
+                ],
+                'paymentType' => 'required|in:FULL,PART',
+                'paymentMode' => 'required|in:ONLINE,CASH,CHEQUE,DD,NEFT,RTGS',
+                'amount' => 'nullable|required_if:paymentType,PART|numeric|min:0',
+                'chequeNo' => 'required_unless:paymentMode,ONLINE,CASH|nullable|string|max:255',
+                'chequeDate' => 'required_unless:paymentMode,ONLINE,CASH|nullable|date',
+                'bankName' => 'required_unless:paymentMode,ONLINE,CASH|nullable|string|max:255',
+                'branchName' => 'required_unless:paymentMode,ONLINE,CASH|nullable|string|max:255',
+                'isGSTWeaveOff' => 'nullable|boolean',
+                'GSTWeaveOffDoc' => 'nullable|required_if:isGSTWeaveOff,true,1|file|mimes:pdf,png,jpg,jpeg|max:1000',
+                'prevGstAmt' => 'nullable|numeric|min:0',
             ];
             $validator = Validator::make($request->all(),$rule);
             if($validator->fails()){
                 return validationError($validator);
             }
             $currentDate = Carbon::now()->format("Y-m-d");
-            $demandUpto = Carbon::parse($request->demandUpto??$upto)->endOfMonth()->format("Y-m-d");
-
-            $objConsumerDueBll = new ShopDueBll($request->id,$currentDate,$demandUpto);
+            $demandUptoFyear = $request->fyear??$fyear;
+            $objConsumerDueBll = new LeaseDueBll($request->id,$currentDate,$demandUptoFyear,$request->isGSTWeaveOff);
             $objConsumerDueBll->getConsumerDue();
             $demandPayableAmount = $objConsumerDueBll->_GRID["payableAmount"];
             if($demandPayableAmount <=0){
                 throw new CustomException("All Demand Are Clear");
             } 
-            $applicationPaymentBll = new ShopPaymentBll($request);
+            $applicationPaymentBll = new LeasePaymentBll($request);
+            if($request->isGSTWeaveOff){
+                if($request->GSTWeaveOffDoc){
+                    $relativePath = "Uploads/Lease/WeaveOffGST";
+                    $imageName = $request->id."_".((string) Str::uuid()).".".$request->GSTWeaveOffDoc->getClientOriginalExtension();
+                    $path = $request->GSTWeaveOffDoc->storeAs($relativePath,$imageName, $this->disk);
+                    $request->merge(["gst_doc"=>$path]);
+                }
+            }
 
             $this->begin();           
             $responseData = ($applicationPaymentBll->payNow());
@@ -410,7 +422,7 @@ class LeaseController extends Controller
             return responseMsg(false,"Internal Server Error","");
         }
     }
-    */
+    
 
     public function getPaymentReceipt(Request $request){
         try{

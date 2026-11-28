@@ -234,7 +234,7 @@ class ShopPaymentBll
             $shopDemand->paid_status = true ; 
             $shopDemand->balance = ($shopDemand->balance - $paid["paid_balance"]);
             $shopDemand->due_amount = ($shopDemand->due_amount - $paid["paid_amount"]);
-            $shopDemand->due_penalty = ($shopDemand->balance - $paid["paid_penalty"]);
+            $shopDemand->due_penalty = ($shopDemand->due_penalty - $paid["paid_penalty"]);
             if($shopDemand->balance<=0){
                 $shopDemand->balance =0 ;
                 $shopDemand->is_full_paid = true;

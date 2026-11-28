@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Lease\Lease;
 use App\Models\Lease\LeaseRent;
+use App\Models\Lease\LeaseTransaction;
 use App\Models\Property\ActiveSafDetail;
 use App\Models\Property\MemoDetail;
 use App\Models\Property\PropertyNotice;
@@ -21,6 +22,7 @@ use App\Models\Water\WaterActiveApplication;
 use App\Models\Water\WaterTransaction;
 use App\Observers\Lease\LeaseObserver;
 use App\Observers\Lease\LeaseRentObserver;
+use App\Observers\Lease\LeaseTransactionObserver;
 use App\Observers\Property\ActiveSafDetailObserver;
 use App\Observers\Property\MemoDetailObserver;
 use App\Observers\Property\PropertyNoticeObserver;
@@ -78,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
         //Lease
         Lease::Observe(LeaseObserver::class);
         LeaseRent::Observe(LeaseRentObserver::class);
+        LeaseTransaction::observe(LeaseTransactionObserver::class);
         // ShopTransaction::observe(ShopTransactionObserver::class);
 
         app()->singleton('requestToken', function () {
