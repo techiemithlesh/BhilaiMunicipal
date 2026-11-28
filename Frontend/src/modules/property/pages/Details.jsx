@@ -437,9 +437,9 @@ const Details = () => {
                 "Date",
                 "From Year",
                 "Upto Year",
-                "Amount",
                 "prop Amount",
                 "swm Amount",
+                "Total Amount",
                 "View",
               ]}
               data={propDetails.tranDtls}
@@ -463,10 +463,10 @@ const Details = () => {
                     {trans?.payableAmt || ""}
                   </td>
                   <td className="px-3 py-2 border">
-                    {trans?.propertyPaidAmount || ""}
+                    {trans?.swmPaidAmount || ""}
                   </td>
                   <td className="px-3 py-2 border">
-                    {trans?.swmPaidAmount || ""}
+                    {(trans?.swmPaidAmount??0) + (trans?.payableAmt??0)}
                   </td>
                   <td className="px-3 py-2 border">
                     {trans?.id && (
